@@ -45,6 +45,13 @@
 
 <main id="top">
 
+  <section id="scene-opening" class="story-scene">
+    <div class="scene-sticky">
+      <canvas id="scene-opening-canvas"></canvas>
+      <div class="scene-caption" id="scene-opening-caption">Everything begins with something.</div>
+    </div>
+  </section>
+
   <section class="hero" data-reveal data-rail-label="Hero">
     <div class="hero-inner">
       <div class="hero-text">
@@ -138,6 +145,84 @@
     </div>
   </section>
 
+  <section id="scene-universe" class="story-scene">
+    <div class="scene-sticky">
+      <div class="universe-stage">
+        <div class="universe-word" id="universe-word">MEDIA</div>
+        <div class="universe-cluster" id="universe-categories">
+          <span class="universe-chip" data-cat>Film</span>
+          <span class="universe-chip" data-cat>Audio</span>
+          <span class="universe-chip" data-cat>Photography</span>
+          <span class="universe-chip" data-cat>Journalism</span>
+          <span class="universe-chip" data-cat>Research</span>
+          <span class="universe-chip" data-cat>AI</span>
+        </div>
+        <div class="universe-cluster" id="universe-atoms">
+          <span class="universe-chip universe-chip--atom" data-atom>Frame</span>
+          <span class="universe-chip universe-chip--atom" data-atom>Scene</span>
+          <span class="universe-chip universe-chip--atom" data-atom>Keyframe</span>
+          <span class="universe-chip universe-chip--atom" data-atom>Model</span>
+          <span class="universe-chip universe-chip--atom" data-atom>Agent</span>
+          <span class="universe-chip universe-chip--atom" data-atom>Workflow</span>
+          <span class="universe-chip universe-chip--atom" data-atom>Inference</span>
+        </div>
+        <div class="universe-project" id="universe-project">
+          <div class="universe-project-ring"></div>
+          <div class="universe-project-label">Your Project</div>
+        </div>
+      </div>
+      <div class="scene-caption" id="universe-caption" style="top: auto; bottom: 10%;">Every project is built from the same primitives.</div>
+    </div>
+  </section>
+
+  <section id="scene-chaos" class="story-scene">
+    <div class="scene-sticky">
+      <div id="chaos-field"></div>
+      <div class="chaos-caption" id="chaos-caption">So much. Everywhere. Nowhere.</div>
+    </div>
+  </section>
+
+  <section id="scene-maie-moment" class="story-scene">
+    <div class="scene-sticky">
+      <div class="scene-maie-caption" id="scene-maie-caption-before">Fragmented. Scattered. Disconnected.</div>
+      <svg id="signal-svg" viewBox="0 0 92 56" xmlns="http://www.w3.org/2000/svg">
+        <path id="signal-path" class="signal-stroke"
+          d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
+             C 29,20 33,20 33,30 C 33,40 39,40 41,28
+             L 46,44 L 50,20 L 54,38
+             C 58,26 63,26 63,34 C 63,40 68,38 70,32
+             Q 73,29 76,32 T 84,32"/>
+        <circle id="signal-accent-dot" class="signal-accent-dot" cx="86" cy="32" r="3" opacity="0"/>
+      </svg>
+      <div class="scene-maie-caption" id="scene-maie-caption-after" style="bottom:auto; top:14%;">Then, everything connects.</div>
+    </div>
+  </section>
+
+  <section id="scene-lifecycle" class="story-scene lifecycle-scene">
+    <div class="scene-sticky">
+      <div class="lifecycle-caption" id="lifecycle-caption">The Media Lifecycle</div>
+      <div class="lifecycle-window">
+        <div class="lifecycle-track" id="lifecycle-track"></div>
+      </div>
+      <div class="lifecycle-rail" id="lifecycle-rail"></div>
+    </div>
+  </section>
+
+  <section id="scene-agent" class="story-scene agent-scene">
+    <div class="scene-sticky">
+      <div class="agent-caption" id="agent-caption">Watch the agent work.</div>
+      <div class="agent-stage">
+        <svg id="agent-path-svg" viewBox="0 0 100 60" preserveAspectRatio="none">
+          <path id="agent-path" class="agent-path-stroke"
+            d="M 4,48 C 16,48 16,12 30,12 C 44,12 44,48 50,48 C 56,48 56,12 66,12 C 76,12 76,48 84,48 L 96,48"/>
+        </svg>
+        <div class="agent-nodes" id="agent-nodes"></div>
+        <canvas id="agent-pixie-canvas" class="agent-pixie-canvas"></canvas>
+      </div>
+      <div class="agent-detail" id="agent-detail">The creator states what they need — in plain language, not a menu of settings.</div>
+    </div>
+  </section>
+
   <section id="paths" class="final-cta" data-reveal data-rail-label="Your Path">
     <div class="section-tag" style="text-align:center;">The Destination</div>
     <h2>Two ways to go deeper.</h2>
@@ -165,10 +250,17 @@
 <script src="pixie-companion.js"></script>
 <script>
   window.initPixieCompanion(document.getElementById('pixie-canvas'), {
-    size: 88, mode: 'ambient', phase: 'idle', archetype: 'archivist', temperament: 'idle',
+    size: 220, mode: 'ambient', phase: 'idle', archetype: 'archivist', temperament: 'idle',
   });
 </script>
 <script src="theme.js"></script>
 <script src="reveal.js"></script>
+<script src="story-scroll.js"></script>
+<script src="scene-opening.js"></script>
+<script src="scene-universe.js"></script>
+<script src="scene-chaos.js"></script>
+<script src="scene-maie-moment.js"></script>
+<script src="scene-lifecycle.js"></script>
+<script src="scene-agent.js"></script>
 </body>
 </html>
