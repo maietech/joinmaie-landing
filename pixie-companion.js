@@ -305,10 +305,28 @@
     var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reducedMotion) { cancelAnimationFrame(animId); } // one frame drawn, then hold
 
-    return function destroy() {
-      cancelAnimationFrame(animId);
-      canvas.removeEventListener('mousemove', onMouseMove);
-      canvas.removeEventListener('mouseleave', onMouseLeave);
+    // update() lets a call site change mode/phase/progress/temperament
+    // (and archetype, though changing that won't retroactively resize the
+    // particle field already built at init) after the fact, without a
+    // second init/teardown cycle. archetype/mode/phase/progress/temperament
+    // are the same closure vars animate() already reads every frame, so
+    // reassigning them here is all that's needed — no restart required.
+    function update(patch) {
+      patch = patch || {};
+      if (patch.mode !== undefined) mode = patch.mode;
+      if (patch.phase !== undefined) phase = patch.phase;
+      if (patch.progress !== undefined) progress = patch.progress;
+      if (patch.archetype !== undefined) archetype = patch.archetype;
+      if (patch.temperament !== undefined) temperament = patch.temperament;
+    }
+
+    return {
+      destroy: function () {
+        cancelAnimationFrame(animId);
+        canvas.removeEventListener('mousemove', onMouseMove);
+        canvas.removeEventListener('mouseleave', onMouseLeave);
+      },
+      update: update,
     };
   };
 })();

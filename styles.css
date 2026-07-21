@@ -175,14 +175,17 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 @media (prefers-reduced-motion: reduce) { .bg-orb { transform: none !important; } }
 
 /* ── Hero — two columns, companion on the right ─────────────────── */
-.hero-inner { display: flex; align-items: center; justify-content: space-between; gap: 48px; }
-.hero-text { max-width: 620px; }
-.hero-companion { flex-shrink: 0; width: 260px; display: flex; justify-content: center; }
+.hero-inner { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+.hero-text { max-width: 560px; flex: 1 1 380px; }
+.hero-companion { flex-shrink: 0; width: 550px; max-width: 44vw; display: flex; justify-content: center; }
+@media (max-width: 1100px) {
+  .hero-companion { max-width: 100%; }
+}
 @media (max-width: 860px) {
   .hero-inner { flex-direction: column; text-align: center; }
   .hero-text { max-width: 100%; }
-  .hero-companion { width: 180px; order: -1; margin-bottom: 12px; }
-  #pixie-canvas { width: 180px !important; height: 180px !important; }
+  .hero-companion { width: min(70vw, 450px); order: -1; margin-bottom: 12px; }
+  #pixie-canvas { width: min(70vw, 450px) !important; height: min(70vw, 450px) !important; }
   .hero-ctas { justify-content: center; }
 }
 
@@ -203,3 +206,197 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .path-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
 .path-desc { color: var(--text-2); font-size: 14.5px; line-height: 1.55; margin-bottom: 18px; }
 .path-arrow { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--text-1); }
+
+/* ── Story scenes (Section 1 + Section 6 proof of concept) ──────────
+   A story scene is a tall wrapper with a sticky inner panel — the user
+   scrolls normally through the wrapper's full height, while the panel
+   stays pinned to the viewport and reads the scroll position as 0..1
+   progress (see story-scroll.js). No scroll-jacking: native scroll the
+   whole time, we only ever read position, never set it. Both scenes
+   force their own dark cinematic backdrop regardless of the site's
+   light/dark toggle — an intentional exception for these two immersive
+   beats, not a bug. */
+.story-scene { position: relative; height: 250vh; }
+.scene-sticky {
+  position: sticky; top: 0; height: 100vh; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+.nav.nav-hidden { transform: translateY(-100%); transition: transform 0.3s ease; }
+.nav { transition: transform 0.3s ease; }
+
+#scene-opening-canvas { width: 100%; height: 100%; display: block; }
+.scene-caption {
+  position: absolute; left: 50%; top: 62%; transform: translate(-50%, 0);
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(22px, 3.5vw, 34px);
+  letter-spacing: 0.02em; color: rgba(255,255,255,0.92); text-align: center;
+  pointer-events: none; white-space: nowrap;
+}
+
+#signal-svg { width: min(80vw, 700px); height: auto; overflow: visible; }
+.signal-stroke { fill: none; stroke: var(--brand-light); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.chaos-node { fill: rgba(232,230,227,0.55); }
+.signal-accent-dot { fill: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
+.scene-maie-caption {
+  position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(232,230,227,0.7); text-align: center; white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav.nav-hidden { transform: none; }
+}
+
+/* ── Section 5 — Chaos of Creation ───────────────────────────────── */
+#scene-chaos .scene-sticky {
+  background: radial-gradient(ellipse 70% 60% at 50% 40%, #1a2530, #0a0d10 75%);
+}
+#chaos-field { position: absolute; inset: 0; }
+.chaos-chip {
+  position: absolute; padding: 8px 14px; border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; white-space: nowrap;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(232,230,227,0.75); cursor: default; user-select: none;
+  opacity: calc(var(--chaos-density, 1) * 0.9);
+  transition: border-color 0.2s ease, background 0.2s ease, opacity 0.3s ease;
+}
+.chaos-chip--window { border-radius: 6px 6px 3px 3px; border-top-width: 5px; border-top-color: rgba(255,255,255,0.2); }
+.chaos-chip--alert { border-color: rgba(255,209,102,0.3); color: rgba(255,209,102,0.85); }
+.chaos-chip.is-warning { border-color: rgba(220,80,80,0.8); background: rgba(120,30,30,0.25); color: #fff; }
+.chaos-warn {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 6px;
+  font-size: 10.5px; color: #ff8a8a; background: rgba(30,0,0,0.7); border: 1px solid rgba(220,80,80,0.5);
+  padding: 3px 8px; border-radius: 5px; white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.chaos-chip.is-warning .chaos-warn { opacity: 1; }
+.chaos-caption {
+  position: absolute; left: 50%; bottom: 12%; transform: translateX(-50%);
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(18px, 3vw, 26px);
+  letter-spacing: 0.02em; color: rgba(255,255,255,0.75); text-align: center; pointer-events: none;
+}
+
+/* ── Section 3 — Universe to You (scale shift) ───────────────────────
+   DOM + CSS transforms, not canvas text — keeps type crisp at any scale,
+   per the brief's requirement. See scene-universe.js for the stage math. */
+#scene-universe .scene-sticky { background: #05050a; }
+.universe-stage { position: relative; width: 100%; height: 100%; }
+.universe-word {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(60px, 16vw, 220px);
+  letter-spacing: 0.02em;
+  color: rgba(232,230,227,0.95);
+  white-space: nowrap;
+  will-change: transform, opacity, filter;
+}
+.universe-cluster { position: absolute; inset: 0; }
+.universe-chip {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.02em;
+  color: var(--brand-light);
+  font-size: clamp(20px, 3vw, 34px);
+  white-space: nowrap;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.universe-chip--atom {
+  font-family: 'JetBrains Mono', monospace;
+  color: rgba(255,209,102,0.9);
+  font-size: clamp(12px, 1.5vw, 17px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.universe-project {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(0.4);
+  display: flex; align-items: center; justify-content: center; opacity: 0;
+  will-change: transform, opacity;
+}
+.universe-project-ring {
+  position: absolute; width: 160px; height: 160px; border-radius: 50%;
+  border: 1px solid rgba(255,209,102,0.4);
+}
+.universe-project-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(232,230,227,0.85);
+}
+
+/* ── Section 7 — The Media Lifecycle (8-stage filmstrip) ─────────────
+   Horizontal filmstrip whose translateX is a function of vertical scroll
+   progress only — no real horizontal scroll, no scroll-jacking. Text/UI
+   content, no asset dependency. See scene-lifecycle.js. */
+.lifecycle-scene { height: 420vh; }
+.lifecycle-scene .scene-sticky {
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, #14141a, #08080a 80%);
+  flex-direction: column; gap: 22px;
+}
+.lifecycle-caption {
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(20px, 3vw, 30px);
+  letter-spacing: 0.02em; color: rgba(255,255,255,0.85); text-align: center;
+}
+.lifecycle-window { position: relative; width: min(1100px, 92vw); height: min(58vh, 420px); overflow: hidden; }
+.lifecycle-track { display: flex; gap: 28px; height: 100%; position: absolute; left: 0; top: 0; will-change: transform; }
+.lifecycle-frame {
+  flex: 0 0 min(320px, 74vw); height: 100%; position: relative;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 30px 24px 24px; display: flex; flex-direction: column; justify-content: flex-end;
+  opacity: 0.35; transform: scale(0.92);
+  transition: opacity 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+.lifecycle-frame::before, .lifecycle-frame::after {
+  content: ''; position: absolute; left: 0; right: 0; height: 9px;
+  background-image: repeating-linear-gradient(to right, rgba(255,255,255,0.16) 0 6px, transparent 6px 16px);
+  opacity: 0.5;
+}
+.lifecycle-frame::before { top: 0; }
+.lifecycle-frame::after { bottom: 0; }
+.lifecycle-frame.is-active { opacity: 1; transform: scale(1); border-color: var(--brand-light); }
+.lifecycle-frame-num { font-family: 'Bebas Neue', sans-serif; font-size: 30px; color: var(--brand-light); }
+.lifecycle-frame-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.02em; margin: 4px 0 10px; color: var(--text-1); }
+.lifecycle-frame-desc { font-size: 14px; line-height: 1.55; color: var(--text-2); margin: 0 0 14px; }
+.lifecycle-frame-metric { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: rgba(255,209,102,0.85); }
+.lifecycle-rail { display: flex; gap: 8px; }
+.lifecycle-rail-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.18); transition: background 0.2s ease, transform 0.2s ease; }
+.lifecycle-rail-dot.is-active { background: var(--brand-light); transform: scale(1.4); }
+@media (max-width: 720px) { .lifecycle-scene { height: 500vh; } }
+
+/* ── Section 8 — Agent Workflow ──────────────────────────────────────
+   Reuses pixie-companion.js — the same engine as the hero, not a
+   lookalike — which now travels along a signal-line path with its
+   mode/phase/temperament updated live per step. See scene-agent.js. */
+.agent-scene .scene-sticky {
+  background: radial-gradient(ellipse 75% 60% at 50% 45%, #14161d, #07080a 78%);
+  flex-direction: column; gap: 24px;
+}
+.agent-caption {
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(20px, 3vw, 30px);
+  letter-spacing: 0.02em; color: rgba(255,255,255,0.85); text-align: center;
+}
+.agent-stage { position: relative; width: min(900px, 90vw); aspect-ratio: 100 / 60; }
+#agent-path-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.agent-path-stroke { fill: none; stroke: var(--brand-light); stroke-width: 0.8; opacity: 0.5; }
+.agent-nodes { position: absolute; inset: 0; }
+.agent-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
+}
+.agent-node-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.3);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.agent-node.is-active .agent-node-dot { background: var(--accent); box-shadow: 0 0 12px var(--accent); transform: scale(1.3); }
+.agent-node-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: rgba(232,230,227,0.55); white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.agent-node.is-active .agent-node-label { color: rgba(232,230,227,0.95); }
+.agent-pixie-canvas { position: absolute; transform: translate(-50%, -50%); pointer-events: none; z-index: 2; }
+.agent-detail {
+  font-family: 'DM Sans', sans-serif; font-size: 14.5px; color: var(--text-2);
+  max-width: 56ch; text-align: center; min-height: 44px; padding: 0 20px;
+}
