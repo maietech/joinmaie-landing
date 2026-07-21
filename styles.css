@@ -1,0 +1,145 @@
+:root {
+  /* Dark (default) — matches portal.joinmaie.com / waitlist.joinmaie.com */
+  --bg: #09090B;
+  --surface: #111318;
+  --surface-2: #171a20;
+  --border: rgba(255,255,255,0.09);
+  --text-1: rgba(232,230,227,0.94);
+  --text-2: rgba(232,230,227,0.60);
+  --brand: #A52A2A;
+  --brand-light: #C24E4E;
+  --brand-glow: rgba(165,42,42,0.30);
+  --accent: #FFD166;
+}
+
+html[data-theme="light"] {
+  --bg: #FAF8F6;
+  --surface: #FFFFFF;
+  --surface-2: #F1EDEA;
+  --border: rgba(20,15,13,0.10);
+  --text-1: rgba(26,20,18,0.92);
+  --text-2: rgba(26,20,18,0.58);
+  --brand: #772E25;
+  --brand-light: #A52A2A;
+  --brand-glow: rgba(119,46,37,0.16);
+  --accent: #B8860B;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.font-display { font-family: 'Bebas Neue', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+a { color: inherit; }
+
+/* ── Nav ─────────────────────────────────────────────────────────── */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(16px, 3vw, 40px);
+  height: 64px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-1); }
+.nav-brand svg { width: 30px; height: auto; }
+.nav-brand-word { font-size: 15px; font-weight: 600; }
+.nav-links { display: flex; align-items: center; gap: 22px; }
+.nav-link { font-size: 14px; color: var(--text-2); text-decoration: none; }
+.nav-link:hover { color: var(--text-1); }
+.nav-cta {
+  background: var(--brand); color: #fff; border: none; border-radius: 8px;
+  padding: 9px 16px; font-size: 13.5px; font-weight: 600; text-decoration: none;
+  transition: background 0.15s ease;
+}
+.nav-cta:hover { background: var(--brand-light); }
+
+#theme-toggle {
+  display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 10px; color: var(--text-2); cursor: pointer; font-size: 12px;
+}
+
+/* ── Story rail (progress indicator down the side) ──────────────── */
+#story-rail {
+  position: fixed; right: 22px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  z-index: 90;
+}
+#story-rail::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
+  background: var(--border); transform: translateX(-50%); z-index: -1;
+}
+.rail-fill {
+  position: absolute; top: 0; left: 50%; width: 2px; background: var(--brand);
+  transform: translateX(-50%); transition: height 0.3s ease; z-index: -1;
+}
+.rail-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--border);
+  border: none; cursor: pointer; padding: 0; transition: background 0.2s ease, transform 0.2s ease;
+}
+.rail-dot.active { background: var(--brand); transform: scale(1.4); }
+@media (max-width: 860px) { #story-rail { display: none; } }
+
+/* ── Reveal sections ─────────────────────────────────────────────── */
+[data-reveal] {
+  opacity: 0; transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+[data-reveal].is-revealed { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+
+section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 auto; }
+
+/* ── Hero ─────────────────────────────────────────────────────────── */
+.hero { min-height: 92vh; display: flex; flex-direction: column; justify-content: center; position: relative; }
+.hero::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(ellipse 55% 45% at 50% 15%, var(--brand-glow), transparent 70%);
+}
+.eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.14em; color: var(--brand-light); text-transform: uppercase; margin-bottom: 18px; }
+.hero h1 { font-size: clamp(40px, 7vw, 78px); line-height: 1; letter-spacing: 0.01em; margin: 0 0 24px; max-width: 16ch; }
+.hero h1 .accent { color: var(--brand-light); }
+.hero-sub { font-size: 18px; line-height: 1.6; color: var(--text-2); max-width: 52ch; margin-bottom: 40px; }
+.hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+.btn-primary { background: var(--brand); color: #fff; padding: 14px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 15px; }
+.btn-secondary { border: 1px solid var(--border); color: var(--text-1); padding: 14px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 15px; }
+
+/* ── Section headers ─────────────────────────────────────────────── */
+.section-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--brand-light); text-transform: uppercase; margin-bottom: 10px; }
+.section-title { font-size: clamp(28px, 4vw, 42px); margin: 0 0 16px; }
+.section-desc { color: var(--text-2); font-size: 16px; max-width: 60ch; line-height: 1.6; margin-bottom: 48px; }
+
+/* ── Grids ────────────────────────────────────────────────────────── */
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@media (max-width: 780px) { .grid-3 { grid-template-columns: 1fr; } }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px;
+}
+.card-title { font-size: 18px; font-weight: 600; margin: 0 0 10px; }
+.card-desc { color: var(--text-2); font-size: 14.5px; line-height: 1.6; }
+.card-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brand-light); }
+
+/* ── Journey steps ────────────────────────────────────────────────── */
+.step { display: flex; gap: 24px; padding: 28px 0; border-top: 1px solid var(--border); }
+.step:first-of-type { border-top: none; }
+.step-num { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--brand-light); flex-shrink: 0; width: 60px; }
+.step-name { font-size: 19px; font-weight: 600; margin: 0 0 8px; }
+.step-desc { color: var(--text-2); font-size: 15px; line-height: 1.6; }
+
+/* ── Final CTA ────────────────────────────────────────────────────── */
+.final-cta { text-align: center; padding-bottom: 160px; }
+.final-cta h2 { font-size: clamp(30px, 5vw, 52px); margin-bottom: 20px; }
+.final-cta p { color: var(--text-2); font-size: 16px; margin-bottom: 36px; }
+.final-cta .hero-ctas { justify-content: center; }
+
+footer { text-align: center; padding: 40px 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-2); }
