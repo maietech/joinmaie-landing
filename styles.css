@@ -182,39 +182,13 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   .hero-inner { flex-direction: column; text-align: center; }
   .hero-text { max-width: 100%; }
   .hero-companion { width: 180px; order: -1; margin-bottom: 12px; }
+  #pixie-canvas { width: 180px !important; height: 180px !important; }
   .hero-ctas { justify-content: center; }
 }
 
-/* ── Pixie companion — a lightweight homage to the real canvas-driven
-   companion component, not a port of it (that one runs live physics
-   and reputation data this static page has no access to). Same color
-   language: brand core, accent glow ring, idle float + slow orbit. */
-.pixie { position: relative; width: 220px; height: 220px; }
-.pixie-glow {
-  position: absolute; inset: -30px; border-radius: 50%;
-  background: radial-gradient(circle, var(--brand-glow) 0%, transparent 70%);
-  filter: blur(10px); animation: pixie-breathe 4.5s ease-in-out infinite;
-}
-.pixie-core {
-  position: absolute; inset: 30px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--brand-light), var(--brand) 70%);
-  box-shadow: 0 0 40px var(--brand-glow);
-  animation: pixie-float 6s ease-in-out infinite;
-}
-.pixie-ring { position: absolute; inset: 0; border-radius: 50%; }
-.pixie-ring-1 { animation: pixie-orbit 9s linear infinite; }
-.pixie-ring-2 { animation: pixie-orbit 14s linear infinite reverse; }
-.pixie-dot {
-  position: absolute; top: 4px; left: 50%; width: 8px; height: 8px; border-radius: 50%;
-  background: var(--brand-light); transform: translateX(-50%);
-}
-.pixie-dot-accent { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
-@keyframes pixie-breathe { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
-@keyframes pixie-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-@keyframes pixie-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-  .pixie-glow, .pixie-core, .pixie-ring-1, .pixie-ring-2 { animation: none; }
-}
+/* ── Pixie companion — real engine now, see pixie-companion.js.
+   The canvas sizes itself; only the container needs layout. */
+#pixie-canvas { display: block; }
 
 /* ── Two-path section ─────────────────────────────────────────────── */
 .path-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; max-width: 820px; margin: 0 auto; }

@@ -59,13 +59,8 @@
           <a class="btn-secondary" href="https://portal.joinmaie.com/pitch/">See the Full Pitch</a>
         </div>
       </div>
-      <div class="hero-companion" aria-hidden="true">
-        <div class="pixie">
-          <div class="pixie-glow"></div>
-          <div class="pixie-core"></div>
-          <div class="pixie-ring pixie-ring-1"><span class="pixie-dot"></span></div>
-          <div class="pixie-ring pixie-ring-2"><span class="pixie-dot pixie-dot-accent"></span></div>
-        </div>
+      <div class="hero-companion">
+        <canvas id="pixie-canvas" aria-label="Pixie companion" role="img"></canvas>
       </div>
     </div>
   </section>
@@ -167,6 +162,12 @@
 
 <footer>MAIE — a Midwest Media Alliance production tool</footer>
 
+<script src="pixie-companion.js"></script>
+<script>
+  window.initPixieCompanion(document.getElementById('pixie-canvas'), {
+    size: 88, mode: 'ambient', phase: 'idle', archetype: 'archivist', temperament: 'idle',
+  });
+</script>
 <script src="theme.js"></script>
 <script src="reveal.js"></script>
 </body>
