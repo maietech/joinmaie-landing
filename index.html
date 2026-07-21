@@ -11,8 +11,16 @@
 </head>
 <body>
 
+<div class="bg-field" aria-hidden="true">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+</div>
+<div class="bg-grain" aria-hidden="true"></div>
+
 <nav class="nav">
   <a class="nav-brand" href="#top">
+    <span class="nav-brand-word">MAIE</span>
     <svg viewBox="0 0 92 56" fill="none" stroke="var(--brand-light)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
                C 29,20 33,20 33,30 C 33,40 39,40 41,28
@@ -22,7 +30,6 @@
       <circle cx="86" cy="32" r="3" fill="var(--accent)" stroke="none"/>
       <circle cx="86" cy="32" r="6.5" fill="none" stroke="var(--accent)" stroke-width="1" opacity="0.4"/>
     </svg>
-    <span class="nav-brand-word">MAIE</span>
   </a>
   <div class="nav-links">
     <a class="nav-link" href="#toolkit">Toolkit</a>
@@ -39,15 +46,27 @@
 <main id="top">
 
   <section class="hero" data-reveal data-rail-label="Hero">
-    <div class="eyebrow">Studio Build · V2.5</div>
-    <h1>THE CREATIVE COMPANION<br><span class="accent">FOR MODERN MEDIA</span></h1>
-    <p class="hero-sub">
-      Organize footage, uncover moments that matter, understand your content,
-      and collaborate with an intelligent companion that adapts to the way you create.
-    </p>
-    <div class="hero-ctas">
-      <a class="btn-primary" href="https://waitlist.joinmaie.com">Join the Waitlist</a>
-      <a class="btn-secondary" href="https://portal.joinmaie.com/pitch/">See the Full Pitch</a>
+    <div class="hero-inner">
+      <div class="hero-text">
+        <div class="eyebrow">Studio Build · V2.5</div>
+        <h1>THE CREATIVE COMPANION<br><span class="accent">FOR MODERN MEDIA</span></h1>
+        <p class="hero-sub">
+          Organize footage, uncover moments that matter, understand your content,
+          and collaborate with an intelligent companion that adapts to the way you create.
+        </p>
+        <div class="hero-ctas">
+          <a class="btn-primary" href="https://waitlist.joinmaie.com">Join the Waitlist</a>
+          <a class="btn-secondary" href="https://portal.joinmaie.com/pitch/">See the Full Pitch</a>
+        </div>
+      </div>
+      <div class="hero-companion" aria-hidden="true">
+        <div class="pixie">
+          <div class="pixie-glow"></div>
+          <div class="pixie-core"></div>
+          <div class="pixie-ring pixie-ring-1"><span class="pixie-dot"></span></div>
+          <div class="pixie-ring pixie-ring-2"><span class="pixie-dot pixie-dot-accent"></span></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -124,13 +143,23 @@
     </div>
   </section>
 
-  <section class="final-cta" data-reveal data-rail-label="Join">
+  <section id="paths" class="final-cta" data-reveal data-rail-label="Your Path">
     <div class="section-tag" style="text-align:center;">The Destination</div>
-    <h2>Be first in line.</h2>
-    <p>MAIE is in active development. Join the waitlist to get early access as we open the doors.</p>
-    <div class="hero-ctas">
-      <a class="btn-primary" href="https://waitlist.joinmaie.com">Join the Waitlist</a>
-      <a class="btn-secondary" href="https://portal.joinmaie.com/">Explore the Full Portal</a>
+    <h2>Two ways to go deeper.</h2>
+    <p>MAIE is in active development. Choose where the river takes you next.</p>
+    <div class="path-grid">
+      <a class="path-card path-card--primary" href="https://waitlist.joinmaie.com">
+        <div class="path-kicker">Get Early Access</div>
+        <div class="path-title">Join the Waitlist</div>
+        <p class="path-desc">Be first in line as we open the doors. Two minutes, no commitment.</p>
+        <div class="path-arrow">waitlist.joinmaie.com →</div>
+      </a>
+      <a class="path-card" href="https://portal.joinmaie.com/">
+        <div class="path-kicker">See It in Depth</div>
+        <div class="path-title">Explore the Full Pitch</div>
+        <p class="path-desc">Vision, architecture, the dashboard, and Pixie — the complete walkthrough.</p>
+        <div class="path-arrow">portal.joinmaie.com →</div>
+      </a>
     </div>
   </section>
 

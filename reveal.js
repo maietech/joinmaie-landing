@@ -8,6 +8,20 @@
 // scroll or hijacking the wheel.
 
 (function () {
+  var ticking = false;
+  function updateScrollVar() {
+    document.documentElement.style.setProperty('--scroll-y', window.scrollY);
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) {
+      requestAnimationFrame(updateScrollVar);
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+
+(function () {
   var sections = Array.prototype.slice.call(document.querySelectorAll('[data-reveal]'));
   var rail = document.getElementById('story-rail');
   var railFill = document.getElementById('story-rail-fill');
