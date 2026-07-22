@@ -85,6 +85,15 @@
     (function loop() { step(); requestAnimationFrame(loop); })();
   }
 
+  // Section 5 -> 6 handoff: scene-maie-moment.js calls this the moment
+  // it first scrolls into view, so its nodes inherit these actual chip
+  // positions instead of generating their own arbitrary scatter.
+  // Percent coordinates (0-100, relative to this section's own field) —
+  // the consumer converts into its own coordinate space.
+  window.getChaosChipPositions = function () {
+    return chips.map(function (c) { return { x: c.x, y: c.y }; });
+  };
+
   window.initScrollScene(section, function (progress, isStatic) {
     if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.10, 0.55, 0.08, 0.15);
     // Density/overwhelm increases slightly deeper into the section —
