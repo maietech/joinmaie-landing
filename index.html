@@ -45,28 +45,55 @@
 
 <main id="top">
 
-  <section id="scene-opening" class="story-scene">
+  <section id="scene-opening" class="story-scene force-dark">
     <div class="scene-sticky">
       <canvas id="scene-opening-canvas"></canvas>
       <div class="scene-caption" id="scene-opening-caption">Everything begins with something.</div>
     </div>
   </section>
 
-  <section class="hero" data-reveal data-rail-label="Hero">
-    <div class="hero-inner">
-      <div class="hero-text">
-        <div class="eyebrow">Studio Build · V2.5</div>
-        <h1>THE CREATIVE COMPANION<br><span class="accent">FOR MODERN MEDIA</span></h1>
-        <p class="hero-sub">
-          Organize footage, uncover moments that matter, understand your content,
-          and collaborate with an intelligent companion that adapts to the way you create.
-        </p>
-        <div class="hero-ctas">
-          <a class="btn-primary" href="https://waitlist.joinmaie.com">Join the Waitlist</a>
-          <a class="btn-secondary" href="https://portal.joinmaie.com/pitch/">See the Full Pitch</a>
+  <section id="scene-frame" class="story-scene">
+    <div class="scene-sticky">
+      <div class="frame-stage">
+        <div class="frame-photo-wrap">
+          <img class="frame-photo" src="media/makabera-pop-up-9977615_1920.jpg" alt="" aria-hidden="true">
+          <div class="frame-fracture" id="frame-fracture-0" style="top: 20%;">
+            <span class="frame-tag frame-tag--mono">0x9F2E1A · verified</span>
+          </div>
+          <div class="frame-fracture" id="frame-fracture-1" style="top: 40%;">
+            <span class="frame-tag frame-tag--mono">36.1°N · f/2.8 · 5600K</span>
+          </div>
+          <div class="frame-fracture" id="frame-fracture-2" style="top: 60%;">
+            <div class="frame-wave" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="frame-fracture" id="frame-fracture-3" style="top: 80%;">
+            <span class="frame-tag">#paper-craft &nbsp;#texture &nbsp;#studio-light</span>
+          </div>
         </div>
+        <svg class="frame-signal" viewBox="0 0 20 100" preserveAspectRatio="none" aria-hidden="true">
+          <line id="frame-signal-line" x1="2" y1="0" x2="2" y2="100"/>
+          <circle class="frame-signal-dot" cx="2" cy="20" r="1.6"/>
+          <circle class="frame-signal-dot" cx="2" cy="40" r="1.6"/>
+          <circle class="frame-signal-dot" cx="2" cy="60" r="1.6"/>
+          <circle class="frame-signal-dot" cx="2" cy="80" r="1.6"/>
+        </svg>
       </div>
-      <div class="hero-companion">
+      <div class="scene-caption" id="frame-caption" style="top: auto; bottom: 8%;">One frame. Layers of meaning.</div>
+    </div>
+  </section>
+
+  <section id="companion-intro" data-reveal data-rail-label="Companion">
+    <div class="intro-inner">
+      <div class="intro-text">
+        <p class="intro-statement">A creative companion,<br><span class="accent">built for modern media.</span></p>
+        <p class="intro-sub">
+          Organize footage, uncover moments that matter, understand your content,
+          and collaborate with something that learns how you create.
+        </p>
+      </div>
+      <div class="intro-companion">
         <canvas id="pixie-canvas" aria-label="Pixie companion" role="img"></canvas>
       </div>
     </div>
@@ -79,18 +106,18 @@
       Everything you need to understand, organize, and enhance your media — working
       together in one creative environment.
     </p>
-    <div class="grid-3">
-      <div class="card">
-        <div class="card-title">Explore Your Footage</div>
-        <p class="card-desc">Uncover the moments that matter — organized automatically as you upload.</p>
+    <div class="reflect-list">
+      <div class="reflect-item">
+        <div class="reflect-title">Explore Your Footage</div>
+        <p class="reflect-desc">Uncover the moments that matter — organized automatically as you upload.</p>
       </div>
-      <div class="card">
-        <div class="card-title">Discover Visual Insights</div>
-        <p class="card-desc">Objects, people, locations, and meaningful visual patterns across your media.</p>
+      <div class="reflect-item">
+        <div class="reflect-title">Discover Visual Insights</div>
+        <p class="reflect-desc">Objects, people, locations, and meaningful visual patterns across your media.</p>
       </div>
-      <div class="card">
-        <div class="card-title">Collaborate With Pixie</div>
-        <p class="card-desc">A companion that learns your creative workflow and helps guide every project.</p>
+      <div class="reflect-item">
+        <div class="reflect-title">Collaborate With Pixie</div>
+        <p class="reflect-desc">A companion that learns your creative workflow and helps guide every project.</p>
       </div>
     </div>
   </section>
@@ -98,21 +125,21 @@
   <section id="trust" data-reveal data-rail-label="Trust">
     <div class="section-tag">Under the Hood</div>
     <h2 class="section-title">Built to Be Trusted</h2>
-    <div class="grid-3">
-      <div class="card">
-        <div class="card-code">SHA-256</div>
-        <div class="card-title">Every File Remembered</div>
-        <p class="card-desc">Every file you bring in is instantly recognized — MAIE remembers it, tracks every edit, and keeps duplicates from slipping through.</p>
+    <div class="reflect-list">
+      <div class="reflect-item">
+        <div class="reflect-code">SHA-256</div>
+        <div class="reflect-title">Every File Remembered</div>
+        <p class="reflect-desc">Every file you bring in is instantly recognized — MAIE remembers it, tracks every edit, and keeps duplicates from slipping through.</p>
       </div>
-      <div class="card">
-        <div class="card-code">Per-Project Storage</div>
-        <div class="card-title">Your Work Stays Yours</div>
-        <p class="card-desc">Every project lives in its own private space. Nothing is shared unless you choose to share it.</p>
+      <div class="reflect-item">
+        <div class="reflect-code">Per-Project Storage</div>
+        <div class="reflect-title">Your Work Stays Yours</div>
+        <p class="reflect-desc">Every project lives in its own private space. Nothing is shared unless you choose to share it.</p>
       </div>
-      <div class="card">
-        <div class="card-code">Migration-Safe</div>
-        <div class="card-title">Never Lose Your Progress</div>
-        <p class="card-desc">Your past work is always there, exactly as you left it — even as MAIE keeps growing and improving.</p>
+      <div class="reflect-item">
+        <div class="reflect-code">Migration-Safe</div>
+        <div class="reflect-title">Never Lose Your Progress</div>
+        <p class="reflect-desc">Your past work is always there, exactly as you left it — even as MAIE keeps growing and improving.</p>
       </div>
     </div>
   </section>
@@ -175,14 +202,14 @@
     </div>
   </section>
 
-  <section id="scene-chaos" class="story-scene">
+  <section id="scene-chaos" class="story-scene force-dark">
     <div class="scene-sticky">
       <div id="chaos-field"></div>
       <div class="chaos-caption" id="chaos-caption">So much. Everywhere. Nowhere.</div>
     </div>
   </section>
 
-  <section id="scene-maie-moment" class="story-scene">
+  <section id="scene-maie-moment" class="story-scene force-dark">
     <div class="scene-sticky">
       <div class="scene-maie-caption" id="scene-maie-caption-before">Fragmented. Scattered. Disconnected.</div>
       <svg id="signal-svg" viewBox="0 0 92 56" xmlns="http://www.w3.org/2000/svg">
@@ -227,18 +254,15 @@
     <div class="section-tag" style="text-align:center;">The Destination</div>
     <h2>Two ways to go deeper.</h2>
     <p>MAIE is in active development. Choose where the river takes you next.</p>
-    <div class="path-grid">
-      <a class="path-card path-card--primary" href="https://waitlist.joinmaie.com">
-        <div class="path-kicker">Get Early Access</div>
-        <div class="path-title">Join the Waitlist</div>
-        <p class="path-desc">Be first in line as we open the doors. Two minutes, no commitment.</p>
-        <div class="path-arrow">waitlist.joinmaie.com →</div>
+    <div class="path-choice">
+      <a class="path-link path-link--primary" href="https://waitlist.joinmaie.com">
+        <span class="path-link-kicker">Get Early Access</span>
+        <span class="path-link-title">Join the Waitlist →</span>
       </a>
-      <a class="path-card" href="https://portal.joinmaie.com/">
-        <div class="path-kicker">See It in Depth</div>
-        <div class="path-title">Explore the Full Pitch</div>
-        <p class="path-desc">Vision, architecture, the dashboard, and Pixie — the complete walkthrough.</p>
-        <div class="path-arrow">portal.joinmaie.com →</div>
+      <span class="path-divider" aria-hidden="true"></span>
+      <a class="path-link" href="https://portal.joinmaie.com/">
+        <span class="path-link-kicker">See It in Depth</span>
+        <span class="path-link-title">Explore the Full Pitch →</span>
       </a>
     </div>
   </section>
@@ -249,14 +273,45 @@
 
 <script src="pixie-companion.js"></script>
 <script>
-  window.initPixieCompanion(document.getElementById('pixie-canvas'), {
-    size: 220, mode: 'ambient', phase: 'idle', archetype: 'archivist', temperament: 'idle',
-  });
+  // The companion's canvas is a fixed pixel size (size * 2.5) set once at
+  // init — a hardcoded size:220 overflows `.intro-companion` any time its
+  // rendered width drops below ~550px (i.e. any viewport under ~1250px,
+  // since .intro-companion is capped at max-width:44vw). That overflow is
+  // what was throwing the companion out of alignment with the intro text.
+  // Sizing from the container's actual width, and re-measuring on resize,
+  // keeps the canvas inside its box at every breakpoint.
+  (function () {
+    var canvas = document.getElementById('pixie-canvas');
+    var container = canvas.closest('.intro-companion');
+    var handle = null;
+
+    function currentSize() {
+      var w = (container ? container.clientWidth : 550);
+      return Math.max(90, Math.min(220, w / 2.5));
+    }
+
+    function init() {
+      if (handle && handle.destroy) handle.destroy();
+      handle = window.initPixieCompanion(canvas, {
+        size: currentSize(), mode: 'ambient', phase: 'idle', archetype: 'archivist', temperament: 'idle',
+      });
+    }
+
+    init();
+
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(init, 200);
+    });
+  })();
 </script>
 <script src="theme.js"></script>
 <script src="reveal.js"></script>
+<script src="nav-theme.js"></script>
 <script src="story-scroll.js"></script>
 <script src="scene-opening.js"></script>
+<script src="scene-frame.js"></script>
 <script src="scene-universe.js"></script>
 <script src="scene-chaos.js"></script>
 <script src="scene-maie-moment.js"></script>

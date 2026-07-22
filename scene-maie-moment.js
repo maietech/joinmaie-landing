@@ -1,8 +1,12 @@
 // scene-maie-moment.js — Section 6: "Everything Connects"
-// A set of scattered nodes (standing in for the fragmented-files chaos
-// that would live in Section 5, not built yet) drift into alignment
-// along the actual MAIE signal-line path as it strokes in with scroll
-// progress — the same path used in the nav logo, not a lookalike.
+// Nodes drift into alignment along the actual MAIE signal-line path as
+// it strokes in with scroll progress — the same path used in the nav
+// logo, not a lookalike. Node start positions are captured from
+// window.getChaosChipPositions() (exposed by scene-chaos.js / Section
+// 5) the moment this scene first scrolls into view — so the nodes here
+// are the same chaotic elements from Section 5, not a fresh random
+// scatter. Falls back to a random scatter if Section 5's engine isn't
+// present for some reason, so this scene still works standalone.
 
 (function () {
   var section = document.getElementById('scene-maie-moment');
@@ -18,22 +22,43 @@
   var len = path.getTotalLength();
   path.style.strokeDasharray = len;
 
-  var NODE_COUNT = 22;
-  var nodes = [];
-  for (var i = 0; i < NODE_COUNT; i++) {
-    var t = i / (NODE_COUNT - 1);
-    var target = path.getPointAtLength(t * len);
-    var el = document.createElementNS(NS, 'circle');
-    el.setAttribute('r', 1.3);
-    el.setAttribute('class', 'chaos-node');
-    svg.insertBefore(el, path); // behind the path/dot, ahead of background
-    nodes.push({
-      el: el,
-      targetX: target.x, targetY: target.y,
-      startX: -10 + Math.random() * 112, // scattered beyond the viewBox (0..92), overflow:visible shows the spread
-      startY: -8 + Math.random() * 72,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.6 + Math.random() * 0.8,
+  // Section 5's chip field is 0-100% in both axes; this scene's viewBox
+  // is 0-92 x 0-56. Direct percent-to-unit mapping preserves relative
+  // position without needing the two fields to share physical pixel
+  // dimensions.
+  var VB_W = 92, VB_H = 56;
+
+  var nodes = null; // built lazily, on first scroll-into-view -- see buildNodes()
+
+  function buildNodes() {
+    var positions;
+    if (typeof window.getChaosChipPositions === 'function') {
+      positions = window.getChaosChipPositions().map(function (p) {
+        return { x: (p.x / 100) * VB_W, y: (p.y / 100) * VB_H };
+      });
+    } else {
+      // Fallback: same arbitrary-scatter behavior as before Section 5 existed.
+      positions = [];
+      for (var j = 0; j < 22; j++) {
+        positions.push({ x: -10 + Math.random() * (VB_W + 20), y: -8 + Math.random() * (VB_H + 16) });
+      }
+    }
+
+    var count = positions.length;
+    nodes = positions.map(function (start, i) {
+      var t = count > 1 ? i / (count - 1) : 0;
+      var target = path.getPointAtLength(t * len);
+      var el = document.createElementNS(NS, 'circle');
+      el.setAttribute('r', 1.3);
+      el.setAttribute('class', 'chaos-node');
+      svg.insertBefore(el, path); // behind the path/dot, ahead of background
+      return {
+        el: el,
+        targetX: target.x, targetY: target.y,
+        startX: start.x, startY: start.y,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.6 + Math.random() * 0.8,
+      };
     });
   }
 
@@ -42,6 +67,7 @@
   var clock = 0;
 
   function render(progress, isStatic) {
+    if (!nodes) return;
     var eased = ease(progress);
     path.style.strokeDashoffset = len * (1 - eased);
 
@@ -66,6 +92,7 @@
 
   var lastProgress = 0;
   window.initScrollScene(section, function (progress, staticFrame) {
+    if (!nodes) buildNodes(); // capture the handoff exactly once, at first entry
     lastProgress = progress;
     render(progress, staticFrame);
   });

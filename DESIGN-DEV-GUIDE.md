@@ -100,9 +100,11 @@ change.
 | `index.html` | All sections, in narrative order |
 | `styles.css` | All styles — tokens, reveal sections, story scenes |
 | `theme.js` | Dark/light toggle (`data-theme` attr + `localStorage`) |
-| `reveal.js` | Fade-in-on-scroll for the simple `[data-reveal]` sections (hero/toolkit/trust/journey/paths) + the side progress rail |
+| `nav-theme.js` | Darkens the nav bar whenever it's pinned over a `.story-scene.force-dark` scene (Sections 1/5/6 only — see §6 item 3), independent of the light/dark toggle |
+| `reveal.js` | Fade-in-on-scroll for the simple `[data-reveal]` sections (companion-intro/toolkit/trust/journey/paths) + the side progress rail |
 | `story-scroll.js` | Shared scroll-progress engine for **story scenes** — read this before building a new cinematic section |
 | `scene-opening.js` | Section 1 |
+| `scene-frame.js` | Section 2 |
 | `scene-universe.js` | Section 3 |
 | `scene-chaos.js` | Section 5 |
 | `scene-maie-moment.js` | Section 6 |
@@ -111,8 +113,10 @@ change.
 | `pixie-companion.js` | Real ported companion engine (see §5). Now also exposes an `update(patch)` hook on the object `initPixieCompanion` returns — `{ destroy, update }` — so mode/phase/temperament can change live post-init. Existing static call sites (the hero) are unaffected; they just never call `update()`. |
 
 ### Two section types — don't confuse them
-1. **Reveal sections** (`hero`, `toolkit`, `trust`, `journey`, `paths`) — simple fade/rise into view via `reveal.js`'s `IntersectionObserver`. Add `data-reveal` + `data-rail-label` and it's automatically wired into the side progress rail. Use this for any non-cinematic content section.
-2. **Story scenes** (Sections 1, 5, 6 so far) — tall wrapper (`height: 250vh` convention) with a `position: sticky` inner panel (`.scene-sticky`, pinned to 100vh). `story-scroll.js`'s `initScrollScene(sectionEl, onProgress)` reads scroll position and reports `progress` 0→1 as the user scrolls through the wrapper's full height — **never sets scroll position**, so native scroll/momentum is untouched (no scroll-jacking, per the brief's own requirement). Story scenes are *not* wired into the side rail currently — that's a deliberate gap, not an oversight (a rail dot mid-cinematic-scene would undercut the immersion), but worth a second look if the whole page ends up mostly story scenes.
+1. **Reveal sections** (`companion-intro`, `toolkit`, `trust`, `journey`, `paths`) — simple fade/rise into view via `reveal.js`'s `IntersectionObserver`. Add `data-reveal` + `data-rail-label` and it's automatically wired into the side progress rail. Use this for any non-cinematic content section. `companion-intro` replaced the old two-button `hero` — see §6 item 1 for why.
+2. **Story scenes** (Sections 1, 2, 3, 5, 6, 7, 8 — all built so far) — tall wrapper (`height: 250vh` convention) with a `position: sticky` inner panel (`.scene-sticky`, pinned to 100vh). `story-scroll.js`'s `initScrollScene(sectionEl, onProgress)` reads scroll position and reports `progress` 0→1 as the user scrolls through the wrapper's full height — **never sets scroll position**, so native scroll/momentum is untouched (no scroll-jacking, per the brief's own requirement). Story scenes are *not* wired into the side rail currently — that's a deliberate gap, not an oversight (a rail dot mid-cinematic-scene would undercut the immersion), but worth a second look if the whole page ends up mostly story scenes.
+
+   **Only add `class="story-scene force-dark"` if the brief explicitly mandates a specific dark mood-color for that section** (as it does for Sections 1, 5, 6 — see §6 item 3). Otherwise use `class="story-scene"` alone and build the scene's CSS with `var(--bg)`/`var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)` tokens, same as a reveal section, so it respects the light/dark toggle. Sections 2, 3, 7, 8 all do this now — check their CSS blocks as the reference before writing a new scene's styles, not Section 1/5/6's.
 
 ### Building a new story scene — the recipe
 1. Markup: `<section id="scene-X" class="story-scene"><div class="scene-sticky">...</div></section>`
@@ -142,11 +146,11 @@ data for either — that's accurate, not a missing feature.
 | # | Section | Phase | Status | File | Notes |
 |---|---|---|---|---|---|
 | 1 | Before the Media | Immersion | ✅ Built | `scene-opening.js` | Nav auto-hides for first 50% of scroll depth per brief |
-| 2 | One Moment | Exploration | ⛔ Not started | — | **Needs a real photo/frame asset** to fracture — can't fabricate |
+| 2 | One Moment | Exploration | ✅ Built | `scene-frame.js` | Fracture-growth technique instead of literal slice-translation (steadier across aspect ratios). Photo is `media/makabera-pop-up-9977615_1920.jpg` — arbitrary pick, any photo works per the brief; swap freely. Reuses the Signal-line device from Sections 1/6 |
 | 3 | Universe to You | Revelation | ✅ Built | `scene-universe.js` | DOM+CSS transforms, not canvas text — no raster blur at scale. Categories/atoms use a deterministic ring layout, not real data — swap in real domain/primitive taxonomy if it ever changes |
 | 4 | The Human Hand | Reflection | ⛔ Not started | — | **Needs real documentary photography** — can't fabricate |
 | 5 | Chaos of Creation | Immersion | ✅ Built | `scene-chaos.js` | See open item below re: feeding Section 6 |
-| 6 | Everything Connects | Revelation | ✅ Built (placeholder input) | `scene-maie-moment.js` | Chaos nodes currently spawn at arbitrary scatter positions, **not** Section 5's actual chip positions — open item, see §6 |
+| 6 | Everything Connects | Revelation | ✅ Built | `scene-maie-moment.js` | Nodes now inherit Section 5's real chip positions via `window.getChaosChipPositions()`, captured once at first scroll-into-view — falls back to random scatter if Section 5's script isn't present |
 | 7 | Media Lifecycle (8 stages) | Exploration | ✅ Built | `scene-lifecycle.js` | Horizontal filmstrip driven by vertical scroll progress (translateX only) — no real horizontal scroll, no scroll-jacking |
 | 8 | Agent Workflow | Revelation | ✅ Built | `scene-agent.js` | Reuses `pixie-companion.js` via its new `update()` hook — same engine as the hero, not a lookalike. Path is a placeholder wave shape, not a designed signal path — worth a second pass if the exact curve matters |
 | 9 | Marketplace | Exploration | ⛔ Not started | — | **Needs real package/LUT/workflow preview content** |
@@ -156,34 +160,73 @@ data for either — that's accurate, not a missing feature.
 
 ---
 
-## 6. Open Decisions — need a call before continuing
+## 6. Open Decisions
 
-1. **The hybrid-page problem.** Pre-brief sections (`hero`, `toolkit`,
-   `trust`, `paths`) are still in the page, and they're exactly what
-   §3's anti-pattern list rules out. Continuing to add brief-sections
-   around them means redoing the surrounding page twice. Not resolved.
-2. **Section 5 → 6 handoff.** Section 6's chaos nodes should probably
-   inherit Section 5's actual chip positions at the scroll boundary
-   between them, instead of generating their own arbitrary scatter.
-   Real coupling between two files — worth doing deliberately.
-3. **Forced-dark backdrop in story scenes.** Sections 1/5/6 ignore the
-   site's light/dark toggle by design (cinematic beats). Confirmed
-   intentional in review, but flagging again here since it's a real
-   inconsistency a new team member would otherwise "fix" by accident.
-4. **Six sections need real assets** (2, 4, 9, 10, 11 need photography/
-   media/metrics; 3 does not but is asset-adjacent). These can't be
-   scaffolded further without that material — worth sourcing in
-   parallel with the sections that don't need it (3, 7, 8).
+**Resolved this round** — the three items previously open here were
+all decided:
+
+1. **The hybrid-page problem — resolved: replaced, not kept.** The old
+   two-button `hero` is now `#companion-intro`: a Reflection-style
+   statement + Pixie, no CTA buttons at all. **That's a real UX
+   change worth knowing about, not just a restyle:** the waitlist/pitch
+   links no longer appear above the fold — they live solely in the
+   closing `#paths` section now. The reasoning was the brief's own:
+   lead with impulse, not an early ask. `toolkit` and `trust` went from
+   3-card grids to `.reflect-list`/`.reflect-item` — single column,
+   generous vertical space, no card borders, matching the brief's
+   Reflection language instead of a feature-card wall. `paths` went
+   from two boxed `.path-card` panels to `.path-choice`/`.path-link` —
+   text-style links instead of boxes, closer to the brief's own
+   "a single elegant primary CTA" closing spirit (Section 12, once
+   built, may absorb this entirely). `journey`'s numbered step list was
+   reviewed and left alone — it's not actually a card-grid or a
+   two-button hero, so it doesn't violate anything on §3's list.
+2. **Section 5 → 6 handoff — resolved: wired.** `scene-chaos.js` exposes
+   `window.getChaosChipPositions()`; `scene-maie-moment.js` calls it
+   once, the first time it scrolls into view, and converts Section 5's
+   percent-based field coordinates into its own SVG viewBox units. If
+   Section 5's script isn't loaded for some reason, it falls back to
+   the old random scatter, so Section 6 still works standalone.
+3. **Forced-dark backdrop — resolved: split, not all-or-nothing.**
+   Sections 1, 5, 6 keep the forced-dark backdrop (`class="story-scene
+   force-dark"`) — these are the three the brief gives explicit dark
+   mood-color language for ("deep black pitch field," the chaos/
+   connection color cues). Sections 2, 3, 7, 8 were converted to use
+   `var(--bg)`/`var(--surface)`/`var(--text-1)`/`var(--text-2)`/
+   `var(--accent)` throughout instead of hardcoded hex, so they now
+   respect the site's light/dark toggle like the reveal sections do.
+   `nav-theme.js` was updated to key off `.force-dark` specifically,
+   not every `.story-scene`. **One known gap left by this split:**
+   Section 8's `pixie-companion.js` instance doesn't pass a `theme`
+   option, so the companion itself still renders in its hardcoded
+   default colors regardless of the toggle — not jarring (they're
+   mid-tone, not pure black/white) but not truly theme-aware either.
+   Wiring `theme` from the CSS custom properties via
+   `getComputedStyle` is a reasonable small follow-up, not done here.
+
+**Still open:**
+
+4. **Four sections still need real content.** 9, 10, and 11 need
+   product content (marketplace previews, a real provenance/hash
+   example, real or plausible platform metrics) that photography can't
+   substitute for. Section 4 was checked against the 10 photos added
+   and remains blocked too: the brief calls for documentary shots of
+   people mid-craft — an editor at night, a colorist adjusting a grade
+   — and what's on hand is portraits/nature/product shots, none of it
+   "creator at work." Worth sourcing all four in parallel with 12,
+   which depends on 11.
 
 ---
 
 ## 7. Suggested Build Order (unblocked work first)
 
-Sections 3, 7, and 8 are now built (see §5). Everything remaining
-(2, 4, 9, 10, 11, 12) is blocked on real content — photography, sample
-media, marketplace previews, or platform metrics — arriving first.
-Section 12 additionally wants Section 11's network visual to exist
-before it's worth building.
+Sections 2, 3, 7, and 8 are now built (see §5). Everything remaining
+(4, 9, 10, 11, 12) is blocked on real content that doesn't exist yet —
+documentary photography, marketplace previews, a provenance example,
+platform metrics — or, for Section 12, on Section 11 existing first.
+There is currently **no unblocked section-building work left** — the
+next move is either sourcing that content, or picking up one of §6's
+open architectural decisions instead of scaffolding further.
 
 Two things worth a second look now that 3/7/8 exist, not urgent:
 - Section 3's category/atom lists are hardcoded in `scene-universe.js`,
@@ -192,3 +235,53 @@ Two things worth a second look now that 3/7/8 exist, not urgent:
   change independently of this page.
 - Section 8's path shape in `index.html` is an arbitrary wave, not a
   designed curve — cheap to swap once there's a specific line to match.
+
+---
+
+## 8. Changelog — visual QA pass after Sections 3/7/8
+
+Three issues reported after the first look at 3/7/8 in the browser, all fixed:
+
+1. **Story scenes were boxed, not full-bleed.** The generic `section {
+   padding: 120px; max-width: 1080px; margin: 0 auto; }` rule (written
+   for the reveal sections) was also applying to every `.story-scene` —
+   so each cinematic scene rendered as a padded, ~1080px-wide panel with
+   the page background visible around it, instead of true edge-to-edge.
+   This was the source of both the abrupt light/dark seam and the bare
+   gap at the very top of the page. Fixed with an override:
+   `.story-scene { padding: 0; max-width: none; margin: 0; }`.
+2. **Nav kept its themed background over forced-dark scenes.** In light
+   mode especially, the nav's light translucent background sat directly
+   on top of a pure-black cinematic backdrop while pinned — a visible
+   seam under the nav. `nav-theme.js` now toggles a `nav--on-dark` class
+   whenever the nav overlaps a `.story-scene`, independent of the
+   light/dark toggle.
+3. **Hero Pixie companion could overflow its own box.** `initPixieCompanion`
+   was called with a hardcoded `size: 220` (→ a fixed 550px canvas), but
+   `.hero-companion` is capped at `max-width: 44vw` — under ~1250px
+   viewport width the canvas was wider than its container and spilled
+   out of alignment with the hero text. The hero's init script now sizes
+   from the container's actual measured width (capped at 220) and
+   re-inits on resize.
+
+---
+
+## 9. Changelog — hybrid-page replacement + handoff wiring + dark-mode split
+
+All three §6 open decisions from the previous round were resolved this
+round (see §6 for the reasoning behind each):
+
+- `hero` → `#companion-intro`: Reflection-style statement, Pixie intact
+  and right-aligned, **no CTA buttons** — the ask moved entirely to the
+  closing `#paths` section. `toolkit`/`trust` card-grids → `.reflect-list`
+  single-column treatment. `paths` two-card grid → `.path-choice` text
+  links. `.hero-companion`/`.hero-inner`/`.hero-text` renamed to
+  `.intro-companion`/`.intro-inner`/`.intro-text` throughout — including
+  in the pixie-sizing script in `index.html`, which references the
+  container by class name.
+- Section 5 → 6 handoff wired via `window.getChaosChipPositions()`.
+- Dark-mode split: `.force-dark` added to Sections 1/5/6 only;
+  Sections 2/3/7/8's CSS converted from hardcoded hex to design tokens;
+  `nav-theme.js` updated to key off `.force-dark` instead of every
+  `.story-scene`.
+- Section 2 (One Moment) built — see §5's status table.
