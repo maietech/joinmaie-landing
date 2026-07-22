@@ -40,8 +40,24 @@ body {
 a { color: inherit; }
 
 /* ── Nav ─────────────────────────────────────────────────────────── */
+/* `position: fixed`, not `sticky` — this is the fix for the "empty gap
+   where the navbar hides" bug. Nav is the first element on the page,
+   so as `sticky` it was pinned from scroll position 0 onward — visually
+   identical to `fixed` while VISIBLE. But `transform: translateY(-100%)`
+   (used to hide it, see `.nav-hidden` below) only moves an element
+   visually; it doesn't remove a sticky element's reserved space from
+   the document flow. That left a permanent 64px gap at the very top of
+   the page every time nav was hidden — including on initial load and
+   any time scrolling back up re-triggered the hide — through which the
+   fixed-position background orb glow (`.bg-orb-1`) bled through, the
+   reddish band reported as visually "apparent". `fixed` removes nav
+   from flow entirely, so there's nothing left to leave a gap: whatever
+   content is behind it (scene canvases, reveal sections) simply
+   occupies that space directly, with nav overlaying on top via
+   z-index — consistent with its existing translucent/blurred styling,
+   which was already designed to overlay content, not push it down. */
 .nav {
-  position: sticky; top: 0; z-index: 100;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 clamp(16px, 3vw, 40px);
   height: 64px;
@@ -216,9 +232,25 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 @media (max-width: 600px) { .path-divider { display: none; } }
 .path-link { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; text-align: left; }
 .path-link-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--brand-light); text-transform: uppercase; }
-.path-link-title { font-size: 19px; font-weight: 700; color: var(--text-1); transition: color 0.15s ease; }
+.path-link-title {
+  font-size: 19px; font-weight: 700; color: var(--text-1); transition: color 0.15s ease;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+/* Arrow lives in CSS, not the HTML string, so its slide-on-hover can be
+   animated independently of the text's color transition. */
+.path-link-title::after {
+  content: '→';
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.path-link:hover .path-link-title::after { transform: translateX(5px); }
 .path-link:hover .path-link-title { color: var(--brand-light); }
 .path-link--primary .path-link-title { color: var(--brand-light); font-size: 21px; }
+/* The secondary link's hover (above) goes muted -> brand-light, a real
+   color change. The primary link's resting state IS brand-light, so
+   that same rule would transition brand-light -> brand-light — a
+   hover that fires but is visually silent. This inverts it instead:
+   brand-light -> text-1, so the primary CTA's hover is not a no-op. */
+.path-link--primary:hover .path-link-title { color: var(--text-1); }
 
 /* ── Story scenes (Section 1 + Section 6 proof of concept) ──────────
    A story scene is a tall wrapper with a sticky inner panel — the user
@@ -245,6 +277,11 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   letter-spacing: 0.02em; color: rgba(255,255,255,0.92); text-align: center;
   pointer-events: none; white-space: nowrap;
 }
+/* Section 1 dropped force-dark (see DESIGN-DEV-GUIDE §6/§9) — its
+   caption needs to flip with the toggle now. Section 6 is untouched;
+   it's still force-dark, so the shared white default above is correct
+   there. */
+#scene-opening .scene-caption { color: var(--text-1); }
 
 #signal-svg { width: min(80vw, 700px); height: auto; overflow: visible; }
 .signal-stroke { fill: none; stroke: var(--brand-light); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
