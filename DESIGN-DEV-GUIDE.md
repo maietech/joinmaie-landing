@@ -187,21 +187,20 @@ all decided:
    percent-based field coordinates into its own SVG viewBox units. If
    Section 5's script isn't loaded for some reason, it falls back to
    the old random scatter, so Section 6 still works standalone.
-3. **Forced-dark backdrop — resolved: split, not all-or-nothing.**
-   Sections 1, 5, 6 keep the forced-dark backdrop (`class="story-scene
-   force-dark"`) — these are the three the brief gives explicit dark
-   mood-color language for ("deep black pitch field," the chaos/
-   connection color cues). Sections 2, 3, 7, 8 were converted to use
-   `var(--bg)`/`var(--surface)`/`var(--text-1)`/`var(--text-2)`/
-   `var(--accent)` throughout instead of hardcoded hex, so they now
-   respect the site's light/dark toggle like the reveal sections do.
-   `nav-theme.js` was updated to key off `.force-dark` specifically,
-   not every `.story-scene`. **One known gap left by this split:**
-   Section 8's `pixie-companion.js` instance doesn't pass a `theme`
-   option, so the companion itself still renders in its hardcoded
-   default colors regardless of the toggle — not jarring (they're
-   mid-tone, not pure black/white) but not truly theme-aware either.
-   Wiring `theme` from the CSS custom properties via
+3. **Forced-dark backdrop — resolved: split, not all-or-nothing (updated
+   again this round — see §10).** Only Sections 5 and 6 keep the
+   forced-dark backdrop (`class="story-scene force-dark"`) now — Section
+   1 dropped it too, after being reported dark/flat in light mode (see
+   §10). Sections 2, 3, 7, 8 were converted to use `var(--bg)`/
+   `var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)`
+   throughout instead of hardcoded hex, so they now respect the site's
+   light/dark toggle like the reveal sections do. `nav-theme.js` keys
+   off `.force-dark` specifically, not every `.story-scene`. **One known
+   gap left by this split:** Section 8's `pixie-companion.js` instance
+   doesn't pass a `theme` option, so the companion itself still renders
+   in its hardcoded default colors regardless of the toggle — not
+   jarring (they're mid-tone, not pure black/white) but not truly
+   theme-aware either. Wiring `theme` from the CSS custom properties via
    `getComputedStyle` is a reasonable small follow-up, not done here.
 
 **Still open:**
@@ -285,3 +284,71 @@ round (see §6 for the reasoning behind each):
   `nav-theme.js` updated to key off `.force-dark` instead of every
   `.story-scene`.
 - Section 2 (One Moment) built — see §5's status table.
+
+---
+
+## 10. Changelog — nav gap fix, dead CTA hover fix, Section 1 light-mode
+
+Three issues reported from the live `.pages.dev` preview:
+
+1. **Nav gap when scrolling back to the top — root cause found and
+   fixed.** `.nav` was `position: sticky`. Since nav is the very first
+   element on the page, its natural flow position is already y=0 — so
+   as `sticky` it behaved identically to `fixed` *while visible*, which
+   is why this wasn't caught earlier. The bug: `.nav-hidden`'s
+   `transform: translateY(-100%)` only moves a sticky element visually
+   — it does **not** remove its reserved 64px from the document flow.
+   That left a permanent 64px gap at the very top of the page any time
+   nav was hidden (on initial load, and every time scrolling back up
+   re-entered Section 1's first-50%-hides-nav window), through which
+   the fixed-position `.bg-orb-1` background glow bled — the reddish
+   band that was "very apparent." Changed `.nav` to `position: fixed`.
+   Since nav's effective pinned position doesn't change, this is
+   visually identical whenever nav is shown, but properly removes it
+   from flow — nothing is left to leave a gap when it's hidden. No
+   compensating padding was needed elsewhere: nav's translucent/blurred
+   styling was already designed to overlay content, not push it down.
+
+2. **Dead hover state on the primary CTA — confirmed and fixed.** The
+   external diagnosis was correct: `.path-link:hover .path-link-title`
+   and `.path-link--primary .path-link-title` both resolved to
+   `var(--brand-light)`, so the primary link's hover transitioned that
+   color to itself — firing, but invisible. Fixed by giving
+   `.path-link--primary:hover .path-link-title` its own rule
+   (`var(--text-1)`, inverting the secondary link's direction). Also
+   added the arrow-slide interaction suggested alongside it: the `→`
+   moved out of the HTML strings and into `.path-link-title::after`,
+   so it can `translateX` on hover independently of the text's color
+   transition. The "Kicker Fade" and "Signal Glow" alternatives from
+   the same note were not built — reasonable to add later, just not
+   necessary on top of the color fix + arrow slide.
+
+3. **Section 1 dark-in-light-mode — resolved: Digital Ignition Spark
+   built, dropped force-dark.** Of the three proposed concepts
+   (Photographic Bloom, Particle Implosion, Digital Ignition Spark),
+   Ignition Spark was the strategic pick: it reuses the Signal-line
+   device already established in `scene-frame.js`/`scene-maie-moment.js`
+   rather than introducing a fourth visual language, and — unlike
+   Bloom or Implosion — doesn't require Section 1 to still start dark
+   regardless of theme before transitioning; a spark-flash-and-settle
+   reads correctly against either theme's background from frame one.
+   Implementation: a one-shot intro (plays once per page load, gated
+   behind the same `prefers-reduced-motion` check as everything else —
+   skipped entirely under reduced motion, resolving straight to the
+   settled glow) — a full-width line flash and dissipate, then a
+   radiating six-shard spark burst at center, crossfading into the
+   scene's existing steady breathing-pulse look, so the handoff back to
+   the normal scroll-driven `draw()` is seamless. Section 1's background
+   and the pulse/spark colors were changed from hardcoded `#000`/
+   `rgba(255,255,255,...)` to `var(--bg)`/`var(--accent)`/
+   `var(--brand-light)`, read via `getComputedStyle` (canvas fill colors
+   can't reference CSS custom properties directly). `force-dark` removed
+   from Section 1's section element; `#scene-opening .scene-caption` got
+   a scoped `color: var(--text-1)` override, since the shared
+   `.scene-caption` class still needs to stay hardcoded white for
+   Section 6, which is still force-dark.
+   **Bloom and Implosion remain unbuilt, on the table if the team wants
+   to swap the intro treatment later** — nothing about the theme-aware
+   groundwork here (background/pulse colors, the drop of force-dark)
+   is specific to Ignition Spark; a different intro animation could be
+   swapped in against the same setup.

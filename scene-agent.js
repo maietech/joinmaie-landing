@@ -17,17 +17,17 @@
   if (!path || !nodesEl || !canvas) return;
 
   var STEPS = [
-    { label: 'Intent', detail: 'The creator states what they need — in plain language, not a menu of settings.',
+    { label: 'Intent', detail: 'You describe the outcome. The system carries the weight — no menu of settings to wade through.',
       pixie: { mode: 'ambient', phase: 'idle', temperament: 'curious' } },
-    { label: 'Planning', detail: 'The agent breaks the request into a concrete, inspectable plan of steps.',
+    { label: 'Planning', detail: 'The request becomes a concrete, inspectable plan — quietly, without you having to manage it.',
       pixie: { mode: 'active', phase: 'planning', temperament: 'focused' } },
-    { label: 'Risk Analysis', detail: 'Before touching anything, the plan is checked against what could go wrong.',
+    { label: 'Risk Analysis', detail: 'Before anything is touched, the plan is checked against what could go wrong — so you don\u2019t have to.',
       pixie: { mode: 'active', phase: 'review', temperament: 'focused' } },
-    { label: 'Tool Activation', detail: 'Approved steps run — real tools, real changes, tracked as they happen.',
+    { label: 'Tool Activation', detail: 'The heavy lifting happens quietly in the background — real tools, real changes, tracked as they go.',
       pixie: { mode: 'tools', phase: 'executing', temperament: 'focused' } },
-    { label: 'Human Verification', detail: 'The result comes back to the creator before anything is finalized.',
+    { label: 'Human Verification', detail: 'The result comes back to you before anything is finalized. You stay the decision-maker.',
       pixie: { mode: 'active', phase: 'review', temperament: 'curious' } },
-    { label: 'Outcome', detail: 'The work lands in the project, versioned and tied back to the original ask.',
+    { label: 'Outcome', detail: 'The work lands in your project, versioned and tied back to what you asked for. One less thing to carry.',
       pixie: { mode: 'ambient', phase: 'completed', temperament: 'celebrating' } },
   ];
 

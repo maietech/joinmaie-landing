@@ -30,7 +30,7 @@
     { type: 'window', label: 'Local Bin — untitled' },
     { type: 'file', label: 'audio_MIX_v4.wav' },
   ];
-  var WARNINGS = ['Duplicate Asset Found', 'Missing Reference'];
+  var WARNINGS = ['Duplicate Asset Found', 'Missing Reference', 'Untracked Change'];
 
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var chips = [];
