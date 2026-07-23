@@ -145,7 +145,7 @@ data for either — that's accurate, not a missing feature.
 | # | Section | Phase | Status | File | Notes |
 |---|---|---|---|---|---|
 | 1 | Before the Media | Immersion (hybrid — see §12) | ✅ Built | `scene-opening.js` | Nav auto-hides for first 50% of scroll depth per brief. Now a six-beat caption narrative, not a single line — see §12. Height bumped to 380vh (was the default 250vh) for pacing room across six beats |
-| 2 | One Moment | Exploration | ✅ Built | `scene-frame.js` | Fracture-growth technique instead of literal slice-translation (steadier across aspect ratios). Photo is `media/makabera-pop-up-9977615_1920.jpg` — arbitrary pick, any photo works per the brief; swap freely. Reuses the Signal-line device from Sections 1/6 |
+| 2 | One Moment | Exploration | ✅ Built | `scene-frame.js` | Fracture-growth technique instead of literal slice-translation (steadier across aspect ratios). Photo is `media/staircase-by-robert-schwarz.jpg` (swapped from `makabera-pop-up-9977615_1920.jpg` — see §15); still an arbitrary-per-the-brief pick, swap freely. Reuses the Signal-line device from Sections 1/6 |
 | 3 | Universe to You | Revelation | ✅ Built | `scene-universe.js` | DOM+CSS transforms, not canvas text — no raster blur at scale. Categories/atoms use a deterministic ring layout, not real data — swap in real domain/primitive taxonomy if it ever changes |
 | 4 | The Human Hand | Reflection | ⛔ Not started | — | **Needs real documentary photography** — can't fabricate |
 | 5 | Chaos of Creation | Immersion | ✅ Built | `scene-chaos-signal.js` | Merged with Section 6 into one continuous scene (progress 0.0-0.45) — see §14. Message-chip mechanic added: a curated subset of chips carry their text through convergence instead of dissolving |
@@ -922,3 +922,30 @@ a 390px mobile-viewport pass at multiple progress points plus a theme-
 toggle spot check. Screenshotted throughout — two real issues (the
 `capBefore` bleed-through bug in §1, the message-bubble overlap in §3) were
 caught this way, not from code review, and fixed before calling this done.
+
+---
+
+## 15. Changelog — Section 2 photo swap
+
+Photo swapped from `makabera-pop-up-9977615_1920.jpg` to
+`media/staircase-by-robert-schwarz.jpg` (the Escadaria Selarón mosaic
+staircase in Rio, tilt-shift). Two things needed fixing beyond the `src`
+swap, caught before shipping rather than after:
+
+- **File weight.** Source was 6.3MB at 4672×7008 — the image only ever
+  displays at `width: min(64vw, 620px)` (`.frame-stage`), so a
+  multi-megapixel portrait original was pure waste on a landing page's
+  second scroll section. Resized to 1000×1500 (`convert -resize 1000x
+  -quality 82 -strip`), bringing it down to 274KB — comparable to the
+  photo it replaced (435KB), generously above what's needed even at 2x
+  for retina given the display cap.
+- **Crop.** The photo is a tall portrait; `.frame-photo-wrap` is a 3:2
+  landscape box with `object-fit: cover`. A plain center crop
+  (`object-position`'s default 50% 50%) would only show the vertical
+  middle ~44% of the source — mostly the buildings above the staircase,
+  cropping out most of the steps themselves, the actual subject. Added
+  `object-position: 50% 68%` to `.frame-photo` to bias the crop down
+  toward the staircase and mural. Verified via a headless-browser
+  screenshot, not just by inspecting the crop math — the mosaic steps,
+  the mural face, and the colorful buildings on both sides all land in
+  frame together.
