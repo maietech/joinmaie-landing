@@ -31,6 +31,12 @@
       pixie: { mode: 'ambient', phase: 'completed', temperament: 'celebrating' } },
   ];
 
+  // Matches #agent-path-svg's viewBox (see index.html) — was 100x60 with the
+  // old placeholder wave, where treating x directly as a percent happened to
+  // work only because the width was numerically 100. The real signal path's
+  // viewBox is 92x56, so positions now need explicit scaling.
+  var VB_W = 92, VB_H = 56;
+
   var len = path.getTotalLength();
   var n = STEPS.length;
 
@@ -42,8 +48,8 @@
   var nodeEls = STEPS.map(function (s, i) {
     var el = document.createElement('div');
     el.className = 'agent-node';
-    el.style.left = nodePts[i].x + '%';
-    el.style.top = (nodePts[i].y / 60 * 100) + '%';
+    el.style.left = (nodePts[i].x / VB_W * 100) + '%';
+    el.style.top = (nodePts[i].y / VB_H * 100) + '%';
     el.innerHTML = '<div class="agent-node-dot"></div><div class="agent-node-label">' + s.label + '</div>';
     el.addEventListener('click', function () { showStep(i); });
     nodesEl.appendChild(el);
@@ -54,6 +60,14 @@
     size: 60,
     mode: STEPS[0].pixie.mode, phase: STEPS[0].pixie.phase,
     archetype: 'archivist', temperament: STEPS[0].pixie.temperament,
+    theme: window.getPixieThemeColors(),
+  });
+
+  // Live update on toggle — same reasoning as the companion-intro instance
+  // in index.html: nothing repaints a canvas on its own when a CSS custom
+  // property changes, so this has to be driven explicitly.
+  document.addEventListener('maie:themechange', function () {
+    if (pixieHandle && pixieHandle.update) pixieHandle.update({ theme: window.getPixieThemeColors() });
   });
 
   var lastIdx = -1;
@@ -65,8 +79,8 @@
   function render(progress) {
     var idxFloat = progress * (n - 1);
     var pt = path.getPointAtLength(progress * len);
-    canvas.style.left = pt.x + '%';
-    canvas.style.top = (pt.y / 60 * 100) + '%';
+    canvas.style.left = (pt.x / VB_W * 100) + '%';
+    canvas.style.top = (pt.y / VB_H * 100) + '%';
 
     var activeIdx = Math.max(0, Math.min(n - 1, Math.round(idxFloat)));
     if (activeIdx !== lastIdx) {

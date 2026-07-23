@@ -34,6 +34,20 @@
 
   var TEMPERAMENT_ENERGY_MULT = { idle: 1.0, curious: 1.05, focused: 1.0, celebrating: 1.3, recovering: 0.7 };
 
+  // Shared theme-color reader for every Pixie call site — reads the same
+  // tokens scene-opening.js already reads via getComputedStyle for its own
+  // theme-aware canvas colors, so both call sites (companion-intro,
+  // scene-agent) stay in sync with the toggle instead of rendering the
+  // engine's hardcoded default (a fixed muted crimson) regardless of theme.
+  // Fallbacks match styles.css's dark-mode :root values, same convention
+  // scene-opening.js's themeColor() already uses.
+  window.getPixieThemeColors = function () {
+    var s = getComputedStyle(document.documentElement);
+    var core = (s.getPropertyValue('--brand-light') || '').trim();
+    var accent = (s.getPropertyValue('--accent') || '').trim();
+    return { coreColor: core || '#C24E4E', accentColor: accent || '#FFD166' };
+  };
+
   function phaseEnergy(phase, progress) {
     switch (phase) {
       case 'executing': return 1.2 + (progress / 100) * 0.8;
@@ -318,6 +332,7 @@
       if (patch.progress !== undefined) progress = patch.progress;
       if (patch.archetype !== undefined) archetype = patch.archetype;
       if (patch.temperament !== undefined) temperament = patch.temperament;
+      if (patch.theme !== undefined) theme = patch.theme;
     }
 
     return {

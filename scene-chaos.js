@@ -29,6 +29,9 @@
     { type: 'file', label: 'export_v9(2)(1).mp4' },
     { type: 'window', label: 'Local Bin — untitled' },
     { type: 'file', label: 'audio_MIX_v4.wav' },
+    { type: 'window', label: 'Agent Tab — 6 unsaved runs' },
+    { type: 'file', label: 'model_checkpoint_v3.safetensors' },
+    { type: 'alert', label: '⚠ 3 agent approvals pending' },
   ];
   var WARNINGS = ['Duplicate Asset Found', 'Missing Reference', 'Untracked Change'];
 
