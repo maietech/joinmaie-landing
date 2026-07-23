@@ -32,9 +32,17 @@
     </svg>
   </a>
   <div class="nav-links">
-    <a class="nav-link" href="#trust">Trust</a>
-    <a class="nav-link" href="https://portal.joinmaie.com/pitch/">Pitch Deck</a>
-    <button id="theme-toggle" aria-label="Switch to light mode">🌓 Theme</button>
+    <!-- Below 640px (see styles.css / nav-menu.js), .nav-secondary hides
+         behind #nav-more-toggle instead of wrapping — there was no
+         responsive handling for the nav at all before this, so at phone
+         widths the links wrapped onto extra lines inside the fixed 64px
+         bar. Theme toggle + primary CTA stay visible at every width. -->
+    <div class="nav-secondary" id="nav-secondary">
+      <a class="nav-link" href="#trust">Trust</a>
+      <a class="nav-link" href="https://portal.joinmaie.com/pitch/">Pitch Deck</a>
+    </div>
+    <button id="nav-more-toggle" class="nav-more-toggle" aria-label="More links" aria-expanded="false" aria-controls="nav-secondary">⋯</button>
+    <button id="theme-toggle" aria-label="Switch to light mode">🌓<span class="nav-theme-label"> Theme</span></button>
     <a class="nav-cta" href="https://waitlist.joinmaie.com">Join the Exchange</a>
   </div>
 </nav>
@@ -112,6 +120,31 @@
     </div>
   </section>
 
+  <!-- Section 4 — The Human Hand (Reflection). Previously blocked on real
+       documentary photography — the 10 stock photos on hand were
+       portraits/nature/product shots, not "creator at work" (see
+       DESIGN-DEV-GUIDE.md). Now built with real editorial/documentary
+       photography (a colorist grading suite, a story-structure card wall,
+       a music production session). Deliberately the slowest, quietest
+       scene on the page — see scene-human-hand.js. -->
+  <section id="scene-human-hand" class="story-scene">
+    <div class="scene-sticky">
+      <div class="hand-frame" id="hand-frame">
+        <img class="hand-photo" src="media/made-by-fari-14122231.jpg" alt="A photographer checks a shot on their camera.">
+        <img class="hand-photo" src="media/made-by-nicolas-rueda-175965148-15713296.jpg" alt="An editor works alone at night, lit only by their monitor.">
+        <img class="hand-photo" src="media/made-by-ron-lach-8089248.jpg" alt="A camera operator's monitor shows the scene being filmed.">
+        <img class="hand-photo" src="media/made-by-john-taran-166597215-11044765.jpg" alt="Two people work together at a music production session.">
+        <img class="hand-photo" src="media/made-by-ron-lach-8100065.jpg" alt="A close view of color-grading curves and wheels on an editing monitor.">
+        <img class="hand-photo" src="media/made-by-ron-lach-8035286.jpg" alt="Hands arrange story-structure index cards on a table.">
+        <img class="hand-photo" src="media/made-by-ron-lach-8102680.jpg" alt="Two colorists review and discuss a shot together.">
+      </div>
+      <div class="hand-scrim" aria-hidden="true"></div>
+      <div class="hand-thesis" id="hand-thesis-before">Technology does not create meaning.</div>
+      <div class="hand-thesis" id="hand-thesis-after">People do.</div>
+      <div class="hand-caption" id="hand-caption"></div>
+    </div>
+  </section>
+
   <!-- Sections 5+6 merged into one continuous scroll region per
        chaos-to-signal-merge-direction.md — one .story-scene wrapper, one
        sticky panel, one scroll-progress driver (scene-chaos-signal.js).
@@ -179,6 +212,11 @@
         <div class="reflect-title">Never Lose Your Progress</div>
         <p class="reflect-desc">Your past work is always there, exactly as you left it — even as MAIE keeps growing and improving.</p>
         <div class="reflect-code">Migration-safe</div>
+      </div>
+      <div class="reflect-item">
+        <div class="reflect-title">Held to Its Own Standard</div>
+        <p class="reflect-desc">Before anything shipped, the system was put through its own audit — real attempts to access what shouldn't be reachable, tracked down and closed one by one.</p>
+        <div class="reflect-code">14 security &amp; data-isolation issues, found and resolved pre-launch</div>
       </div>
     </div>
   </section>
@@ -289,10 +327,12 @@
 </script>
 <script src="reveal.js"></script>
 <script src="nav-theme.js"></script>
+<script src="nav-menu.js"></script>
 <script src="story-scroll.js"></script>
 <script src="scene-opening.js"></script>
 <script src="scene-frame.js"></script>
 <script src="scene-universe.js"></script>
+<script src="scene-human-hand.js"></script>
 <script src="scene-chaos-signal.js"></script>
 <script src="scene-lifecycle.js"></script>
 <script src="scene-agent.js"></script>
