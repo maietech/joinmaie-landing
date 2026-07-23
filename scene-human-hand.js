@@ -58,7 +58,17 @@
   });
 
   function render(progress) {
-    var thesisBeforeW = window.storyStageWeight(progress, 0.0, 0.06, 0.0, 0.04);
+    // Fully faded out (weight 0) by progress 0.045 — before photo[0]'s own
+    // fade-in ramp begins at PHOTO_START - FADE = 0.05 (see STAGES above).
+    // Previously ended its fade-out at 0.10, well past photo[0] reaching
+    // full opacity at 0.08 — the two windows overlapped for ~0.03 of
+    // scroll distance, during which the thesis text sat directly on top
+    // of the photo with no scrim (only a text-shadow), measured at 3.64:1
+    // contrast against photo[0] specifically (found in the pre-production
+    // audit; confirmed live via screenshot at progress 0.08). This clean
+    // handoff (thesis out by 0.045, photo starting to appear at 0.05)
+    // removes the overlap entirely instead of just shortening it.
+    var thesisBeforeW = window.storyStageWeight(progress, 0.0, 0.025, 0.0, 0.02);
     var thesisAfterW = window.storyStageWeight(progress, 0.96, 1.0, 0.04, 0.0);
     if (thesisBefore) thesisBefore.style.opacity = thesisBeforeW;
     if (thesisAfter) thesisAfter.style.opacity = thesisAfterW;

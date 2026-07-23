@@ -11,22 +11,33 @@ window.initScrollScene = function (sectionEl, onProgress) {
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduced) { onProgress(1, true); return function () {}; }
 
-  var ticking = false;
-
-  function compute() {
-    var rect = sectionEl.getBoundingClientRect();
+  function read() {
+    return sectionEl.getBoundingClientRect();
+  }
+  function write(rect) {
     var vh = window.innerHeight;
     var total = rect.height - vh;
     var scrolled = -rect.top;
     var progress = total > 0 ? Math.min(1, Math.max(0, scrolled / total)) : (rect.top < vh ? 1 : 0);
     onProgress(progress, false);
-    ticking = false;
   }
 
-  function onScroll() {
-    if (!ticking) { requestAnimationFrame(compute); ticking = true; }
+  // Routed through reveal.js's shared scroll-batch registry (all
+  // registered reads run before any writes, across every module using it)
+  // instead of each of up to 7 story-scenes running its own independent
+  // scroll listener with its own interleaved read-then-write — found in
+  // the pre-production audit's scroll-jank profile as one of the top
+  // contributors. reveal.js loads before this file, so
+  // registerScrollBatch is always available in practice; the fallback
+  // below preserves the original per-instance-listener behavior if that
+  // ever changes, so this function stays correct standalone too.
+  if (window.registerScrollBatch) {
+    return window.registerScrollBatch(read, write);
   }
 
+  var ticking = false;
+  function compute() { write(read()); ticking = false; }
+  function onScroll() { if (!ticking) { requestAnimationFrame(compute); ticking = true; } }
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
   compute();

@@ -121,6 +121,10 @@
   }
 
   function runIgnition(ts) {
+    // ignitionDone can now also be set true early, from the scroll-progress
+    // guard below — bail out immediately rather than keep painting ignition
+    // frames over whatever draw() just rendered for the real scroll position.
+    if (ignitionDone) return;
     if (ignitionStartTime === null) ignitionStartTime = ts;
     var p = Math.min(1, (ts - ignitionStartTime) / IGNITION_MS);
     drawIgnition(p);
@@ -274,6 +278,17 @@
 
   var lastProgress = 0, isReduced = false;
   window.initScrollScene(section, function (progress, staticFrame) {
+    // If the visitor has already scrolled meaningfully into the section
+    // while the one-shot ignition intro is still mid-flight (e.g. a fast
+    // wheel-scroll in the first ~950ms after load), don't make them wait
+    // out the rest of it on a stale frame — snap straight to done so
+    // draw() below renders the correct scroll-synced frame this same
+    // callback, instead of the canvas staying stuck on an ignition frame
+    // that doesn't match the caption's already-correct text (found in the
+    // pre-production audit). Progress stays ~0 on a normal, unscrolled
+    // load, so this never fires for the common case — ignition still
+    // plays out in full then.
+    if (!ignitionDone && progress > 0.02) ignitionDone = true;
     lastProgress = progress; isReduced = staticFrame;
     var w = computeWeights(progress);
     draw(progress, staticFrame, w);

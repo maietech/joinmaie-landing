@@ -44,14 +44,35 @@
   var dots = Array.prototype.slice.call(rail.querySelectorAll('.lifecycle-rail-dot'));
   var windowEl = track.parentElement;
 
+  // frames[0].getBoundingClientRect() and windowEl.clientWidth are both
+  // layout-forcing reads that were happening on every single frame here —
+  // found as a top-5 contributor in the pre-production audit's scroll-jank
+  // profile. Neither actually changes except on resize (frame width is
+  // fixed by CSS, not by scroll position), so both are cached via
+  // reveal.js's shared scroll-batch registry (updated once per scroll/
+  // resize tick, read phase before any writes) instead of read fresh by
+  // render() every frame.
+  var cachedFrameW = 320, cachedWindowW = 0;
+  if (window.registerScrollBatch) {
+    window.registerScrollBatch(
+      function () {
+        return {
+          frameW: frames[0] ? frames[0].getBoundingClientRect().width : 320,
+          windowW: windowEl.clientWidth || 0,
+        };
+      },
+      function (r) { cachedFrameW = r.frameW; cachedWindowW = r.windowW; }
+    );
+  }
+
   function render(progress) {
     var n = STAGES.length;
     var idxFloat = progress * (n - 1);
     var activeIdx = Math.round(idxFloat);
 
-    var frameW = frames[0] ? frames[0].getBoundingClientRect().width : 320;
+    var frameW = cachedFrameW;
     var gap = 28;
-    var centerOffset = ((windowEl.clientWidth || 0) - frameW) / 2;
+    var centerOffset = (cachedWindowW - frameW) / 2;
     var trackX = centerOffset - idxFloat * (frameW + gap);
     track.style.transform = 'translateX(' + trackX.toFixed(1) + 'px)';
 

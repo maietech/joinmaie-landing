@@ -10,6 +10,21 @@
   --brand-light: #C24E4E;
   --brand-glow: rgba(165,42,42,0.30);
   --accent: #FFD166;
+  /* Text-safe variants — --brand-light/--accent are also used for borders,
+     SVG strokes, and large/bold text (all fine at their own thresholds),
+     but at small normal-weight sizes (kickers, mono tags/codes) they fall
+     short of WCAG AA's 4.5:1 for text: --brand-light measured 4.26:1 here,
+     --accent measured 3.07:1 in light theme (see below). Adding dedicated
+     small-text tokens — same hue, adjusted lightness only — fixes every
+     current and future small-text use at once, without changing the
+     brand color's appearance anywhere it's used decoratively or at a size
+     that already passes (found in the pre-production audit's live
+     axe-core pass; verified against the actual computed colors, not
+     eyeballed). --accent is already well above 4.5:1 in dark theme, so
+     --accent-text just equals it there; same for --brand-light-text in
+     light theme, where --brand-light itself is already a dark enough red. */
+  --brand-light-text: #C75B5B; /* 4.81:1 on --bg, vs --brand-light's 4.26:1 */
+  --accent-text: #FFD166;
 }
 
 html[data-theme="light"] {
@@ -23,6 +38,8 @@ html[data-theme="light"] {
   --brand-light: #A52A2A;
   --brand-glow: rgba(119,46,37,0.16);
   --accent: #B8860B;
+  --brand-light-text: #A52A2A; /* --brand-light is already 6.69:1 on --bg here */
+  --accent-text: #8D6608; /* 4.91:1 on --bg, vs --accent's 3.07:1 */
 }
 
 * { box-sizing: border-box; }
@@ -198,7 +215,7 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 .intro-sub { font-size: 18px; line-height: 1.6; color: var(--text-2); max-width: 52ch; }
 
 /* ── Section headers ─────────────────────────────────────────────── */
-.section-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--brand-light); text-transform: uppercase; margin-bottom: 10px; }
+.section-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--brand-light-text); text-transform: uppercase; margin-bottom: 10px; }
 .section-title { font-size: clamp(28px, 4vw, 42px); margin: 0 0 16px; }
 
 /* ── Reflection list (Trust — toolkit/journey retired, see index.html) ─
@@ -212,7 +229,13 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 .reflect-item:first-child { border-top: none; padding-top: 0; }
 .reflect-title { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
 .reflect-desc { color: var(--text-2); font-size: 15.5px; line-height: 1.65; max-width: 56ch; }
-.reflect-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brand-light); margin-top: 14px; opacity: 0.85; }
+/* opacity:0.85 removed — it was blending the text color toward the
+   background, pulling even the AA-safe token back under 4.5:1 (found in
+   the pre-production audit's contrast sweep: 0.85 opacity dropped
+   --brand-light-text's 4.81:1 to an effective ~3.7:1). The smaller mono
+   font and muted-relative-to-the-heading color already read as
+   "supporting detail" without needing the extra transparency. */
+.reflect-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brand-light-text); margin-top: 14px; }
 
 /* ── Final CTA ────────────────────────────────────────────────────── */
 .final-cta { text-align: center; padding-bottom: 160px; }
@@ -242,6 +265,12 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   transform: translateY(calc(var(--scroll-y, 0) * -0.12px));
 }
 .bg-orb-2 {
+  /* Deliberately theme-invariant, unlike orb-1/orb-3 (var(--brand)/
+     var(--accent), which shift hue between themes) — this one is a fixed
+     cool blue-grey accent in the ambient field regardless of light/dark,
+     not tied to a brand token. Flagged during the pre-production audit as
+     the one hardcoded hex in this block; kept as-is rather than tokenized
+     since it isn't meant to track the brand palette. */
   width: 460px; height: 460px; top: 38%; right: -8%; background: #4d7ea8;
   transform: translateY(calc(var(--scroll-y, 0) * 0.10px));
 }
@@ -282,7 +311,7 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .path-divider { width: 1px; height: 44px; background: var(--border); }
 @media (max-width: 600px) { .path-divider { display: none; } }
 .path-link { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; text-align: left; }
-.path-link-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--brand-light); text-transform: uppercase; }
+.path-link-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--brand-light-text); text-transform: uppercase; }
 .path-link-title {
   font-size: 19px; font-weight: 700; color: var(--text-1); transition: color 0.15s ease;
   display: inline-flex; align-items: center; gap: 6px;
@@ -460,7 +489,7 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   font-size: 12px; color: var(--text-1); opacity: 0; white-space: nowrap;
   transition: opacity 0.2s ease;
 }
-.frame-tag--mono { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.03em; color: var(--accent, #FFD166); }
+.frame-tag--mono { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.03em; color: var(--accent-text, #FFD166); }
 .frame-wave { display: flex; align-items: center; gap: 3px; height: 60%; opacity: 0; transition: opacity 0.2s ease; }
 .frame-wave span { width: 3px; background: var(--brand-light, #C24E4E); border-radius: 2px; }
 .frame-signal {
@@ -591,7 +620,7 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .lifecycle-frame-num { font-family: 'Bebas Neue', sans-serif; font-size: 30px; color: var(--brand-light); }
 .lifecycle-frame-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.02em; margin: 4px 0 10px; color: var(--text-1); }
 .lifecycle-frame-desc { font-size: 14px; line-height: 1.55; color: var(--text-2); margin: 0 0 14px; }
-.lifecycle-frame-metric { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--accent); }
+.lifecycle-frame-metric { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--accent-text); }
 .lifecycle-rail { display: flex; gap: 8px; }
 .lifecycle-rail-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background 0.2s ease, transform 0.2s ease; }
 .lifecycle-rail-dot.is-active { background: var(--brand-light); transform: scale(1.4); }

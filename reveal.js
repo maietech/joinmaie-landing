@@ -14,22 +14,74 @@
   // below for why. Computed in this same rAF-throttled handler rather than
   // adding a third scroll listener for it.
   var railFill = document.getElementById('story-rail-fill');
-  function updateScrollVar() {
+
+  // `document.documentElement.scrollHeight` is a layout-forcing read.
+  // Previously read on every scroll-driven tick, immediately after writing
+  // the `--scroll-y` custom property (which feeds `.bg-orb`'s transform) —
+  // that write-then-read pattern was forcing a synchronous style/layout
+  // recalculation on every tick, one of the top contributors in the
+  // pre-production audit's scroll-jank profile (~4.1s of a ~33s throttled
+  // scroll-through). Cached instead, recomputed only when the document's
+  // height could plausibly have changed: on resize, and once web fonts
+  // finish loading (a layout-affecting event that isn't a "scroll" or
+  // "resize"). Section heights on this page are all either fixed vh values
+  // or driven by absolutely-positioned content that doesn't affect flow
+  // height, so neither image loads nor scroll-driven style writes should
+  // ever invalidate this cache between those two triggers.
+  var cachedMax = 0;
+  function recomputeMax() {
+    cachedMax = document.documentElement.scrollHeight - window.innerHeight;
+  }
+  recomputeMax();
+  window.addEventListener('resize', recomputeMax);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(recomputeMax);
+
+  // Shared read/write batching for scroll-driven work across files —
+  // registered read callbacks all run first (each feeding its own paired
+  // write callback), then every write callback runs, so a
+  // getBoundingClientRect() read from one module (story-scroll.js,
+  // nav-theme.js, etc.) never forces a layout recalc against a style write
+  // another module already made earlier in the same tick. Found in the
+  // pre-production audit: story-scroll.js, nav-theme.js,
+  // scene-chaos-signal.js, and scene-lifecycle.js each ran their own
+  // independent scroll listener with its own interleaved read-then-write,
+  // and multiple such listeners firing across the same scroll event could
+  // each force their own synchronous layout instead of sharing one.
+  var batchEntries = [];
+  window.registerScrollBatch = function (read, write) {
+    var entry = { read: read, write: write };
+    batchEntries.push(entry);
+    write(read()); // initial synchronous pass, matching the "compute once at registration" behavior every consumer previously relied on
+    return function unregister() {
+      var i = batchEntries.indexOf(entry);
+      if (i !== -1) batchEntries.splice(i, 1);
+    };
+  };
+
+  function tick() {
+    // READ PHASE — every registered read() runs first, before any writes.
+    var reads = batchEntries.map(function (e) { return e.read(); });
+    // WRITE PHASE — this module's own writes, then every registered write().
     document.documentElement.style.setProperty('--scroll-y', window.scrollY);
     if (railFill) {
-      var doc = document.documentElement;
-      var max = doc.scrollHeight - window.innerHeight;
-      var pct = max > 0 ? Math.min(100, Math.max(0, (window.scrollY / max) * 100)) : 0;
+      var pct = cachedMax > 0 ? Math.min(100, Math.max(0, (window.scrollY / cachedMax) * 100)) : 0;
       railFill.style.height = pct + '%';
     }
+    batchEntries.forEach(function (e, i) { e.write(reads[i]); });
     ticking = false;
   }
-  window.addEventListener('scroll', function () {
+  // Resize also needs a tick — batched consumers' geometry (nav-theme.js's
+  // force-dark check, story-scroll.js's section progress, etc.) can change
+  // on resize without any scroll event firing, same as each of their
+  // original independent listeners handled before this was centralized.
+  function onScrollOrResize() {
     if (!ticking) {
-      requestAnimationFrame(updateScrollVar);
+      requestAnimationFrame(tick);
       ticking = true;
     }
-  }, { passive: true });
+  }
+  window.addEventListener('scroll', onScrollOrResize, { passive: true });
+  window.addEventListener('resize', onScrollOrResize);
 })();
 
 (function () {
