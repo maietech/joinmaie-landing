@@ -266,6 +266,15 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    light/dark toggle — an intentional exception for these two immersive
    beats, not a bug. */
 .story-scene { position: relative; height: 250vh; padding: 0; max-width: none; margin: 0; }
+/* Section 1 now carries a six-beat caption narrative (see scene-opening.js)
+   instead of a single line — more scroll distance per beat than the
+   default 250vh would give (250/6 ≈ 42vh/beat, tighter than felt right
+   for the page's highest-stakes emotional beats). 380vh ≈ 63vh/beat,
+   between scene-lifecycle's 8-stage pacing (420vh, ~52vh/stage) and
+   scene-agent's tighter 6-step pacing (250vh, ~42vh/step) — see
+   maie-narrative-audit.md §8 and DESIGN-DEV-GUIDE.md §11 for the
+   reasoning already on record about not rushing this section. */
+#scene-opening { height: 380vh; }
 .scene-sticky {
   position: sticky; top: 0; height: 100vh; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
@@ -275,11 +284,18 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .nav { transition: transform 0.3s ease; }
 
 #scene-opening-canvas { width: 100%; height: 100%; display: block; }
+/* white-space was nowrap — fine for the original single short line, but
+   Section 1's caption now cycles through six beats of varying length (see
+   scene-opening.js), some long enough to overflow a narrow viewport at
+   this font size if forced onto one line. max-width + normal wrapping
+   keeps every beat readable at any viewport width; harmless for the
+   short captions elsewhere reusing this class (frame/universe). */
 .scene-caption {
   position: absolute; left: 50%; top: 62%; transform: translate(-50%, 0);
   font-family: 'Bebas Neue', sans-serif; font-size: clamp(22px, 3.5vw, 34px);
   letter-spacing: 0.02em; color: rgba(255,255,255,0.92); text-align: center;
-  pointer-events: none; white-space: nowrap;
+  pointer-events: none; white-space: normal; max-width: min(88vw, 640px);
+  line-height: 1.18;
 }
 /* Section 1 dropped force-dark (see DESIGN-DEV-GUIDE §6/§9) — its
    caption needs to flip with the toggle now. Section 6 is untouched;

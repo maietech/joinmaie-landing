@@ -145,7 +145,7 @@ data for either — that's accurate, not a missing feature.
 
 | # | Section | Phase | Status | File | Notes |
 |---|---|---|---|---|---|
-| 1 | Before the Media | Immersion | ✅ Built | `scene-opening.js` | Nav auto-hides for first 50% of scroll depth per brief |
+| 1 | Before the Media | Immersion (hybrid — see §12) | ✅ Built | `scene-opening.js` | Nav auto-hides for first 50% of scroll depth per brief. Now a six-beat caption narrative, not a single line — see §12. Height bumped to 380vh (was the default 250vh) for pacing room across six beats |
 | 2 | One Moment | Exploration | ✅ Built | `scene-frame.js` | Fracture-growth technique instead of literal slice-translation (steadier across aspect ratios). Photo is `media/makabera-pop-up-9977615_1920.jpg` — arbitrary pick, any photo works per the brief; swap freely. Reuses the Signal-line device from Sections 1/6 |
 | 3 | Universe to You | Revelation | ✅ Built | `scene-universe.js` | DOM+CSS transforms, not canvas text — no raster blur at scale. Categories/atoms use a deterministic ring layout, not real data — swap in real domain/primitive taxonomy if it ever changes |
 | 4 | The Human Hand | Reflection | ⛔ Not started | — | **Needs real documentary photography** — can't fabricate |
@@ -524,3 +524,151 @@ question whose own documented trigger condition (§4 above: "worth a second
 look if the whole page ends up mostly story scenes") has now been met. Not
 addressed here — it's a rail/wayfinding redesign, not a background or
 content fix, and deserves its own pass.
+
+**Resolved in §12 below** — this ended up not staying deferred; see the
+rail item there.
+
+---
+
+## 12. Changelog — Section 1 narrative rework + story-rail fix
+
+### Section 1's new role: hybrid immersion, not pure mystery
+
+**The question:** whether Section 1 should be mystery-first (visual and
+copy both stay abstract), recognition-first (copy names the feeling early),
+or a hybrid. Resolved as **hybrid: the visual stays fully abstract and
+mysterious throughout — it never becomes literal "office chaos" imagery,
+that's still Section 5's job — while the copy progressively concretizes
+across six beats, landing on a plainly-stated personal recognition by the
+time the visitor reaches the end of the scene.**
+
+**Why this and not pure mystery-first:** the single line "Everything begins
+with something" (the old implementation) was, per `maie-narrative-audit.md`,
+"deliberately vague — the ambiguity is by design... but its payoff depends
+on the visitor reaching Section 6 with the throughline intact," and that
+throughline was getting diluted by the toolkit/trust detour between Sections
+6 and 7 (since resolved, see §11). A pure-mystery opening puts *all* the
+weight of connecting "abstract light" to "my actual problem" on sections
+5–6, three scenes later. The hybrid lets Section 1 do real narrative work —
+establish the emotional shape of the problem — without stating it as a
+SaaS pain-point or naming MAIE.
+
+**Why this and not full recognition-first:** naming the problem literally
+in Section 1 (file chaos, tool sprawl, the specifics Section 5 dramatizes)
+would front-run Section 5's crescendo and violate the brief's own explicit
+principle: "Do not tell visitors what MAIE does before showing them why it
+matters" / "Explaining the architecture before establishing the problem" is
+on the brief's anti-pattern list. Section 1 ends on an *emotional* beat
+("You just wanted to make something"), not a *diagnostic* one — no files,
+no tools, no drives named. That specificity is still earned later.
+
+**How this reads against the full arc:** Section 1 states the theme
+obliquely as a feeling. Sections 2–3 (Exploration/Revelation, still about
+media and craft itself, not about pain) build the visitor's investment in
+the thing worth protecting. Section 5 proves the Section 1 feeling at full
+volume, concretely (file chaos, tool sprawl). Section 6 resolves it. This
+is a deliberate "cold open states the theme, the story earns it" structure
+— Section 1 creates *emotional conditions*, it doesn't resolve the story by
+itself.
+
+### The six-beat caption
+
+Implemented in `scene-opening.js`. The caption is no longer a single
+static line — it's driven by a `STAGES` array, one beat per existing visual
+morph-stage (pulse → line → frame-matrix → waveform → timeline → data
+fields), using the *exact same* progress windows the canvas rendering
+already used (`computeWeights()` is now the single source of truth for
+both `draw()` and the new `updateCaption()` — refactored from six
+independent inline `storyStageWeight()` calls inside `draw()` alone, so
+text and visual can never drift out of sync).
+
+| Beat | Visual stage | Copy | Note |
+|---|---|---|---|
+| 1 | Pulse | "Everything begins with something." | Preserved verbatim — the audit's own pick for the page's strongest deliberately-vague line |
+| 2 | Line | "It becomes something real." | Point extending into a line = an idea taking shape |
+| 3 | Frame matrix | "Then it becomes another." | Line fractures into a grid of frames — literal visual multiplication |
+| 4 | Waveform | "And another." | Repetition as the literary device, audio bars as continued multiplication |
+| 5 | Timeline | "Until the work is surrounded by everything that isn't the work." | The turn/reversal — tick marks and structure appearing visually as the copy names the burden |
+| 6 | Data fields | "You just wanted to make something." | The recognition payoff, paired with literal metadata rows (id/ts/conf/src) — the visual *is* the administrative residue the line names |
+
+Verified end-to-end with a headless-browser pass (Playwright driving the
+page at `localhost`, scrolling to each stage's progress and reading the
+live caption text) — all six beats land correctly and in order, in both
+themes. Also fixed one accessibility-adjacent gap found along the way: the
+old single-caption version only ever faded in during the *first* stage's
+window ([0.0, 0.10]); under `prefers-reduced-motion`, `story-scroll.js`
+resolves straight to `progress=1` (the *last* stage), which fell outside
+that window — meaning reduced-motion visitors previously saw no caption
+at all in Section 1. The new stage-aware `updateCaption()` correctly shows
+the final beat ("You just wanted to make something.") for reduced-motion
+visitors instead, consistent with how every other scene shows its settled
+end-state under reduced motion.
+
+### CSS changes supporting the above
+
+- `.scene-caption` (`styles.css`): was `white-space: nowrap`, fine for the
+  original single five-word line, but beat 5 ("Until the work is
+  surrounded by everything that isn't the work.") is eleven words and
+  would overflow a narrow viewport at this font size. Changed to
+  `white-space: normal` + `max-width: min(88vw, 640px)` +
+  `line-height: 1.18`. This is a shared class (also used by
+  `#frame-caption`, `#universe-caption`), so it incidentally makes those
+  more robust on narrow viewports too — harmless for their existing short
+  captions, verified via the same headless-browser pass at a 390px mobile
+  viewport (the longest beat wraps to three lines, no overflow).
+- `#scene-opening` height bumped from the default `.story-scene`'s 250vh to
+  380vh. Six narrative beats need more pacing room than the section's
+  original single caption did — 250vh/6 ≈ 42vh per beat (as tight as
+  `scene-agent`'s already-flagged-as-tight 6-step pacing); 380vh/6 ≈ 63vh
+  per beat, more generous than `scene-lifecycle`'s 8-stage pacing
+  (420vh/8 ≈ 52.5vh), which felt appropriate given this is now the page's
+  highest-stakes emotional beat, not a lower-stakes one.
+
+### Story-rail fix (previously flagged "explicitly out of scope," resolved this round)
+
+§11's changelog explicitly deferred this — the audit's finding (§8) that
+the rail's fill bar only ever tracked `[data-reveal]` section index, going
+blank for most of the page's actual scroll distance since 7 of 12 built
+sections are story scenes. That deferral was scoped-out for the *previous*
+task (background/content fixes only), not blocked by missing content — so
+per this round's instruction to resolve what's actually ready rather than
+re-document it, it's fixed now.
+
+`reveal.js`: the rail *fill* now tracks true whole-page scroll progress
+(`scrollY / (scrollHeight - innerHeight)`), computed in the same
+rAF-throttled scroll handler already updating `--scroll-y` for the
+background parallax orbs — no new listener added. The rail *dots* are
+unchanged — still scoped to reveal sections only, since a dot appearing
+mid-cinematic-scene would still undercut the immersion (the guide's
+original reasoning for excluding story scenes from the rail, §4, still
+holds for dots specifically — it was only the fill-height calculation that
+had the gap). Verified via headless browser: fill height now advances
+linearly with real scroll position across the whole page, not just within
+reveal sections.
+
+### Deferred items — unchanged, still content-blocked
+
+Sections 4, 9, 10, 11, and 12 remain **not started**, for the same reasons
+recorded in §5/§6 item 4 — real documentary photography, marketplace
+preview content, a provenance/hash example, and platform metrics,
+respectively, none of which can be fabricated. Nothing in this round
+touched them or their dependencies. No new deferred items were introduced.
+
+### Validation performed
+
+- `node --check` on every changed `.js` file; HTML tag-balance and CSS
+  brace-balance checks — all clean.
+- Headless-browser pass (Playwright + system Chrome via a local static
+  server) driving the actual page: scrolled to each of the six caption
+  beats' progress values and read the live DOM text — confirmed correct
+  order and content in both dark and light theme. Checked console for
+  errors (none beyond the browser's automatic `favicon.ico` 404, unrelated
+  to the page). Checked a 390px mobile viewport at the longest caption beat
+  — wraps to three lines, no horizontal overflow. Confirmed the nav's
+  de-escalated CTA (§11) and the theme toggle both work mid-flow. Confirmed
+  the story-rail fill advances correctly across full-page scroll fractions.
+- Not independently re-verified in this pass: real mobile Safari/iOS
+  Chrome (checked via a desktop headless browser at mobile viewport width
+  only, not a real device), and Section 1's ignition-spark one-shot timing
+  under actual human scroll speed (verified programmatically, not by a
+  human scrolling it).
