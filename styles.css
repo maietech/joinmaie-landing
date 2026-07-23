@@ -72,12 +72,18 @@ a { color: inherit; }
 .nav-links { display: flex; align-items: center; gap: 22px; }
 .nav-link { font-size: 14px; color: var(--text-2); text-decoration: none; transition: color 0.3s ease; }
 .nav-link:hover { color: var(--text-1); }
+/* De-escalated from a filled button (see maie-narrative-audit.md §9/§11 D3) —
+   a persistent, filled-button ask visible from the first pixel on every
+   scroll position undid the same "no early ask" decision already made for
+   the hero (DESIGN-DEV-GUIDE.md §6 item 1). Now a plain brand-colored text
+   link, same weight class as the other nav links, distinguished by color
+   and an underline-on-hover rather than a button shape. */
 .nav-cta {
-  background: var(--brand); color: #fff; border: none; border-radius: 8px;
-  padding: 9px 16px; font-size: 13.5px; font-weight: 600; text-decoration: none;
-  transition: background 0.15s ease;
+  color: var(--brand-light); font-size: 14px; font-weight: 600; text-decoration: none;
+  padding: 4px 0; border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
-.nav-cta:hover { background: var(--brand-light); }
+.nav-cta:hover { border-bottom-color: var(--brand-light); }
 
 #theme-toggle {
   display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border);
@@ -147,30 +153,28 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 /* ── Section headers ─────────────────────────────────────────────── */
 .section-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--brand-light); text-transform: uppercase; margin-bottom: 10px; }
 .section-title { font-size: clamp(28px, 4vw, 42px); margin: 0 0 16px; }
-.section-desc { color: var(--text-2); font-size: 16px; max-width: 60ch; line-height: 1.6; margin-bottom: 48px; }
 
-/* ── Reflection lists (replaces the old 3-card grids — Toolkit/Trust) ─
+/* ── Reflection list (Trust — toolkit/journey retired, see index.html) ─
    Single column, generous vertical space, no card borders/boxes —
    matches the brief's Reflection-phase language instead of a feature-
-   card wall. */
+   card wall. reflect-code now follows reflect-desc (supporting detail),
+   not reflect-title (see maie-narrative-audit.md §5/§11 A: was leading
+   with jargon like "SHA-256" before the human benefit). */
 .reflect-list { display: flex; flex-direction: column; max-width: 640px; }
 .reflect-item { padding: 36px 0; border-top: 1px solid var(--border); }
 .reflect-item:first-child { border-top: none; padding-top: 0; }
-.reflect-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brand-light); margin-bottom: 8px; }
 .reflect-title { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
 .reflect-desc { color: var(--text-2); font-size: 15.5px; line-height: 1.65; max-width: 56ch; }
-
-/* ── Journey steps ────────────────────────────────────────────────── */
-.step { display: flex; gap: 24px; padding: 28px 0; border-top: 1px solid var(--border); }
-.step:first-of-type { border-top: none; }
-.step-num { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--brand-light); flex-shrink: 0; width: 60px; }
-.step-name { font-size: 19px; font-weight: 600; margin: 0 0 8px; }
-.step-desc { color: var(--text-2); font-size: 15px; line-height: 1.6; }
+.reflect-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brand-light); margin-top: 14px; opacity: 0.85; }
 
 /* ── Final CTA ────────────────────────────────────────────────────── */
 .final-cta { text-align: center; padding-bottom: 160px; }
 .final-cta h2 { font-size: clamp(30px, 5vw, 52px); margin-bottom: 20px; }
 .final-cta p { color: var(--text-2); font-size: 16px; margin-bottom: 36px; }
+/* Demoted out of the closing headline (see maie-narrative-audit.md §11 A) —
+   the dev-status disclosure is honest but shouldn't puncture the register
+   of the page's most crystallized line. Small, quiet, after the choice. */
+.path-note { margin: 28px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.04em; color: var(--text-2); opacity: 0.65; }
 
 footer { text-align: center; padding: 40px 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-2); }
 
@@ -461,7 +465,7 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   font-family: 'Bebas Neue', sans-serif; font-size: clamp(20px, 3vw, 30px);
   letter-spacing: 0.02em; color: var(--text-1); text-align: center;
 }
-.agent-stage { position: relative; width: min(900px, 90vw); aspect-ratio: 100 / 60; }
+.agent-stage { position: relative; width: min(900px, 90vw); aspect-ratio: 92 / 56; }
 #agent-path-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .agent-path-stroke { fill: none; stroke: var(--brand-light); stroke-width: 0.8; opacity: 0.5; }
 .agent-nodes { position: absolute; inset: 0; }

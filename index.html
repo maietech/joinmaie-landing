@@ -32,9 +32,7 @@
     </svg>
   </a>
   <div class="nav-links">
-    <a class="nav-link" href="#toolkit">Toolkit</a>
     <a class="nav-link" href="#trust">Trust</a>
-    <a class="nav-link" href="#journey">Journey</a>
     <a class="nav-link" href="https://portal.joinmaie.com/pitch/">Pitch Deck</a>
     <button id="theme-toggle" aria-label="Switch to light mode">🌓 Theme</button>
     <a class="nav-cta" href="https://waitlist.joinmaie.com">Join the Exchange</a>
@@ -153,75 +151,29 @@
     </div>
   </section>
 
-  <section id="toolkit" data-reveal data-rail-label="Toolkit">
-    <div class="section-tag">The Shift</div>
-    <h2 class="section-title">From Human Impulse to Final Artifact</h2>
-    <p class="section-desc">
-      Not another tool to manage. A quieter baseline — where the tedious parts
-      of the work happen on their own, and your attention stays on the story.
-    </p>
-    <div class="reflect-list">
-      <div class="reflect-item">
-        <div class="reflect-title">Never Lose a Moment</div>
-        <p class="reflect-desc">You don't have to remember where you put it. The system finds it for you.</p>
-      </div>
-      <div class="reflect-item">
-        <div class="reflect-title">Total Project Clarity</div>
-        <p class="reflect-desc">The mental load of remembering what you shot, and where — gone.</p>
-      </div>
-      <div class="reflect-item">
-        <div class="reflect-title">Outsource the Chaos</div>
-        <p class="reflect-desc">Pass the tedious organizing to a companion that never tires of it, so you don't have to.</p>
-      </div>
-    </div>
-  </section>
-
+  <!-- toolkit/journey retired per maie-narrative-audit.md §11 C1/D1 option
+       (a): scene-lifecycle (Section 7) already covers this ground as a
+       built cinematic scene, better. trust is kept — it's the page's only
+       real trust/security content — reordered benefit-first, spec-as-
+       supporting-detail instead of leading with jargon (see §5). -->
   <section id="trust" data-reveal data-rail-label="Trust">
     <div class="section-tag">Under the Hood</div>
     <h2 class="section-title">Built to Be Trusted</h2>
     <div class="reflect-list">
       <div class="reflect-item">
-        <div class="reflect-code">SHA-256</div>
         <div class="reflect-title">Every File Remembered</div>
         <p class="reflect-desc">Nothing gets lost in the shuffle. MAIE quietly recognizes every file you bring in, keeps track of every edit, and never lets a duplicate slip through.</p>
+        <div class="reflect-code">SHA-256 verification</div>
       </div>
       <div class="reflect-item">
-        <div class="reflect-code">Per-Project Storage</div>
         <div class="reflect-title">Your Work Stays Yours</div>
         <p class="reflect-desc">Every project lives in its own private space. Nothing is shared unless you choose to share it.</p>
+        <div class="reflect-code">Per-project storage</div>
       </div>
       <div class="reflect-item">
-        <div class="reflect-code">Migration-Safe</div>
         <div class="reflect-title">Never Lose Your Progress</div>
         <p class="reflect-desc">Your past work is always there, exactly as you left it — even as MAIE keeps growing and improving.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="journey" data-reveal data-rail-label="Journey">
-    <div class="section-tag">Start Creating</div>
-    <h2 class="section-title">Your Creative Journey</h2>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div>
-          <h4 class="step-name">Upload your media</h4>
-          <p class="step-desc">Drop in video, audio, or image files once you're signed in — each project gets its own private workspace.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div>
-          <h4 class="step-name">Choose how you'd like to explore</h4>
-          <p class="step-desc">Explore your footage, discover visual insights, or collaborate with Pixie — on their own, or together.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div>
-          <h4 class="step-name">Refine, organize, and continue</h4>
-          <p class="step-desc">Everything is saved and versioned, tied back to your original file, so you always know exactly how you got there.</p>
-        </div>
+        <div class="reflect-code">Migration-safe</div>
       </div>
     </div>
   </section>
@@ -240,9 +192,16 @@
     <div class="scene-sticky">
       <div class="agent-caption" id="agent-caption">Watch the agent work.</div>
       <div class="agent-stage">
-        <svg id="agent-path-svg" viewBox="0 0 100 60" preserveAspectRatio="none">
+        <!-- Same signal path as the nav logo / #scene-maie-moment (see
+             maie-narrative-audit.md §7 / §11 D — was a placeholder wave
+             shape, now the actual recurring Signal curve, not a lookalike. -->
+        <svg id="agent-path-svg" viewBox="0 0 92 56" preserveAspectRatio="xMidYMid meet">
           <path id="agent-path" class="agent-path-stroke"
-            d="M 4,48 C 16,48 16,12 30,12 C 44,12 44,48 50,48 C 56,48 56,12 66,12 C 76,12 76,48 84,48 L 96,48"/>
+            d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
+               C 29,20 33,20 33,30 C 33,40 39,40 41,28
+               L 46,44 L 50,20 L 54,38
+               C 58,26 63,26 63,34 C 63,40 68,38 70,32
+               Q 73,29 76,32 T 84,32"/>
         </svg>
         <div class="agent-nodes" id="agent-nodes"></div>
         <canvas id="agent-pixie-canvas" class="agent-pixie-canvas"></canvas>
@@ -253,8 +212,8 @@
 
   <section id="paths" class="final-cta" data-reveal data-rail-label="Your Path">
     <div class="section-tag" style="text-align:center;">The Destination</div>
-    <h2>Media, connected. Intelligence, shared.</h2>
-    <p>MAIE is in active development. Choose where your story goes next.</p>
+    <h2>Media, connected. Intelligence, shared. Creation, amplified.</h2>
+    <p>Choose where your story goes next.</p>
     <div class="path-choice">
       <a class="path-link path-link--primary" href="https://waitlist.joinmaie.com">
         <span class="path-link-kicker">Begin Your Story</span>
@@ -263,9 +222,10 @@
       <span class="path-divider" aria-hidden="true"></span>
       <a class="path-link" href="https://portal.joinmaie.com/">
         <span class="path-link-kicker">See It in Depth</span>
-        <span class="path-link-title">Explore the Full Pitch</span>
+        <span class="path-link-title">See MAIE in Motion</span>
       </a>
     </div>
+    <p class="path-note">MAIE is in active development.</p>
   </section>
 
 </main>
@@ -273,6 +233,13 @@
 <footer>MAIE — a Midwest Media Alliance production tool</footer>
 
 <script src="pixie-companion.js"></script>
+<!-- theme.js must run before the companion-intro init script below: it sets
+     data-theme synchronously from the saved preference, and the init script
+     reads theme colors via getComputedStyle the moment it runs. Loading
+     theme.js after this script meant a saved light-mode preference was
+     silently ignored on first paint — the canvas would read the <html> tag's
+     default data-theme="dark" values instead (see DESIGN-DEV-GUIDE.md). -->
+<script src="theme.js"></script>
 <script>
   // The companion's canvas is a fixed pixel size (size * 2.5) set once at
   // init — a hardcoded size:220 overflows `.intro-companion` any time its
@@ -295,6 +262,7 @@
       if (handle && handle.destroy) handle.destroy();
       handle = window.initPixieCompanion(canvas, {
         size: currentSize(), mode: 'ambient', phase: 'idle', archetype: 'archivist', temperament: 'idle',
+        theme: window.getPixieThemeColors(),
       });
     }
 
@@ -305,9 +273,15 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(init, 200);
     });
+
+    // Live update on toggle — re-init already re-reads theme colors, but
+    // that only runs on resize; this covers the toggle click directly so
+    // the canvas doesn't wait for a resize to pick up the new palette.
+    document.addEventListener('maie:themechange', function () {
+      if (handle && handle.update) handle.update({ theme: window.getPixieThemeColors() });
+    });
   })();
 </script>
-<script src="theme.js"></script>
 <script src="reveal.js"></script>
 <script src="nav-theme.js"></script>
 <script src="story-scroll.js"></script>

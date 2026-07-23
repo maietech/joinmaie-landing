@@ -22,6 +22,11 @@
     localStorage.setItem('theme', next);
     var btn = document.getElementById('theme-toggle');
     if (btn) btn.setAttribute('aria-label', 'Switch to ' + (next === 'dark' ? 'light' : 'dark') + ' mode');
+    // Canvas-rendered elements (Pixie companion) can't react to a CSS custom
+    // property change on their own — nothing repaints a canvas automatically.
+    // This lets any such listener re-read the new theme colors and update
+    // live, instead of only picking up the change on next init.
+    document.dispatchEvent(new CustomEvent('maie:themechange', { detail: { theme: next } }));
   }
 
   document.addEventListener('DOMContentLoaded', function () {

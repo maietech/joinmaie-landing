@@ -113,7 +113,7 @@ change.
 | `pixie-companion.js` | Real ported companion engine (see §5). Now also exposes an `update(patch)` hook on the object `initPixieCompanion` returns — `{ destroy, update }` — so mode/phase/temperament can change live post-init. Existing static call sites (the hero) are unaffected; they just never call `update()`. |
 
 ### Two section types — don't confuse them
-1. **Reveal sections** (`companion-intro`, `toolkit`, `trust`, `journey`, `paths`) — simple fade/rise into view via `reveal.js`'s `IntersectionObserver`. Add `data-reveal` + `data-rail-label` and it's automatically wired into the side progress rail. Use this for any non-cinematic content section. `companion-intro` replaced the old two-button `hero` — see §6 item 1 for why.
+1. **Reveal sections** (`companion-intro`, `trust`, `paths`) — simple fade/rise into view via `reveal.js`'s `IntersectionObserver`. Add `data-reveal` + `data-rail-label` and it's automatically wired into the side progress rail. Use this for any non-cinematic content section. `companion-intro` replaced the old two-button `hero` — see §6 item 1 for why. `toolkit` and `journey` were retired in the §11 changelog round — see there for why.
 2. **Story scenes** (Sections 1, 2, 3, 5, 6, 7, 8 — all built so far) — tall wrapper (`height: 250vh` convention) with a `position: sticky` inner panel (`.scene-sticky`, pinned to 100vh). `story-scroll.js`'s `initScrollScene(sectionEl, onProgress)` reads scroll position and reports `progress` 0→1 as the user scrolls through the wrapper's full height — **never sets scroll position**, so native scroll/momentum is untouched (no scroll-jacking, per the brief's own requirement). Story scenes are *not* wired into the side rail currently — that's a deliberate gap, not an oversight (a rail dot mid-cinematic-scene would undercut the immersion), but worth a second look if the whole page ends up mostly story scenes.
 
    **Only add `class="story-scene force-dark"` if the brief explicitly mandates a specific dark mood-color for that section** (as it does for Sections 1, 5, 6 — see §6 item 3). Otherwise use `class="story-scene"` alone and build the scene's CSS with `var(--bg)`/`var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)` tokens, same as a reveal section, so it respects the light/dark toggle. Sections 2, 3, 7, 8 all do this now — check their CSS blocks as the reference before writing a new scene's styles, not Section 1/5/6's.
@@ -152,7 +152,7 @@ data for either — that's accurate, not a missing feature.
 | 5 | Chaos of Creation | Immersion | ✅ Built | `scene-chaos.js` | See open item below re: feeding Section 6 |
 | 6 | Everything Connects | Revelation | ✅ Built | `scene-maie-moment.js` | Nodes now inherit Section 5's real chip positions via `window.getChaosChipPositions()`, captured once at first scroll-into-view — falls back to random scatter if Section 5's script isn't present |
 | 7 | Media Lifecycle (8 stages) | Exploration | ✅ Built | `scene-lifecycle.js` | Horizontal filmstrip driven by vertical scroll progress (translateX only) — no real horizontal scroll, no scroll-jacking |
-| 8 | Agent Workflow | Revelation | ✅ Built | `scene-agent.js` | Reuses `pixie-companion.js` via its new `update()` hook — same engine as the hero, not a lookalike. Path is a placeholder wave shape, not a designed signal path — worth a second pass if the exact curve matters |
+| 8 | Agent Workflow | Revelation | ✅ Built | `scene-agent.js` | Reuses `pixie-companion.js` via its `update()` hook — same engine as the hero, not a lookalike, and now theme-aware too (see §11). Path now reuses the real signal/logo curve (was a placeholder wave — fixed in §11) |
 | 9 | Marketplace | Exploration | ⛔ Not started | — | **Needs real package/LUT/workflow preview content** |
 | 10 | Creator Passport | Reflection | ⛔ Not started | — | **Needs a real sample media + provenance hash example** |
 | 11 | Story Becomes Data | Exploration | ⛔ Not started | — | **Needs real or plausible platform metrics** to animate honestly |
@@ -195,13 +195,15 @@ all decided:
    `var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)`
    throughout instead of hardcoded hex, so they now respect the site's
    light/dark toggle like the reveal sections do. `nav-theme.js` keys
-   off `.force-dark` specifically, not every `.story-scene`. **One known
-   gap left by this split:** Section 8's `pixie-companion.js` instance
-   doesn't pass a `theme` option, so the companion itself still renders
-   in its hardcoded default colors regardless of the toggle — not
-   jarring (they're mid-tone, not pure black/white) but not truly
-   theme-aware either. Wiring `theme` from the CSS custom properties via
-   `getComputedStyle` is a reasonable small follow-up, not done here.
+   off `.force-dark` specifically, not every `.story-scene`. **Gap noted
+   here previously, resolved in §11 — and turned out broader than
+   scoped:** this originally flagged only Section 8's `pixie-companion.js`
+   instance as not passing a `theme` option. `maie-narrative-audit.md`
+   found the same gap at the `companion-intro` (hero) call site too —
+   neither instance was theme-aware, not just Section 8's. Both are fixed
+   now; see §11 for the mechanism (a `theme` option plus a live-update
+   event, since nothing repaints a canvas on its own when a CSS custom
+   property changes).
 
 **Still open:**
 
@@ -227,13 +229,14 @@ There is currently **no unblocked section-building work left** — the
 next move is either sourcing that content, or picking up one of §6's
 open architectural decisions instead of scaffolding further.
 
-Two things worth a second look now that 3/7/8 exist, not urgent:
+One thing worth a second look now that 3/7/8 exist, not urgent:
 - Section 3's category/atom lists are hardcoded in `scene-universe.js`,
   not pulled from anywhere — fine for now, but worth flagging if the
   product's actual domain taxonomy or primitive list is expected to
   change independently of this page.
-- Section 8's path shape in `index.html` is an arbitrary wave, not a
-  designed curve — cheap to swap once there's a specific line to match.
+
+(Section 8's path shape was an arbitrary wave, not the real signal
+curve — swapped for the real one in §11.)
 
 ---
 
@@ -352,3 +355,172 @@ Three issues reported from the live `.pages.dev` preview:
    groundwork here (background/pulse colors, the drop of force-dark)
    is specific to Ignition Spark; a different intro animation could be
    swapped in against the same setup.
+
+---
+
+## 11. Changelog — audit implementation: unified backgrounds + personalized content
+
+Implements the two objectives from `maie-narrative-audit.md`'s recommendations
+(§11 A/B/C/D). Two items required an explicit decision rather than a
+straightforward fix; both were confirmed with the team before any related
+code changed, not inferred from the diff.
+
+### Decision 1 — Section 1's light-mode identity: kept theme-consistent
+
+The audit (§6) surfaced this as a real trade-off, not a bug: the brief calls
+for "a dark, cinematic field" as Section 1's specific opening mood, but the
+Ignition Spark treatment (§10 above) intentionally dropped force-dark for
+full theme consistency — so light-mode visitors get a warm paper background
++ spark-flash instead of a black field.
+
+**Decision: keep the current theme-consistent approach.** No code change to
+Section 1 itself. Reasoning: consistency with Sections 2/3/7/8 (all
+theme-aware) was already the deliberate call made in §10, arrived at after
+comparing three concepts specifically because it worked in both themes from
+frame one without a "still starts dark regardless of toggle" carve-out. Re-
+opening that to chase the brief's literal instruction for one beat would
+undo a considered decision to relitigate a trade-off the team already weighed
+correctly the first time — the brief's *intent* (existential, restrained
+opening) is preserved by Ignition Spark in both themes even though the
+specific "dark field" imagery isn't literal in light mode.
+
+### Decision 2 — Legacy sections: toolkit/journey retired, companion-intro trimmed-in-place, trust reordered
+
+The audit's headline finding (§1, §2, §11 D1): `companion-intro`/`toolkit`/
+`trust`/`journey` sit directly after Section 6's crescendo, restate it in
+flatter generic-SaaS prose, and duplicate Section 7's territory. Audit's own
+options (§11 C1) were (a) retire toolkit/journey now that Section 7 covers
+that ground as a built cinematic scene, or (b) rewrite all four in place as
+an intentional Reflection beat — which the audit itself was skeptical of,
+since their content currently reads as a sales insert, not calm reflection.
+
+**Decision: option (a).**
+
+- **`toolkit` and `journey` removed from the DOM entirely.** `toolkit`'s
+  three benefit headlines ("Never Lose a Moment," "Total Project Clarity,"
+  "Outsource the Chaos" — audit's explicit pick for weakest copy on the
+  page) restated what Section 6 had just shown visually and better.
+  `journey`'s 3-step onboarding (upload/explore/refine) covered the same
+  territory as `scene-lifecycle`'s 8-stage cinematic version, arriving
+  right before it in flatter form. Neither added information Section 7
+  doesn't already deliver more effectively.
+- **`companion-intro` kept as-is.** Its copy ("The burden of the infinite
+  project, lifted...") was already the pain-first, non-feature-list content
+  the audit praised (§5) — the problem was never this section's own copy,
+  it was the three sections after it. Pixie's introduction still earns its
+  place here per §6 item 1's original reasoning.
+- **`trust` kept, reordered benefit-first.** Was: jargon kicker
+  (`SHA-256`/`Per-Project Storage`/`Migration-Safe`) → benefit title → body.
+  Now: benefit title → body → jargon spec as a small supporting line
+  underneath, not a leading claim. `trust` is the page's only real
+  security/trust content, so it wasn't a duplication candidate the way
+  toolkit/journey were.
+- **Nav updated to match:** "Toolkit" and "Journey" links removed from
+  `.nav-links`; "Trust" kept, since the section it points to still exists.
+  No JS change needed for the progress rail — `reveal.js` queries
+  `[data-reveal]` at runtime, so it automatically stops generating rail
+  dots for sections that no longer exist.
+- **Dead CSS removed, not deprecated in place:** `.step`/`.step-num`/
+  `.step-name`/`.step-desc` (only ever used by `journey`) and
+  `.section-desc` (only ever used by `toolkit`) deleted outright, per this
+  project's own convention of not leaving unused rules around "just in
+  case." `.reflect-code`'s margin was changed from `margin-bottom` (when it
+  led each item) to `margin-top` (now that it trails `reflect-desc`).
+
+### Pixie companion theme-awareness (both call sites, not just Section 8)
+
+Per audit §6/§11 D2: neither Pixie instance — not `companion-intro`'s, not
+Section 8's — was passing a `theme` option to `pixie-companion.js`, despite
+the engine already supporting one. Both rendered the engine's hardcoded
+default core color (`rgb(167,65,51)`) regardless of the toggle. This guide
+previously scoped the gap to Section 8 only (§6 item 3); the audit found it
+was page-wide.
+
+Fixed:
+- `pixie-companion.js` gained `window.getPixieThemeColors()`, a shared
+  reader that pulls `--brand-light`/`--accent` via `getComputedStyle`,
+  matching the technique `scene-opening.js` already uses for its own canvas
+  colors, with the same fallback values for consistency (not new hardcoded
+  colors — reusing what `scene-opening.js` already had).
+- `update()` now accepts a `theme` patch, reassigning the same closure
+  variable `animate()` already reads every frame — no restart needed, same
+  pattern as the existing `mode`/`phase`/`temperament` patches.
+- Both call sites (`companion-intro`'s init script in `index.html`,
+  `scene-agent.js`) now pass `theme: window.getPixieThemeColors()` at init.
+- `theme.js` now dispatches a `maie:themechange` `CustomEvent` on toggle —
+  nothing repaints a canvas automatically when a CSS custom property
+  changes, so both call sites listen for this event and call
+  `handle.update({ theme: window.getPixieThemeColors() })` to update live,
+  not just at next init.
+- **Script-order fix found along the way:** `companion-intro`'s inline init
+  script previously ran *before* `theme.js` in `index.html`'s script list.
+  Since `theme.js` sets the correct `data-theme` synchronously from
+  `localStorage`, and the init script reads theme colors via
+  `getComputedStyle` the moment it runs, a saved light-mode preference was
+  being silently ignored on first paint — the canvas would read the
+  `<html>` tag's default `data-theme="dark"` values instead, until
+  something else happened to repaint it. Moved `theme.js` earlier in the
+  script order, immediately after `pixie-companion.js` and before the
+  inline init script, to fix this. `scene-agent.js` didn't have this bug —
+  it already loaded after `theme.js`.
+
+### Section 8's signal path — real curve, not a placeholder wave
+
+Per audit §7/§11 D: `#agent-path-svg`'s path was an arbitrary wave shape,
+unrelated to the Signal metaphor reused everywhere else (nav logo, Section
+6). Swapped to the literal same path `d` string as the nav logo and
+`#scene-maie-moment` (viewBox changed from `0 0 100 60` to `0 0 92 56` to
+match). `scene-agent.js`'s node/canvas positioning previously worked by
+coincidence — it treated the path's raw coordinate values as percentages
+directly, which only produced correct results because the old viewBox's
+width was numerically `100`. Introduced explicit `VB_W`/`VB_H` (92/56)
+scaling so positioning is correct against the new viewBox rather than
+relying on that coincidence. `.agent-stage`'s `aspect-ratio` updated to
+match (`92 / 56`, was `100 / 60`).
+
+### Nav CTA de-escalated
+
+Per audit §9/§11 D3: "Join the Exchange" was a filled button, visible from
+the first pixel on every scroll position (`.nav` is `position: fixed`) —
+recreating the exact "early ask" pattern the hero deliberately dropped
+(§6 item 1), just relocated to a part of the page that reasoning was never
+extended to. Changed `.nav-cta` from a filled button to a plain
+brand-colored text link (same weight class as the other nav links,
+distinguished by color + underline-on-hover instead of a button shape).
+Href unchanged.
+
+### Section 5's chaos field — AI-tool clutter added
+
+Per audit §4/§11 D4: the brief explicitly lists "AI tools. Agents.
+Models... Approvals" among the fragmenting forces; the implemented chip set
+was all generic files/cloud/chat, missing that category entirely — a missed
+chance for the more self-aware, contemporary admission that AI tooling
+itself currently adds to the mess, for a product that is itself an AI agent
+platform. Added three chips to `scene-chaos.js`'s `CHIPS` array in the same
+format as the existing entries: `Agent Tab — 6 unsaved runs` (window),
+`model_checkpoint_v3.safetensors` (file), `⚠ 3 agent approvals pending`
+(alert).
+
+### `paths` copy fixes
+
+Per audit §11 A:
+- Secondary link relabeled from "Explore the Full Pitch" (investor
+  register, audience mismatch against the creator this page addresses
+  throughout) to "See MAIE in Motion." Href unchanged (`portal.joinmaie.com`).
+- Headline restored to the brief's full three-line closing triad — "Media,
+  connected. Intelligence, shared. Creation, amplified." (was missing the
+  third line).
+- "MAIE is in active development" moved out of the closing paragraph (which
+  now just reads "Choose where your story goes next") into a small, quiet
+  `.path-note` beneath the path choice — honest disclosure kept, but no
+  longer sitting inside the page's most crystallized line.
+
+### Explicitly out of scope for this pass
+
+The story-progress rail covering only reveal sections (now `companion-intro`/
+`trust`/`paths` — 3 of the page's built sections, down from 5) while all 7
+story scenes go unmarked is flagged in the audit (§8) as a pacing/navigation
+question whose own documented trigger condition (§4 above: "worth a second
+look if the whole page ends up mostly story scenes") has now been met. Not
+addressed here — it's a rail/wayfinding redesign, not a background or
+content fix, and deserves its own pass.
