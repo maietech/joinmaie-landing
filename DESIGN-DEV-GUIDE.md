@@ -100,23 +100,22 @@ change.
 | `index.html` | All sections, in narrative order |
 | `styles.css` | All styles — tokens, reveal sections, story scenes |
 | `theme.js` | Dark/light toggle (`data-theme` attr + `localStorage`) |
-| `nav-theme.js` | Darkens the nav bar whenever it's pinned over a `.story-scene.force-dark` scene (Sections 1/5/6 only — see §6 item 3), independent of the light/dark toggle |
-| `reveal.js` | Fade-in-on-scroll for the simple `[data-reveal]` sections (companion-intro/toolkit/trust/journey/paths) + the side progress rail |
+| `nav-theme.js` | Darkens the nav bar whenever it's pinned over a `.story-scene.force-dark` scene (only `#scene-chaos-signal` now — see §14), independent of the light/dark toggle |
+| `reveal.js` | Fade-in-on-scroll for the simple `[data-reveal]` sections (companion-intro/trust/paths) + the side progress rail |
 | `story-scroll.js` | Shared scroll-progress engine for **story scenes** — read this before building a new cinematic section |
 | `scene-opening.js` | Section 1 |
 | `scene-frame.js` | Section 2 |
 | `scene-universe.js` | Section 3 |
-| `scene-chaos.js` | Section 5 |
-| `scene-maie-moment.js` | Section 6 |
+| `scene-chaos-signal.js` | Sections 5+6, merged into one continuous scene — see §14. Supersedes the old `scene-chaos.js` + `scene-maie-moment.js` pair |
 | `scene-lifecycle.js` | Section 7 |
 | `scene-agent.js` | Section 8 |
 | `pixie-companion.js` | Real ported companion engine (see §5). Now also exposes an `update(patch)` hook on the object `initPixieCompanion` returns — `{ destroy, update }` — so mode/phase/temperament can change live post-init. Existing static call sites (the hero) are unaffected; they just never call `update()`. |
 
 ### Two section types — don't confuse them
 1. **Reveal sections** (`companion-intro`, `trust`, `paths`) — simple fade/rise into view via `reveal.js`'s `IntersectionObserver`. Add `data-reveal` + `data-rail-label` and it's automatically wired into the side progress rail. Use this for any non-cinematic content section. `companion-intro` replaced the old two-button `hero` — see §6 item 1 for why. `toolkit` and `journey` were retired in the §11 changelog round — see there for why.
-2. **Story scenes** (Sections 1, 2, 3, 5, 6, 7, 8 — all built so far) — tall wrapper (`height: 250vh` convention) with a `position: sticky` inner panel (`.scene-sticky`, pinned to 100vh). `story-scroll.js`'s `initScrollScene(sectionEl, onProgress)` reads scroll position and reports `progress` 0→1 as the user scrolls through the wrapper's full height — **never sets scroll position**, so native scroll/momentum is untouched (no scroll-jacking, per the brief's own requirement). Story scenes are *not* wired into the side rail currently — that's a deliberate gap, not an oversight (a rail dot mid-cinematic-scene would undercut the immersion), but worth a second look if the whole page ends up mostly story scenes.
+2. **Story scenes** (Sections 1, 2, 3, 5+6 merged, 7, 8 — all built so far) — tall wrapper (`height: 250vh` convention, though individual scenes override this — `#scene-opening` is 380vh, `#scene-chaos-signal` is 500vh, `.lifecycle-scene` is 420vh) with a `position: sticky` inner panel (`.scene-sticky`, pinned to 100vh). `story-scroll.js`'s `initScrollScene(sectionEl, onProgress)` reads scroll position and reports `progress` 0→1 as the user scrolls through the wrapper's full height — **never sets scroll position**, so native scroll/momentum is untouched (no scroll-jacking, per the brief's own requirement). Story scenes are *not* wired into the side rail's dots (still true) — a rail dot mid-cinematic-scene would undercut the immersion — but the rail's *fill* now tracks true whole-page scroll progress regardless (§12 changelog, resolved the gap this note used to flag as open).
 
-   **Only add `class="story-scene force-dark"` if the brief explicitly mandates a specific dark mood-color for that section** (as it does for Sections 1, 5, 6 — see §6 item 3). Otherwise use `class="story-scene"` alone and build the scene's CSS with `var(--bg)`/`var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)` tokens, same as a reveal section, so it respects the light/dark toggle. Sections 2, 3, 7, 8 all do this now — check their CSS blocks as the reference before writing a new scene's styles, not Section 1/5/6's.
+   **Only add `class="story-scene force-dark"` if the brief explicitly mandates a specific dark mood-color for that section** (as it does for the merged Sections 5+6 scene — see §14). Otherwise use `class="story-scene"` alone and build the scene's CSS with `var(--bg)`/`var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)` tokens, same as a reveal section, so it respects the light/dark toggle. Sections 1 (since §10), 2, 3, 7, 8 all do this now — `#scene-chaos-signal` is the *only* remaining forced-dark scene — check any of those CSS blocks as the reference before writing a new scene's styles, not `#scene-chaos-signal`'s.
 
 ### Building a new story scene — the recipe
 1. Markup: `<section id="scene-X" class="story-scene"><div class="scene-sticky">...</div></section>`
@@ -149,8 +148,8 @@ data for either — that's accurate, not a missing feature.
 | 2 | One Moment | Exploration | ✅ Built | `scene-frame.js` | Fracture-growth technique instead of literal slice-translation (steadier across aspect ratios). Photo is `media/makabera-pop-up-9977615_1920.jpg` — arbitrary pick, any photo works per the brief; swap freely. Reuses the Signal-line device from Sections 1/6 |
 | 3 | Universe to You | Revelation | ✅ Built | `scene-universe.js` | DOM+CSS transforms, not canvas text — no raster blur at scale. Categories/atoms use a deterministic ring layout, not real data — swap in real domain/primitive taxonomy if it ever changes |
 | 4 | The Human Hand | Reflection | ⛔ Not started | — | **Needs real documentary photography** — can't fabricate |
-| 5 | Chaos of Creation | Immersion | ✅ Built | `scene-chaos.js` | See open item below re: feeding Section 6 |
-| 6 | Everything Connects | Revelation | ✅ Built | `scene-maie-moment.js` | Nodes now inherit Section 5's real chip positions via `window.getChaosChipPositions()`, captured once at first scroll-into-view — falls back to random scatter if Section 5's script isn't present |
+| 5 | Chaos of Creation | Immersion | ✅ Built | `scene-chaos-signal.js` | Merged with Section 6 into one continuous scene (progress 0.0-0.45) — see §14. Message-chip mechanic added: a curated subset of chips carry their text through convergence instead of dissolving |
+| 6 | Everything Connects | Revelation | ✅ Built | `scene-chaos-signal.js` | Merged with Section 5 into one continuous scene (progress 0.45-1.0) — see §14. Ignition-flash/accent-ring tuning from §13 unchanged, just rescoped to a sub-window of the shared progress value |
 | 7 | Media Lifecycle (8 stages) | Exploration | ✅ Built | `scene-lifecycle.js` | Horizontal filmstrip driven by vertical scroll progress (translateX only) — no real horizontal scroll, no scroll-jacking |
 | 8 | Agent Workflow | Revelation | ✅ Built | `scene-agent.js` | Reuses `pixie-companion.js` via its `update()` hook — same engine as the hero, not a lookalike, and now theme-aware too (see §11). Path now reuses the real signal/logo curve (was a placeholder wave — fixed in §11) |
 | 9 | Marketplace | Exploration | ⛔ Not started | — | **Needs real package/LUT/workflow preview content** |
@@ -181,17 +180,27 @@ all decided:
    built, may absorb this entirely). `journey`'s numbered step list was
    reviewed and left alone — it's not actually a card-grid or a
    two-button hero, so it doesn't violate anything on §3's list.
-2. **Section 5 → 6 handoff — resolved: wired.** `scene-chaos.js` exposes
-   `window.getChaosChipPositions()`; `scene-maie-moment.js` calls it
-   once, the first time it scrolls into view, and converts Section 5's
-   percent-based field coordinates into its own SVG viewBox units. If
-   Section 5's script isn't loaded for some reason, it falls back to
-   the old random scatter, so Section 6 still works standalone.
+2. **Section 5 → 6 handoff — resolved: wired (superseded in §14 —
+   the snapshot handoff this described no longer exists).** Originally:
+   `scene-chaos.js` exposed `window.getChaosChipPositions()`;
+   `scene-maie-moment.js` called it once, the first time it scrolled
+   into view, and converted Section 5's percent-based field coordinates
+   into its own SVG viewBox units — a one-time bridge between two
+   independent scenes, needed because they were two separate pinned
+   panels. §14 merged Sections 5 and 6 into one continuous scene, which
+   removed the need for a snapshot bridge at all — the same DOM chip
+   elements now drift through chaos and morph in place into convergence,
+   no recreation, no snapshot, correct under scrolling back and forth in
+   a way the old snapshot-once approach couldn't have supported. Kept
+   here for history; see §14 for the current mechanism.
 3. **Forced-dark backdrop — resolved: split, not all-or-nothing (updated
-   again this round — see §10).** Only Sections 5 and 6 keep the
-   forced-dark backdrop (`class="story-scene force-dark"`) now — Section
-   1 dropped it too, after being reported dark/flat in light mode (see
-   §10). Sections 2, 3, 7, 8 were converted to use `var(--bg)`/
+   again this round — see §10; further consolidated in §14).** At the
+   time this was written, Sections 5 and 6 (two separate scenes) both
+   kept the forced-dark backdrop (`class="story-scene force-dark"`) —
+   Section 1 dropped it too, after being reported dark/flat in light mode
+   (see §10). Since §14 merged Sections 5 and 6 into one scene, there is
+   now exactly **one** forced-dark scene on the page (`#scene-chaos-
+   signal`), not two. Sections 2, 3, 7, 8 were converted to use `var(--bg)`/
    `var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)`
    throughout instead of hardcoded hex, so they now respect the site's
    light/dark toggle like the reveal sections do. `nav-theme.js` keys
@@ -722,3 +731,194 @@ scrolled through Section 6's progress range, read live SVG attribute values
 (node opacity, path filter/stroke-width, ring/dot opacity+radius) at each
 step, and screenshotted the flash moment and the final resting state to
 confirm the resting mark now visually matches the nav logo's proportions.
+
+---
+
+## 14. Changelog — Sections 5+6 merged into one continuous scene
+
+Implements `chaos-to-signal-merge-direction.md` in full. `scene-chaos.js`
+and `scene-maie-moment.js` are **removed**, replaced by
+`scene-chaos-signal.js`. `index.html`'s two `<section>` blocks (`#scene-
+chaos`, `#scene-maie-moment`) are now one (`#scene-chaos-signal`).
+
+### 1. One scene, not two
+
+Per the direction doc §2: collapsed both `.story-scene` wrappers into one
+(`#scene-chaos-signal`, `height: 500vh` — same combined scroll distance as
+the old two 250vh scenes, so overall pacing feels the same), one `.scene-
+sticky` panel, one `initScrollScene` call. Internally split via two local-
+progress values derived from the single shared `progress`:
+
+- `chaosLocal = min(1, progress / 0.45)` — drives the chaos-phase caption
+  and chip density, 0 at the very top through 1 at progress 0.45.
+- `convLocal` (clamped 0-1) / `convLocalRaw` (unclamped) — drives
+  convergence position (`eased = ease(convLocal)`) and the ignition
+  sequence. **Two variants deliberately:** `storyStageWeight()` already
+  handles out-of-range input correctly on its own (returns 0 well outside
+  a fade window) — but clamping to exactly 0 for the whole chaos phase
+  broke that for the one fade window that starts exactly at 0
+  (`capBefore`, "Fragmented. Scattered. Disconnected."):
+  `storyStageWeight(0, 0.0, 0.28, 0.02, 0.10)` falls through to the
+  "inside the plateau" branch and returns **1**, not 0, because clamped-0
+  equals that window's own start — caught via a screenshot showing the
+  caption bleeding through during the chaos phase, not from code review.
+  Fixed by feeding `storyStageWeight` the *unclamped* `convLocalRaw`
+  (genuinely negative through the whole chaos phase, which
+  `storyStageWeight` already resolves to 0 correctly) for every fade-timed
+  value (`capBefore`, `capAfter`, `flashW`, accent dot/ring opacity,
+  noise-chip opacity) — `eased`/position math still uses the clamped
+  `convLocal`, since `ease()` isn't meant for out-of-[0,1] input.
+
+The ignition-flash/accent-ring sequence's own internal tuning (§13) is
+**unchanged** — it just reads `convLocalRaw`/`eased` (a sub-window of the
+shared progress) instead of an independent 0-1, per the direction doc's
+explicit instruction not to re-litigate that moment.
+
+### 2. No more snapshot handoff — same DOM elements throughout
+
+The old two-scene architecture needed `window.getChaosChipPositions()`: a
+one-time snapshot of Section 5's chip positions, taken the moment Section
+6 first scrolled into view, used to seed freshly-created anonymous SVG
+`<circle>` nodes. That was a workaround for the hard pin/unpin cut between
+two separate panels — see §6 item 2 for the historical record.
+
+Now that it's one continuous scene, that bridge is gone entirely. The
+same DOM chip elements created at page load drift through the chaos phase
+and then **morph in place** into the convergence state — no recreation, no
+snapshot. This is also more correct under scrolling back and forth: the
+old snapshot-once approach would have had nothing sensible to do if a
+visitor scrolled back into "chaos" after the snapshot fired, since Section
+6's nodes were disconnected replicas by that point. The merged version has
+no such discontinuity — position is a continuous function of `progress` in
+both directions.
+
+Mechanically: each chip's on-screen position blends between its live drift
+accumulator (`chip.x`/`chip.y`, still updated by `step()` every frame
+regardless of scroll position) and a target point on the signal path,
+weighted by `eased`. The target point is computed by converting an SVG
+path point to a percentage position relative to `#chaos-field` via
+`path.getPointAtLength(t * len).matrixTransform(path.getScreenCTM())`,
+then normalizing against `#chaos-field`'s own `getBoundingClientRect()` —
+correct regardless of how `#signal-svg` is sized/centered within the
+panel, and recomputed every render call so it stays correct across
+resize. Computed once per frame (not once per chip) since every chip in a
+given frame wants the same field rect and path transform.
+
+### 3. Message chips (direction doc §3)
+
+Three chips (of the CHIPS array's 20 total — the original 17 unchanged,
+plus these 3 new ones) carry an `isMessage: true` flag, a `messageOrder`
+(0-2), and a `messageText`. During the chaos phase they're indistinguishable
+from the 17 "noise" chips — same drift, same hover/warning behavior — so
+there's nothing to visually spot ahead of time:
+
+| Order | Raw label (chaos phase) | Resolved text (post-convergence) |
+|---|---|---|
+| 0 | `St0r4ge_4ND.tmp` | "Storage." |
+| 1 | `1nf1n1te_d4ta_p00ls` | "Infinite data pools." |
+| 2 | `M4N4G3D_w1th_3ase.md` | "Managed with ease." |
+
+Read left to right along the resolved path, they concatenate into "Storage.
+Infinite data pools. Managed with ease." Unlike noise chips (which shrink
+into a plain dot and dissolve, see §4 below), message chips **stay
+visible** at full convergence — they're the resolved signal, not noise to
+be cleared away.
+
+Each converges onto a specific, curated point along the path
+(`MESSAGE_T = [0.08, 0.46, 0.85]`, tuned by eye against screenshots, not
+evenly divided — arc-length parametrization means equal `t`-spacing isn't
+equal on-screen spacing given how much the path zigzags) instead of the
+noise chips' evenly-auto-distributed points. Vertical offset alternates per
+chip (`MESSAGE_Y_OFFSET = [-7, 9, -7]`, percent of panel height) — first
+tuned with a uniform offset, which put "Storage." and "Infinite data
+pools." close enough in on-screen space to visually overlap (the longer
+label collided with its neighbor); alternating sides above/below the
+stroke, caught and fixed via screenshot, resolved it cleanly.
+
+Label text crossfades from the raw glitchy filename to the clean phrase
+partway through arrival (`eased > 0.55`) — a hard `textContent` swap (same
+idiom Section 1's caption beats already use) combined with a brief opacity
+dip right at the swap (`1 - dip*0.55`, dip peaking at the threshold and
+tapering either side), so the change reads as a dissolve rather than an
+abrupt pop. Style also shifts on resolve (`.is-resolved` class): raw label
+stays in the chip's normal JetBrains Mono (matches DESIGN-DEV-GUIDE.md
+§2's typography role — mono signals raw metadata); resolved text switches
+to DM Sans (signals human-readable prose) with an accent-tinted background/
+border instead of the neutral chip look.
+
+### 4. Noise chips: shrink and dissolve in place
+
+The remaining 17 chips morph directly (no separate SVG-circle system, see
+§2 above) from a bordered pill into a plain circular dot as they converge,
+then fade out — same fade timing the pre-merge SVG nodes used (full
+opacity through `convLocalRaw` 0.70, fading to 0 by 0.90). Padding,
+font-size, and border-radius are interpolated every frame during
+convergence (`shrink = eased`); border-radius grows well past the box's
+own shrinking size at high `shrink`, which CSS clamps to a perfect circle
+automatically, so no unit-mixing tricks were needed. When scrolling back
+into the pure-chaos range (`eased ≈ 0`), all convergence-phase inline
+style overrides are explicitly cleared (`style.padding = ''`, etc.) so the
+chaos-phase CSS defaults (opacity via `--chaos-density`) take back over —
+needed for correctness under scrolling back up, not just scrolling forward.
+
+### 5. Velocity cap (direction doc §4 — the "warp speed" bug)
+
+Root cause confirmed exactly as the direction doc described: `chip.vx *=
+-1.8` on every `mouseenter`, uncapped, compounding multiplicatively across
+repeated hovers, until a fast-enough chip crossed the 8%-margin wraparound
+boundary in a single frame or two — reading as glitching through the
+canvas.
+
+Fixed with the direction doc's own preferred option — a bounded, decaying
+perturbation, not just a smaller multiplier:
+
+- `MAX_SPEED = 0.14` — a hard ceiling via `clampSpeed()`, applied to every
+  hover kick regardless of the chip's current speed or how many times it's
+  already been hovered. Verified with a script simulating 30 rapid
+  re-hovers on the same chip: max per-frame displacement stayed at 0.135%
+  of field width, right at the clamp ceiling, never growing across
+  repeated hovers (the old formula would have produced exponential growth
+  — base speed × 1.8³⁰ — well past a single-frame teleport by that point).
+- Every chip also has a fixed `baseVx`/`baseVy` (its original random
+  drift) that its live `vx`/`vy` eases back toward every frame
+  (`c.vx += (c.baseVx - c.vx) * 0.02`), so a hover still perturbs a chip
+  (kept deliberately — "things scatter when you touch them" is good and
+  worth keeping, per the direction doc) but the field's total energy
+  settles back down instead of ratcheting upward forever.
+- Hover is also now gated to the chaos phase only (`if (lastProgress >=
+  CONV_START) return;` inside the `mouseenter` handler) — a chip mid-
+  convergence shouldn't be kickable, or the "magnetic anchor" read
+  (chips resolving into a structured timeline) would break.
+
+### 6. `prefers-reduced-motion`
+
+Verified via a headless-browser pass with `reducedMotion: 'reduce'` set:
+single static final frame renders correctly — all 3 message chips resolved
+(clean text, `is-resolved` class present), all 17 noise chips at opacity 0,
+path fully drawn (`strokeDashoffset: "0"`). Same guarantee the pre-merge
+scenes had, preserved through the merge.
+
+### 7. Found and fixed along the way (not in the direction doc's scope, but directly affecting this scene)
+
+`.scene-maie-caption` (used by both "Fragmented. Scattered. Disconnected."
+and "The noise fades..." — now inside the merged scene) still had
+`white-space: nowrap`, overflowing badly on narrow viewports (clipped on
+both sides under ~450px) — the same class of bug `.scene-caption` was
+fixed for in §12, just never applied here since this class wasn't touched
+in that round. Fixed the same way: `white-space: normal` +
+`max-width: min(90vw, 560px)`. Found via the mobile-viewport screenshot
+pass while verifying this merge, not part of the original ask.
+
+### Validation performed
+
+`node --check` on all JS; HTML tag-balance and CSS brace-balance checks —
+clean. Headless-Chrome + local-server pass covering: structural check (old
+section IDs gone, merged ID present, chip/message counts correct);
+progress sweep from 0 to 1 reading live DOM state (message text content,
+`is-resolved` state, positions, noise-chip opacity/font-size, path filter)
+at 10 points, confirming correct ordering and timing; a dedicated velocity-
+cap script simulating 30 rapid re-hovers; a dedicated reduced-motion pass;
+a 390px mobile-viewport pass at multiple progress points plus a theme-
+toggle spot check. Screenshotted throughout — two real issues (the
+`capBefore` bleed-through bug in §1, the message-bubble overlap in §3) were
+caught this way, not from code review, and fixed before calling this done.

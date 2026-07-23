@@ -5,7 +5,7 @@
 // grow from a hairline into a metadata callout as scroll progresses —
 // same "the frame cracks open to reveal what's underneath" read, far
 // simpler to maintain. The vertical line + dots on the left is the
-// same Signal-line device as scene-opening.js/scene-maie-moment.js,
+// same Signal-line device as scene-opening.js/scene-chaos-signal.js,
 // reused deliberately (see DESIGN-DEV-GUIDE.md's visual metaphors).
 
 (function () {

@@ -256,16 +256,22 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    brand-light -> text-1, so the primary CTA's hover is not a no-op. */
 .path-link--primary:hover .path-link-title { color: var(--text-1); }
 
-/* ── Story scenes (Section 1 + Section 6 proof of concept) ──────────
+/* ── Story scenes ─────────────────────────────────────────────────
    A story scene is a tall wrapper with a sticky inner panel — the user
    scrolls normally through the wrapper's full height, while the panel
    stays pinned to the viewport and reads the scroll position as 0..1
    progress (see story-scroll.js). No scroll-jacking: native scroll the
-   whole time, we only ever read position, never set it. Both scenes
-   force their own dark cinematic backdrop regardless of the site's
-   light/dark toggle — an intentional exception for these two immersive
-   beats, not a bug. */
+   whole time, we only ever read position, never set it. The merged
+   Sections 5+6 scene (#scene-chaos-signal — see chaos-to-signal-merge-
+   direction.md) forces its own dark cinematic backdrop regardless of
+   the site's light/dark toggle — an intentional exception for this
+   immersive beat, not a bug. */
 .story-scene { position: relative; height: 250vh; padding: 0; max-width: none; margin: 0; }
+/* Sections 5+6 merged into one continuous scroll region (was 250vh each,
+   500vh total) — kept the same combined scroll distance so pacing feels
+   the same as before, redistributed internally 0.45/0.55 between the
+   chaos and convergence stages (see scene-chaos-signal.js). */
+#scene-chaos-signal { height: 500vh; }
 /* Section 1 now carries a six-beat caption narrative (see scene-opening.js)
    instead of a single line — more scroll distance per beat than the
    default 250vh would give (250/6 ≈ 42vh/beat, tighter than felt right
@@ -298,43 +304,53 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   line-height: 1.18;
 }
 /* Section 1 dropped force-dark (see DESIGN-DEV-GUIDE §6/§9) — its
-   caption needs to flip with the toggle now. Section 6 is untouched;
-   it's still force-dark, so the shared white default above is correct
-   there. */
+   caption needs to flip with the toggle now. The merged #scene-chaos-
+   signal scene is untouched; it's still force-dark, so the shared white
+   default above is correct there. */
 #scene-opening .scene-caption { color: var(--text-1); }
 
 #signal-svg { width: min(80vw, 700px); height: auto; overflow: visible; }
 .signal-stroke { fill: none; stroke: var(--brand-light); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.chaos-node { fill: rgba(232,230,227,0.55); }
 .signal-accent-dot { fill: var(--accent); filter: drop-shadow(0 0 3px var(--accent)); }
 /* Matches the nav logo's own outline ring — fill:none, stroke-width:1 —
    see the <nav> svg's second <circle>. Opacity/radius are JS-driven in
-   scene-maie-moment.js: resting state mirrors the logo's static ring,
+   scene-chaos-signal.js: resting state mirrors the logo's static ring,
    a brief pulse carries the arrival emphasis instead of inflating the
    solid dot into a disc the real mark doesn't have. */
 .signal-accent-ring { fill: none; stroke: var(--accent); stroke-width: 1; }
+/* white-space was nowrap — overflows badly on narrow viewports (the
+   "before"/"after" captions run up to 11 words at 13px monospace,
+   clipped off-screen on both sides under ~450px). Found while verifying
+   the Section 5/6 merge on a 390px viewport; same fix already applied to
+   .scene-caption for the same reason (see DESIGN-DEV-GUIDE.md §12). */
 .scene-maie-caption {
   position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%);
   font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em;
-  text-transform: uppercase; color: rgba(232,230,227,0.7); text-align: center; white-space: nowrap;
+  text-transform: uppercase; color: rgba(232,230,227,0.7); text-align: center;
+  white-space: normal; max-width: min(90vw, 560px); line-height: 1.5;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .nav.nav-hidden { transform: none; }
 }
 
-/* ── Section 5 — Chaos of Creation ───────────────────────────────── */
-#scene-chaos .scene-sticky {
+/* ── Sections 5+6 merged — Chaos of Creation → Everything Connects ───
+   See chaos-to-signal-merge-direction.md and scene-chaos-signal.js. One
+   background for the whole continuous scene (chaos through ignition) —
+   deliberately not crossfaded, since a background shift mid-panel with
+   no scene-boundary excuse would read as a bug now that it's one
+   continuous scroll region, not two stitched panels. */
+#scene-chaos-signal .scene-sticky {
   background: radial-gradient(ellipse 70% 60% at 50% 40%, #1a2530, #0a0d10 75%);
 }
-#chaos-field { position: absolute; inset: 0; }
+#chaos-field { position: absolute; inset: 0; z-index: 1; }
 .chaos-chip {
   position: absolute; padding: 8px 14px; border-radius: 8px;
   font-family: 'JetBrains Mono', monospace; font-size: 12px; white-space: nowrap;
   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
   color: rgba(232,230,227,0.75); cursor: default; user-select: none;
   opacity: calc(var(--chaos-density, 1) * 0.9);
-  transition: border-color 0.2s ease, background 0.2s ease, opacity 0.3s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, opacity 0.3s ease, color 0.2s ease;
 }
 .chaos-chip--window { border-radius: 6px 6px 3px 3px; border-top-width: 5px; border-top-color: rgba(255,255,255,0.2); }
 .chaos-chip--alert { border-color: rgba(255,209,102,0.3); color: rgba(255,209,102,0.85); }
@@ -350,6 +366,24 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   position: absolute; left: 50%; bottom: 12%; transform: translateX(-50%);
   font-family: 'Bebas Neue', sans-serif; font-size: clamp(18px, 3vw, 26px);
   letter-spacing: 0.02em; color: rgba(255,255,255,0.75); text-align: center; pointer-events: none;
+}
+
+/* Message chips (chaos-to-signal-merge-direction.md §3) — indistinguishable
+   from noise chips during chaos; z-index keeps them legible above the
+   signal path once they start converging (#chaos-field sits above
+   #signal-svg in DOM order already, but this keeps them above their own
+   sibling noise chips too as everything overlaps near the path). Position/
+   opacity/text-swap are all JS-driven per-frame in scene-chaos-signal.js —
+   this only sets the "resolved" look once the label has crossfaded to the
+   clean phrase: DM Sans instead of the raw-data JetBrains Mono (per
+   DESIGN-DEV-GUIDE.md §2's typography roles — mono signals raw metadata,
+   DM Sans signals human-readable prose), tinted toward the accent color
+   instead of the neutral chip background. */
+.chaos-chip--message { z-index: 2; }
+.chaos-chip--message.is-resolved {
+  font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px;
+  background: rgba(255,209,102,0.12); border-color: rgba(255,209,102,0.5);
+  color: var(--accent, #FFD166);
 }
 
 /* ── Section 2 — One Moment (media deconstruction) ───────────────────
