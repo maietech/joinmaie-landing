@@ -672,3 +672,53 @@ touched them or their dependencies. No new deferred items were introduced.
   only, not a real device), and Section 1's ignition-spark one-shot timing
   under actual human scroll speed (verified programmatically, not by a
   human scrolling it).
+
+---
+
+## 13. Changelog — Section 6 node/accent-mark refactor
+
+**Problem reported:** the converging chaos-nodes in `scene-maie-moment.js`
+settled at full opacity and stayed parked on the path indefinitely — a
+cluster of dots permanently sitting on the mark that the real MAIE logo
+doesn't have. Separately, the accent marker's radius scaled up to a large
+solid filled disc (r up to 6.5, rendered ~100px diameter on screen), which
+doesn't match the nav logo's actual construction (small solid core at
+r="3" + a separate thin outline ring at r="6.5", `stroke-width:1`,
+`opacity:0.4` — see the nav `<svg>` in `index.html`'s `<nav>`). Both
+reported as reading as "disingenuous" to the real mark.
+
+**Fixed, `scene-maie-moment.js` + `index.html` + `styles.css`:**
+
+- Nodes now fade out as they *arrive*, not before — full opacity through
+  progress 0.70 (so the "aligning" motion stays clearly visible), fading to
+  0 opacity by 0.90 (well before the scene ends), computed via the same
+  `storyStageWeight()` idiom used everywhere else on the page. Position
+  interpolation (`settle`) is unchanged — only opacity was decoupled from
+  it.
+- Added a genuine ignition flash — a brief `drop-shadow` glow + modest
+  `stroke-width` increase on the path itself, peaking right as the last
+  nodes finish dissolving (progress 0.82–0.86) — reusing the same
+  flash/glow visual language `scene-opening.js`'s one-shot intro already
+  established, rather than inventing a new effect.
+- Added a second SVG element, `#signal-accent-ring`
+  (`.signal-accent-ring` — `fill:none; stroke:var(--accent); stroke-width:1`),
+  matching the nav logo's actual outline ring. The original single
+  `#signal-accent-dot` circle no longer scales its radius (fixed at the
+  logo's real `r="3"` throughout) — the ring now carries the arrival pulse
+  (briefly expanding/brightening during the flash, then settling to the
+  same static `r=6.5`/`opacity:0.4` ring the nav mark has at rest), so the
+  scene's resolved state is now the *same construction* as the real logo,
+  not a lookalike built from a single inflated circle.
+- First implementation of the flash overshot badly (drop-shadow blur to
+  9px, ring/dot radius to 8.5, full-opacity color) and rendered as a solid
+  glowing orb that dwarfed the mark — caught via a headless-browser
+  screenshot pass before shipping, not from code review alone. Retuned to
+  a much smaller blur (max ~4px) and alpha-faded `rgba()` glow (max ~0.65)
+  instead of a flat full-opacity color, verified visually again after the
+  fix.
+
+Verified via the same headless-Chrome + local-server approach used for §12:
+scrolled through Section 6's progress range, read live SVG attribute values
+(node opacity, path filter/stroke-width, ring/dot opacity+radius) at each
+step, and screenshotted the flash moment and the final resting state to
+confirm the resting mark now visually matches the nav logo's proportions.

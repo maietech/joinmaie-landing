@@ -129,6 +129,13 @@
              L 46,44 L 50,20 L 54,38
              C 58,26 63,26 63,34 C 63,40 68,38 70,32
              Q 73,29 76,32 T 84,32"/>
+        <!-- Matches the nav logo's own accent marker exactly (small solid
+             core + thin outline ring, index.html's <nav> svg above) — was
+             a single circle whose radius scaled up to 6.5 as a solid
+             filled disc, reading as a glowing orb rather than the actual
+             mark. Ring now carries the "pulse" emphasis; the core dot
+             stays fixed at the logo's real r="3". -->
+        <circle id="signal-accent-ring" class="signal-accent-ring" cx="86" cy="32" r="6.5" opacity="0"/>
         <circle id="signal-accent-dot" class="signal-accent-dot" cx="86" cy="32" r="3" opacity="0"/>
       </svg>
       <div class="scene-maie-caption" id="scene-maie-caption-after" style="bottom:auto; top:14%;">The noise fades. The scattered files align. You return to the edit.</div>

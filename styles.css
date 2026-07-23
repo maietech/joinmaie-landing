@@ -306,7 +306,13 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 #signal-svg { width: min(80vw, 700px); height: auto; overflow: visible; }
 .signal-stroke { fill: none; stroke: var(--brand-light); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .chaos-node { fill: rgba(232,230,227,0.55); }
-.signal-accent-dot { fill: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
+.signal-accent-dot { fill: var(--accent); filter: drop-shadow(0 0 3px var(--accent)); }
+/* Matches the nav logo's own outline ring — fill:none, stroke-width:1 —
+   see the <nav> svg's second <circle>. Opacity/radius are JS-driven in
+   scene-maie-moment.js: resting state mirrors the logo's static ring,
+   a brief pulse carries the arrival emphasis instead of inflating the
+   solid dot into a disc the real mark doesn't have. */
+.signal-accent-ring { fill: none; stroke: var(--accent); stroke-width: 1; }
 .scene-maie-caption {
   position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%);
   font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em;
