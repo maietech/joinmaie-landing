@@ -1166,3 +1166,184 @@ the longer kicker string (a full sentence, versus the other three items'
 short phrases) wraps cleanly at both widths without breaking the
 established pattern. `node --check` N/A (no JS changed); HTML tag-balance
 clean.
+
+---
+
+## 19. Changelog — pre-production audit fixes (Blockers, Majors, and low-risk Minors/Nits)
+
+Implements every Blocker and Major finding from the pre-production audit
+(`joinmaie-landing-preproduction-audit-report.md`), plus the two Minor
+findings that didn't need live-browser confirmation and the one stale-
+comment Nit. The three findings requiring live-browser confirmation
+(Section 4's transitional thesis/photo contrast, and the general "verify
+in a real browser" caveat on everything else) are intentionally **not**
+claimed as fixed here — see that report's updated sign-off table below.
+
+### Doc-exposure Blocker — gitignored, not relocated
+
+`DESIGN-DEV-GUIDE.md`, `maie-narrative-audit.md`, and
+`chaos-to-signal-merge-direction.md` were not gitignored, meaning they'd
+be committed and served as public static files on Cloudflare Pages (this
+is a zero-build site — everything in the repo root ships as-is). Added
+all three to `.gitignore`, alongside the pre-existing `maie-git-workflow.md`
+entry.
+
+**Gitignored rather than relocated**, for two reasons: (1) these docs
+cross-reference each other by bare filename in prose ("see
+chaos-to-signal-merge-direction.md") — moving them into a subdirectory
+wouldn't break those references (they're plain text, not links), but
+keeping them at the repo root preserves the layout the team already
+navigates by, with zero risk of typo'd new paths; (2) `.gitignore` is the
+smaller, more obviously-reversible change — if the team later decides
+these should ship (e.g. behind an internal-only route), un-ignoring is a
+one-line revert, whereas undoing a file move means re-threading every
+cross-reference. `git check-ignore` wasn't run to confirm (git commands
+are off-limits per this session's constraints); verified instead by
+inspecting `.gitignore` directly — all three are exact, unambiguous
+filename patterns at the repo root, so there's no glob-matching ambiguity
+to double-check.
+
+### Pixie companion — `update()` now repaints under reduced motion
+
+`initPixieCompanion` (`pixie-companion.js`) drew exactly one frame under
+`prefers-reduced-motion` and canceled its own next `requestAnimationFrame`
+— correct in isolation, but `update()` (the hook both `companion-intro`'s
+theme-toggle listener and `scene-agent`'s per-step scroll updates rely on)
+only ever reassigned closure variables that the now-dead animation loop
+would have read. Every `update()` call after the first paint was a silent
+no-op under reduced motion — the canvas stayed frozen on its init-time
+state regardless of later theme toggles or scroll progress, contradicting
+§11's claim that both call sites are theme-aware.
+
+Fixed by extracting `animate()`'s draw body into `renderFrame()`;
+`animate()` now just calls `renderFrame()` and reschedules itself.
+`update()` calls `renderFrame()` directly whenever `reducedMotion` is
+true, so a theme-toggle or scroll-driven patch repaints immediately
+instead of waiting for a RAF loop that no longer exists.
+
+**Verified by executing the real file**, not just re-reading it: a Node
+harness (`pixie_reduced_motion_test.js`) loads the actual
+`pixie-companion.js` source against minimal `canvas`/`window` shims with
+`matchMedia` forced to reduced-motion and `requestAnimationFrame` stubbed
+to never auto-fire, then counts `ctx.clearRect` calls (one per real
+repaint) across init + two `update()` calls. Before this fix the count
+would plateau at 1; after the fix it advances 1 → 2 → 3, proving each
+`update()` triggers a genuine repaint.
+
+### Theme toggle — aria-label synced on load, localStorage guarded
+
+Two related fixes in `theme.js`:
+
+- **aria-label sync on load.** `applyTheme(saved)` ran on load but nothing
+  updated `#theme-toggle`'s `aria-label` to match — only the click handler
+  did. A returning visitor with a saved `light` preference got a control
+  whose accessible name still said "Switch to light mode" while the page
+  had already loaded light. Extracted the label logic into
+  `setToggleLabel()`, now called once on `DOMContentLoaded` (using the
+  same `saved` value `applyTheme` used) in addition to on every click.
+- **Guarded `localStorage`.** Neither `getItem` nor `setItem` had any
+  error handling; in a storage-blocked context (Safari "Block All
+  Cookies," some private-browsing/enterprise configs) a thrown
+  `SecurityError` on the load-time `getItem` call would abort the whole
+  IIFE before the click listener was ever registered — breaking the
+  toggle entirely instead of degrading to the default theme as intended.
+  Wrapped both calls (`readSavedTheme()`/`writeSavedTheme()`) in
+  `try/catch`, falling back to `'dark'` and no-op-ing persistence on
+  failure.
+
+**Verified by executing the real file** against DOM/`localStorage` shims
+(`theme_test.js`) across three scenarios: default load, a returning
+visitor with a saved `light` preference, and a storage-blocked context
+(`getItem`/`setItem` both throw). All three now load without error, apply
+the correct theme, show the correct aria-label immediately on
+`DOMContentLoaded` (not just after a click), and the toggle still works
+via click in every case, including the storage-blocked one.
+
+### Accessibility — unlabeled canvases
+
+`#scene-opening-canvas` and `#agent-pixie-canvas` had neither
+`aria-hidden="true"` nor an accessible name, unlike `#pixie-canvas`
+(`aria-label="Pixie companion" role="img"`) — both are purely
+decorative/generative, with their content already carried by adjacent
+caption/detail text. Added `aria-hidden="true"` to both, matching the
+existing pattern used everywhere else on the page for decorative
+canvas/SVG.
+
+### Production readiness — OG/Twitter/canonical/robots/404/sitemap
+
+Favicon was already fixed in an earlier session pass; this closes the
+rest of §E's "missing entirely" list:
+
+- Open Graph + Twitter Card tags (`og:title`/`og:description`/`og:image`
+  at 1200×630 + width/height hints, `twitter:card=summary_large_image`
+  + matching title/description/image) — `index.html` `<head>`.
+- `<link rel="canonical" href="https://joinmaie.com/">` and
+  `<meta name="robots" content="index, follow">` — this is the live
+  marketing page, not a staging build, so an allow-all/index directive is
+  the launch-appropriate one.
+- New `og-image.png` (1200×630, the real nav mark on the dark-theme `--bg`
+  background, recolored to the actual `--brand-light`/`--accent` hex
+  values since a rasterized share image can't reference CSS custom
+  properties) — same technique `scene-opening.js` already uses for its
+  canvas colors, just done once at build time via ImageMagick instead of
+  per-frame via `getComputedStyle`.
+- New `robots.txt` (allow-all, points at the sitemap) and `sitemap.xml`
+  (single entry — this is a one-page site).
+- New `404.html` — reuses `styles.css`'s tokens/fonts and the real nav
+  brand mark/theme toggle (via `theme.js`) for visual consistency, but
+  intentionally does **not** load `nav-menu.js`/`nav-theme.js`/any scene
+  script, since there's nothing on this page for them to attach to.
+  `<meta name="robots" content="noindex, follow">` — a 404 page shouldn't
+  itself be indexed.
+
+**Verified** via the same local-static-server method the audit used:
+`GET /robots.txt`, `/sitemap.xml`, `/404.html`, `/og-image.png` all now
+return `200` (previously `404`/absent); grepped `index.html` for
+`og:`/`twitter:`/`canonical`/`name="robots"` and confirmed all now present
+(previously zero matches).
+
+### Minor fixes
+
+- **`.bg-orb-2`'s hardcoded hex** (`styles.css`) — left as a hardcoded
+  value rather than tokenized (inventing a new design token for one
+  background element felt like a design decision beyond this fix's
+  scope), but documented with a comment explaining it's deliberately
+  theme-invariant, unlike `.bg-orb-1`/`.bg-orb-3`.
+- **Duplicate photo deleted.** `media/made-by-ron-lach-8100063 (1).jpg`
+  was a confirmed byte-identical duplicate (`md5sum` match) of
+  `media/made-by-ron-lach-8100063.jpg`, unreferenced by either name
+  anywhere in the DOM/JS. Deleted the parenthesized copy.
+- **`nav-theme.js`'s header comment** updated — it described "Sections 1,
+  5, and 6" as force-dark, stale since §10 (Section 1 dropped force-dark)
+  and §14 (5+6 merged into one scene). Now describes the current
+  single-force-dark-scene state; the code itself was already correct
+  (dynamically queries `.story-scene.force-dark`), so this was
+  comment-only.
+
+### Not fixed in this pass (needs live-browser confirmation first)
+
+Section 4's transitional-frame legibility risk (thesis text briefly
+overlapping a low-contrast photo during the fade-out/fade-in handoff) was
+left as-is — the audit report itself recommended live-render confirmation
+before changing the timing, since the fix (shortening a fade window or
+shifting `PHOTO_START`) risks its own new timing bugs without being able
+to see the actual result. Everything in the audit's "Blocked" sign-off
+rows (screenshot-based visual QA, live screen-reader pass, live
+OS-level reduced-motion toggle test, real scroll-jank profiling) remains
+unverified for the same reason it was unverified originally: no
+browser-automation tooling is available in this environment.
+
+### Validation performed
+
+`node --check` on all changed `.js` files (`pixie-companion.js`,
+`theme.js`, `nav-theme.js`) — clean. HTML tag-balance (`index.html`,
+`404.html`) and CSS brace-balance (`styles.css`) — clean, unchanged from
+before this pass. Every finding above was re-verified using the same
+method the audit report used to find it (re-running that finding's own
+"How to reproduce" steps), not just re-read from the diff — see each
+subsection above for the specific method (local static server, direct
+`.gitignore` inspection, or executing the real source against minimal
+DOM/canvas shims in Node). Full local asset-resolution sweep re-run
+afterward across every real asset reference in the repo (favicons,
+media, all `.js`/`.css`, plus the new `404.html`/`robots.txt`/
+`sitemap.xml`/`og-image.png`) — 100% `200`, zero regressions introduced.

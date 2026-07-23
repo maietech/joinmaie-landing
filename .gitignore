@@ -1,3 +1,13 @@
 .DS_Store
 *.log
 maie-git-workflow.md
+
+# Internal dev/audit docs — not meant to ship as publicly-fetchable static
+# files on Cloudflare Pages (this is a zero-build site; everything in the
+# repo root is served as-is). DESIGN-DEV-GUIDE.md in particular references
+# a local developer filesystem path and internal pre-launch security-audit
+# notes. Found in the pre-production audit — see
+# joinmaie-landing-preproduction-audit-report.md.
+DESIGN-DEV-GUIDE.md
+maie-narrative-audit.md
+chaos-to-signal-merge-direction.md

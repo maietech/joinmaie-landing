@@ -157,7 +157,7 @@
 
     var animId;
 
-    function animate() {
+    function renderFrame() {
       frame++;
       ctx.clearRect(0, 0, w, h);
 
@@ -311,20 +311,61 @@
       ctx.restore();
 
       // No reputation echoes rendered — no signed-in user, no history yet.
+    }
 
-      animId = requestAnimationFrame(animate);
+    // isIntersecting starts true so the very first paint (below) and any
+    // frames before the IntersectionObserver's first async callback fires
+    // still render — a brief, harmless grace period, not a correctness gap.
+    var isIntersecting = true;
+    function animate() {
+      renderFrame();
+      if (isIntersecting) {
+        animId = requestAnimationFrame(animate);
+      } else {
+        animId = null; // lets the observer's callback know it's safe to restart the chain
+      }
     }
 
     animate();
     var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) { cancelAnimationFrame(animId); } // one frame drawn, then hold
+    if (reducedMotion) {
+      cancelAnimationFrame(animId); // one frame drawn, then hold
+      animId = null;
+    } else if (typeof IntersectionObserver !== 'undefined') {
+      // The continuous ambient animation (spring physics, particle field,
+      // orbit rings) ran unconditionally at 60fps even while the canvas was
+      // scrolled completely out of view — both instances on this page
+      // (companion-intro, scene-agent) do this simultaneously by design,
+      // doubling the always-on cost. Found as a top-5 contributor in the
+      // pre-production audit's scroll-jank CPU profile. update() (below) is
+      // NOT gated by this — it always applies immediately regardless of
+      // visibility, so state changes (theme toggle, scene-agent's per-step
+      // updates) are never lost; the moment the canvas scrolls back into
+      // view, animate() resumes and its very next renderFrame() call reads
+      // the already-current closure state, so nothing needs to be
+      // re-synced on resume.
+      var pixieVisibilityObserver = new IntersectionObserver(function (entries) {
+        isIntersecting = entries[entries.length - 1].isIntersecting;
+        if (isIntersecting && !animId) {
+          animId = requestAnimationFrame(animate);
+        }
+      }, { threshold: 0 });
+      pixieVisibilityObserver.observe(canvas);
+    }
 
     // update() lets a call site change mode/phase/progress/temperament
     // (and archetype, though changing that won't retroactively resize the
     // particle field already built at init) after the fact, without a
     // second init/teardown cycle. archetype/mode/phase/progress/temperament
-    // are the same closure vars animate() already reads every frame, so
-    // reassigning them here is all that's needed — no restart required.
+    // are the same closure vars renderFrame() already reads every frame, so
+    // reassigning them here is normally all that's needed — no restart
+    // required. Exception: under reduced motion, the RAF loop that would
+    // have picked these up on its next frame was already canceled after
+    // the first paint (see above), so update() has to trigger that repaint
+    // itself here — otherwise every later update() call (the theme-toggle
+    // live-update, scene-agent's per-step changes) would silently do
+    // nothing visible, leaving the canvas frozen on its init-time state
+    // (found in the pre-production audit).
     function update(patch) {
       patch = patch || {};
       if (patch.mode !== undefined) mode = patch.mode;
@@ -333,6 +374,7 @@
       if (patch.archetype !== undefined) archetype = patch.archetype;
       if (patch.temperament !== undefined) temperament = patch.temperament;
       if (patch.theme !== undefined) theme = patch.theme;
+      if (reducedMotion) renderFrame();
     }
 
     return {
@@ -340,6 +382,7 @@
         cancelAnimationFrame(animId);
         canvas.removeEventListener('mousemove', onMouseMove);
         canvas.removeEventListener('mouseleave', onMouseLeave);
+        if (pixieVisibilityObserver) pixieVisibilityObserver.disconnect();
       },
       update: update,
     };

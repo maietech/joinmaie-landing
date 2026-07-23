@@ -130,6 +130,15 @@
     var warn = document.createElement('div');
     warn.className = 'chaos-warn';
     warn.textContent = WARNINGS[i % WARNINGS.length];
+    // opacity:0 (styles.css) hides this visually but does NOT remove it
+    // from the accessibility tree — without aria-hidden, every chip's
+    // accessible name was polluted with an unrelated warning phrase at
+    // all times, worst on the 3 resolved "message" chips whose whole
+    // point is a clean, curated reading (found in the pre-production
+    // audit via ariaSnapshot(): a resolved chip read "Storage. Untracked
+    // Change" instead of "Storage."). Purely a decorative hover cue even
+    // when visible, so hiding it from AT unconditionally is correct.
+    warn.setAttribute('aria-hidden', 'true');
     el.appendChild(warn);
 
     field.appendChild(el);
@@ -164,6 +173,27 @@
 
     chips.push(chip);
     (def.isMessage ? messageChips : noiseChips).push(chip);
+  });
+
+  // Each chip's target point along the path is fixed for its whole
+  // lifetime — noise chips by their fixed index (i / (count-1)), message
+  // chips by their fixed MESSAGE_T entry — never by scroll progress or
+  // `eased`. `path.getPointAtLength()` was being called for all 20 chips
+  // on every single frame (both scroll-driven and the continuous idle
+  // loop) even though its result never changes once computed; that showed
+  // up as the single largest contributor in the pre-production audit's
+  // scroll-jank CPU profile (~5.6s of a ~33s throttled scroll-through).
+  // Cached once here, per chip, at init — `targetPercent` below now just
+  // re-applies the current frame's screenCTM to this cached raw point,
+  // which is the only part of the calculation that's actually
+  // frame-dependent.
+  noiseChips.forEach(function (c, i) {
+    var t = noiseChips.length > 1 ? i / (noiseChips.length - 1) : 0;
+    c.pathPoint = path.getPointAtLength(t * len);
+  });
+  messageChips.forEach(function (c) {
+    var t = MESSAGE_T[c.def.messageOrder];
+    c.pathPoint = path.getPointAtLength(t * len);
   });
 
   function ease(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
@@ -248,11 +278,14 @@
     // and the same path transform. ─────────────────────────────────────
     var fieldRect = null, screenCTM = null;
     if (eased > 0.001) {
-      fieldRect = field.getBoundingClientRect();
+      fieldRect = cachedFieldRect || field.getBoundingClientRect(); // fallback covers a call before the first batch tick
       screenCTM = path.getScreenCTM();
     }
-    function targetPercent(t) {
-      var p = path.getPointAtLength(t * len).matrixTransform(screenCTM);
+    // Takes the chip's cached, invariant raw path point (see init above) and
+    // applies only the frame-dependent part — the current screenCTM/field
+    // rect — instead of re-walking the path geometry every call.
+    function pointToPercent(pathPoint) {
+      var p = pathPoint.matrixTransform(screenCTM);
       return {
         xPct: ((p.x - fieldRect.left) / fieldRect.width) * 100,
         yPct: ((p.y - fieldRect.top) / fieldRect.height) * 100,
@@ -266,8 +299,7 @@
     noiseChips.forEach(function (c, i) {
       var wob = isStatic ? 0 : Math.sin(clock * c.speed + c.phase) * (1 - eased) * 4;
       if (eased > 0.001) {
-        var t = noiseChips.length > 1 ? i / (noiseChips.length - 1) : 0;
-        var target = targetPercent(t);
+        var target = pointToPercent(c.pathPoint);
         var x = c.x * (1 - eased) + target.xPct * eased + wob;
         var y = c.y * (1 - eased) + target.yPct * eased + wob * 0.6;
         c.el.style.left = x + '%';
@@ -303,8 +335,7 @@
     messageChips.forEach(function (c) {
       var wob = isStatic ? 0 : Math.sin(clock * c.speed + c.phase) * (1 - eased) * 3;
       if (eased > 0.001) {
-        var t = MESSAGE_T[c.def.messageOrder];
-        var target = targetPercent(t);
+        var target = pointToPercent(c.pathPoint);
         var x = c.x * (1 - eased) + target.xPct * eased + wob;
         var y = c.y * (1 - eased) + (target.yPct + MESSAGE_Y_OFFSET[c.def.messageOrder]) * eased + wob * 0.5;
         c.el.style.left = x + '%';
@@ -334,16 +365,55 @@
     });
   }
 
+  // field.getBoundingClientRect() was read directly inside render() every
+  // frame (both scroll-driven and from the idle loop below) — a top-5
+  // contributor in the pre-production audit's scroll-jank profile, and one
+  // of the four independent scroll-triggered layout reads flagged there as
+  // a cross-scene thrashing risk (alongside story-scroll.js, nav-theme.js,
+  // scene-lifecycle.js). Registered here, BEFORE the window.initScrollScene
+  // call below, so its write (updating cachedFieldRect) runs before
+  // story-scroll's own registered write (which triggers render() via the
+  // callback below) in the same batched tick — render() always sees this
+  // tick's fresh rect, never a stale one. field's getBoundingClientRect()
+  // is viewport-relative, so it's meant to change on every scroll anyway;
+  // updating it once per scroll-batch tick instead of once per chip per
+  // frame is strictly more correct, not just faster.
+  var cachedFieldRect = null;
+  if (window.registerScrollBatch) {
+    window.registerScrollBatch(
+      function () { return field.getBoundingClientRect(); },
+      function (rect) { cachedFieldRect = rect; }
+    );
+  }
+
   window.initScrollScene(section, function (progress, staticFrame) {
     lastProgress = progress;
     render(progress, staticFrame);
   });
 
+  // The 20-chip render() (drift/convergence/style updates) ran continuously
+  // at 60fps via this idle loop regardless of whether the scene was even
+  // scrolled into view — found as a top-5 scroll-jank contributor. Gated
+  // the same way as the Pixie companion's ambient loop: an
+  // IntersectionObserver on the section pauses the loop's actual work
+  // while off-screen (the rAF chain itself keeps ticking at negligible
+  // cost, just skipping step()/render() until intersecting again — chips
+  // simply resume their drift from wherever they were, which is correct
+  // for ambient decorative motion).
+  var chaosIsIntersecting = true;
   if (!reducedMotion) {
+    if (typeof IntersectionObserver !== 'undefined') {
+      var chaosVisibilityObserver = new IntersectionObserver(function (entries) {
+        chaosIsIntersecting = entries[entries.length - 1].isIntersecting;
+      }, { threshold: 0 });
+      chaosVisibilityObserver.observe(section);
+    }
     (function loop() {
-      clock += 0.02;
-      step();
-      render(lastProgress, false);
+      if (chaosIsIntersecting) {
+        clock += 0.02;
+        step();
+        render(lastProgress, false);
+      }
       requestAnimationFrame(loop);
     })();
   }
