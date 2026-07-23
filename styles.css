@@ -603,24 +603,59 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .lifecycle-window { position: relative; width: min(1100px, 92vw); height: min(58vh, 420px); overflow: hidden; }
 .lifecycle-track { display: flex; gap: 28px; height: 100%; position: absolute; left: 0; top: 0; will-change: transform; }
 .lifecycle-frame {
-  flex: 0 0 min(320px, 74vw); height: 100%; position: relative;
+  flex: 0 0 min(320px, 74vw); height: 100%; position: relative; overflow: hidden;
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
   padding: 30px 24px 24px; display: flex; flex-direction: column; justify-content: flex-end;
   opacity: 0.35; transform: scale(0.92);
   transition: opacity 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
 }
+/* Each frame's own reference photo — a decorative backdrop, not the content
+   (the num/title/desc/metric text still carries the meaning), so it fades
+   in behind everything else purely as a function of scroll distance from
+   this frame's centered position. Opacity is set per-frame by
+   scene-lifecycle.js every scroll tick (continuous, not the coarser
+   is-active toggle above), the same "no CSS transition, JS tracks scroll
+   directly" approach scene-human-hand.js uses for .hand-photo. */
+.lifecycle-frame-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0; z-index: 0; will-change: opacity, transform;
+}
+/* Scrim fades in lockstep with the photo above (same weight, set inline by
+   JS) — at weight 0 there's no photo and this is invisible too, so the
+   card's default theme-token look (light or dark) is untouched. Only once
+   a frame nears center and its photo becomes visible does the scrim (and
+   the forced-white text below) kick in — same "photography needs its own
+   guaranteed-legible treatment regardless of site theme" call made for
+   .hand-photo/.hand-caption in Section 4, just scoped to only the active
+   frame instead of the whole scene. */
+.lifecycle-frame-scrim {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.2) 72%, transparent 100%);
+}
 .lifecycle-frame::before, .lifecycle-frame::after {
-  content: ''; position: absolute; left: 0; right: 0; height: 9px;
+  content: ''; position: absolute; left: 0; right: 0; height: 9px; z-index: 2;
   background-image: repeating-linear-gradient(to right, var(--text-2) 0 6px, transparent 6px 16px);
   opacity: 0.35;
 }
 .lifecycle-frame::before { top: 0; }
 .lifecycle-frame::after { bottom: 0; }
 .lifecycle-frame.is-active { opacity: 1; transform: scale(1); border-color: var(--brand-light); }
+.lifecycle-frame-num, .lifecycle-frame-title, .lifecycle-frame-desc, .lifecycle-frame-metric {
+  position: relative; z-index: 2;
+}
 .lifecycle-frame-num { font-family: 'Bebas Neue', sans-serif; font-size: 30px; color: var(--brand-light); }
 .lifecycle-frame-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.02em; margin: 4px 0 10px; color: var(--text-1); }
 .lifecycle-frame-desc { font-size: 14px; line-height: 1.55; color: var(--text-2); margin: 0 0 14px; }
 .lifecycle-frame-metric { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--accent-text); }
+/* Once the reference photo is visible enough to matter (is-active, same
+   moment .lifecycle-frame-bg/-scrim reach full weight — see render() in
+   scene-lifecycle.js), theme-token text swaps for a hardcoded light
+   palette so it stays legible over the photo in both themes; identical
+   reasoning to Section 4's forced-white photo captions. */
+.lifecycle-frame.is-active .lifecycle-frame-num,
+.lifecycle-frame.is-active .lifecycle-frame-metric { color: #FFD166; text-shadow: 0 1px 8px rgba(0,0,0,0.55); }
+.lifecycle-frame.is-active .lifecycle-frame-title { color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.55); }
+.lifecycle-frame.is-active .lifecycle-frame-desc { color: rgba(255,255,255,0.88); text-shadow: 0 1px 8px rgba(0,0,0,0.5); }
 .lifecycle-rail { display: flex; gap: 8px; }
 .lifecycle-rail-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background 0.2s ease, transform 0.2s ease; }
 .lifecycle-rail-dot.is-active { background: var(--brand-light); transform: scale(1.4); }

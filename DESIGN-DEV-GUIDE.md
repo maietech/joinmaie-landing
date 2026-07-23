@@ -152,7 +152,7 @@ data for either — that's accurate, not a missing feature.
 | 4 | The Human Hand | Reflection | ✅ Built | `scene-human-hand.js` | Real documentary photography sourced — see §17. Slowest scene on the page by design (480vh, no idle motion) |
 | 5 | Chaos of Creation | Immersion | ✅ Built | `scene-chaos-signal.js` | Merged with Section 6 into one continuous scene (progress 0.0-0.45) — see §14. Message-chip mechanic added: a curated subset of chips carry their text through convergence instead of dissolving |
 | 6 | Everything Connects | Revelation | ✅ Built | `scene-chaos-signal.js` | Merged with Section 5 into one continuous scene (progress 0.45-1.0) — see §14. Ignition-flash/accent-ring tuning from §13 unchanged, just rescoped to a sub-window of the shared progress value |
-| 7 | Media Lifecycle (8 stages) | Exploration | ✅ Built | `scene-lifecycle.js` | Horizontal filmstrip driven by vertical scroll progress (translateX only) — no real horizontal scroll, no scroll-jacking |
+| 7 | Media Lifecycle (8 stages) | Exploration | ✅ Built | `scene-lifecycle.js` | Horizontal filmstrip driven by vertical scroll progress (translateX only) — no real horizontal scroll, no scroll-jacking. Each frame now carries a reference photo that crossfades in/out with scroll distance from center — see §20 |
 | 8 | Agent Workflow | Revelation | ✅ Built | `scene-agent.js` | Reuses `pixie-companion.js` via its `update()` hook — same engine as the hero, not a lookalike, and now theme-aware too (see §11). Path now reuses the real signal/logo curve (was a placeholder wave — fixed in §11) |
 | 9 | Marketplace | Exploration | ⛔ Not started | — | **Needs real package/LUT/workflow preview content** |
 | 10 | Creator Passport | Reflection | ⛔ Not started | — | **Needs a real sample media + provenance hash example** |
@@ -1347,3 +1347,74 @@ DOM/canvas shims in Node). Full local asset-resolution sweep re-run
 afterward across every real asset reference in the repo (favicons,
 media, all `.js`/`.css`, plus the new `404.html`/`robots.txt`/
 `sitemap.xml`/`og-image.png`) — 100% `200`, zero regressions introduced.
+
+---
+
+## 20. Changelog — Section 7 reference photos added
+
+`scene-lifecycle.js`'s 8-stage filmstrip was text/UI only (no asset
+dependency, by original design). Each `.lifecycle-frame` now also carries
+a reference photo (`.lifecycle-frame-bg`) as a decorative backdrop — the
+num/title/desc/metric text still carries the meaning, the photo just gives
+each stage a visual anchor.
+
+### Curation
+
+Four new photos were sourced and added to `media/` for this
+(`made-by-mostafa_meraji-photographer-4882729_1920.jpg`, `made-by-
+director-chenchi-2159627038-36181988.jpg`, `made-by-ottawagraphics-
+artist-4622221_1920.jpg`, `made-by-cord-allman-852631891-29216191.jpg`),
+paired with four more pulled from the existing unused stock in `media/`.
+Checked against the same on-brand bar §17 already established for this
+page (and the anti-pattern list in §3) before picking:
+
+- `made-by-amar-13699199.jpg` (a pinboard including a passport, cash, and
+  a PayPal balance screenshot) is the "wealth/lifestyle mood board...
+  reads as influencer content" photo §17 already excluded from Section 4
+  for the exact same reason — excluded here too, not reconsidered.
+- `made-by-nataliaolivera-30630960.jpg` (crochet chair + a sleeping dog)
+  is the same "fiber craft, not media production... off-topic" category
+  §17 excluded.
+- `made-by-pavel-danilyuk-7658310.jpg` (a real but person-less desk row)
+  is the same "empty office, no human presence" category §17 excluded.
+- `made-by-lucasandrade-19859073.jpg` and `made-by-karola-g2-6224.jpg`
+  (a beach-portrait Polaroid wall / Lightroom catalog, and a generic
+  team-with-scissors mood-board session) read closer to influencer
+  content or generic corporate-team stock than this page's documentary
+  tone — passed over, not formally excluded like the three above.
+
+Final eight, none reused from Section 2's or Section 4's already-assigned
+photos:
+
+| Stage | File | Why it fits |
+|---|---|---|
+| Create | `made-by-mostafa_meraji-photographer-4882729_1920.jpg` | Photographer framed against their own camera — the capture moment itself |
+| Organize | `made-by-fukajaz-31718971.jpg` | An NLE timeline with clips already labeled/color-coded by location — literal sort-and-structure |
+| Understand | `made-by-director-chenchi-2159627038-36181988.jpg` | A DP reading a shot through a cinema camera |
+| Connect | `made-by-ron-lach-8102691.jpg` | Two colorists at a node-graph grading screen — both the literal graph and the "two people, one project" relationship |
+| Transform | `made-by-ottawagraphics-artist-4622221_1920.jpg` | A sculptor reshaping raw stone into form — processing/enhancement made physical |
+| Collaborate | `made-by-micahways-10499056.jpg` | Three people working a shared whiteboard plan together |
+| Prove | `latif_photo88-hand-10123021_1920.jpg` | A craftsperson tagging each individual piece — a provenance/authenticity metaphor, not literal media production (Section 7 isn't scoped to real "creator at work" documentary photography the way Section 4 is, so a strong metaphor was judged acceptable here where §17 wouldn't have allowed it for Section 4) |
+| Share | `made-by-cord-allman-852631891-29216191.jpg` | Work being made and viewed live in front of a crowd — moving out into the wider ecosystem |
+
+All eight resized to a 2000px long edge at quality 80 with metadata
+stripped (`convert -resize '2000x2000>' -quality 80 -strip`), same
+treatment as §17's Section 4 photos — final sizes 114KB-650KB, ~2.5MB
+total for the section.
+
+### Fade mechanic
+
+Each frame's photo opacity is a continuous function of that frame's own
+distance from the filmstrip's centered position (`idxFloat` in
+`render()`), smoothstep-eased, independent of the coarser `is-active`
+class already used for the card's scale/border treatment — so the photo
+fades in as a frame approaches center screen and fades back out as it
+scrolls past, rather than popping with the card. A scrim
+(`.lifecycle-frame-scrim`) fades in at the same weight so text stays
+legible once the photo is visible; `.lifecycle-frame.is-active` text
+colors are hardcoded to a light palette at that point, the same "photos
+need a guaranteed-legible treatment regardless of site theme" call §17
+made for Section 4's `.hand-caption`, just scoped to only the centered
+frame instead of the whole scene. At weight 0 (every frame not near
+center) the card is untouched — still the plain theme-token `--surface`
+background with theme-token text, exactly as before this change.
