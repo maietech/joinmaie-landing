@@ -12,6 +12,15 @@
 // this needed more than swapping one fill color. The "ignition spark"
 // intro (plays once, on first view) exists specifically so the opening
 // beat still has a strong "pop" in light mode instead of a flat fade-in.
+//
+// NARRATIVE (see DESIGN-DEV-GUIDE.md §12 / maie-narrative-audit.md follow-up):
+// the caption is no longer a single static line — it's a six-beat
+// narration synced 1:1 to the six visual stages below (pulse/line/
+// frames/wave/time/data), via the same STAGES windows both read from.
+// The visual stays abstract throughout (never becomes literal "office
+// chaos" imagery — that's Section 5's job); the copy is what carries the
+// emotional arc from wonder to a plainly-stated, personal recognition by
+// the time the visitor reaches the end of the scene.
 
 (function () {
   var section = document.getElementById('scene-opening');
@@ -122,7 +131,51 @@
     }
   }
 
-  function draw(progress, isStatic) {
+  // Six narrative beats, one per visual stage, sharing the exact same
+  // progress windows the canvas rendering uses below — so the caption
+  // crossfades in lockstep with whichever visual stage is dominant,
+  // never out of sync with it. See maie-narrative-audit.md's opening
+  // follow-up for the reasoning behind this specific line-by-line arc:
+  // "Everything begins with something" is preserved verbatim (the
+  // audit's own pick for the page's strongest deliberately-vague line);
+  // beats 2-6 progressively concretize the feeling without ever naming
+  // MAIE or the product — that's Section 5/6's job, not this scene's.
+  var STAGES = [
+    { key: 'pulse',  start: 0.00, end: 0.14, fadeIn: 0.04, fadeOut: 0.04, text: 'Everything begins with something.' },
+    { key: 'line',   start: 0.14, end: 0.30, fadeIn: 0.04, fadeOut: 0.04, text: 'It becomes something real.' },
+    { key: 'frames', start: 0.30, end: 0.48, fadeIn: 0.04, fadeOut: 0.04, text: 'Then it becomes another.' },
+    { key: 'wave',   start: 0.48, end: 0.66, fadeIn: 0.04, fadeOut: 0.04, text: 'And another.' },
+    { key: 'time',   start: 0.66, end: 0.82, fadeIn: 0.04, fadeOut: 0.04, text: 'Until the work is surrounded by everything that isn’t the work.' },
+    { key: 'data',   start: 0.82, end: 1.00, fadeIn: 0.04, fadeOut: 0,    text: 'You just wanted to make something.' },
+  ];
+
+  function computeWeights(progress) {
+    var w = {};
+    STAGES.forEach(function (s) {
+      w[s.key] = window.storyStageWeight(progress, s.start, s.end, s.fadeIn, s.fadeOut);
+    });
+    return w;
+  }
+
+  // Caption follows whichever stage currently has the highest weight —
+  // textContent only changes when the dominant stage changes (not every
+  // frame), opacity tracks that stage's own weight continuously, so the
+  // fade timing matches the visual stage's fade exactly.
+  var activeCaptionKey = null;
+  function updateCaption(w) {
+    if (!caption) return;
+    var top = STAGES[0], topW = 0;
+    STAGES.forEach(function (s) {
+      if (w[s.key] > topW) { topW = w[s.key]; top = s; }
+    });
+    if (top.key !== activeCaptionKey) {
+      activeCaptionKey = top.key;
+      caption.textContent = top.text;
+    }
+    caption.style.opacity = topW;
+  }
+
+  function draw(progress, isStatic, w) {
     if (!ignitionDone) return; // the ignition loop owns rendering until it settles
     ctx.clearRect(0, 0, W, H);
     var bg = themeColor('--bg', '#09090B');
@@ -131,13 +184,15 @@
     var brand = themeColor('--brand-light', '#C24E4E');
     var accent = themeColor('--accent', '#FFD166');
 
-    // Stage weights — six overlapping windows across the scroll range.
-    var wPulse   = window.storyStageWeight(progress, 0.00, 0.14);
-    var wLine    = window.storyStageWeight(progress, 0.14, 0.30);
-    var wFrames  = window.storyStageWeight(progress, 0.30, 0.48);
-    var wWave    = window.storyStageWeight(progress, 0.48, 0.66);
-    var wTime    = window.storyStageWeight(progress, 0.66, 0.82);
-    var wData    = window.storyStageWeight(progress, 0.82, 1.00, 0.04, 0);
+    // Stage weights — six overlapping windows across the scroll range,
+    // shared with updateCaption() via the STAGES array above so the text
+    // and the visual are always driven by the exact same timing.
+    var wPulse   = w.pulse;
+    var wLine    = w.line;
+    var wFrames  = w.frames;
+    var wWave    = w.wave;
+    var wTime    = w.time;
+    var wData    = w.data;
 
     ctx.save();
 
@@ -220,21 +275,28 @@
   var lastProgress = 0, isReduced = false;
   window.initScrollScene(section, function (progress, staticFrame) {
     lastProgress = progress; isReduced = staticFrame;
-    draw(progress, staticFrame);
-    if (caption) {
-      var capOpacity = window.storyStageWeight(progress, 0.0, 0.10, 0.02, 0.06);
-      caption.style.opacity = capOpacity;
-    }
+    var w = computeWeights(progress);
+    draw(progress, staticFrame, w);
+    updateCaption(w);
     if (nav) nav.classList.toggle('nav-hidden', progress < 0.5 && !staticFrame);
   });
 
   if (reducedMotion) {
-    draw(lastProgress, true); // straight to the settled state, no ignition, no idle loop
+    // Straight to the settled state, no ignition, no idle loop — same
+    // convention as every other scene under prefers-reduced-motion.
+    // storyStageWeight resolves progress=1 to the final ('data') stage at
+    // full weight, so the caption correctly shows the scene's last beat
+    // rather than nothing (the single-caption version only ever faded in
+    // during the very first stage window, which progress=1 falls outside
+    // of — reduced-motion visitors previously saw no caption at all here).
+    var settledW = computeWeights(lastProgress);
+    draw(lastProgress, true, settledW);
+    updateCaption(settledW);
   } else {
     requestAnimationFrame(runIgnition);
     (function loop() {
       t += 0.02;
-      draw(lastProgress, false);
+      draw(lastProgress, false, computeWeights(lastProgress));
       requestAnimationFrame(loop);
     })();
   }
