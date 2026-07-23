@@ -112,16 +112,15 @@
     </div>
   </section>
 
-  <section id="scene-chaos" class="story-scene force-dark">
+  <!-- Sections 5+6 merged into one continuous scroll region per
+       chaos-to-signal-merge-direction.md — one .story-scene wrapper, one
+       sticky panel, one scroll-progress driver (scene-chaos-signal.js).
+       Chaos chips drift, then morph in place: noise chips shrink into
+       plain dots and dissolve onto the signal path, a curated subset of
+       "message" chips keep their text and land at ordered points along
+       the path, concatenating into one line as the mark ignites. -->
+  <section id="scene-chaos-signal" class="story-scene force-dark">
     <div class="scene-sticky">
-      <div id="chaos-field"></div>
-      <div class="chaos-caption" id="chaos-caption">So much. Everywhere. Nowhere.</div>
-    </div>
-  </section>
-
-  <section id="scene-maie-moment" class="story-scene force-dark">
-    <div class="scene-sticky">
-      <div class="scene-maie-caption" id="scene-maie-caption-before">Fragmented. Scattered. Disconnected.</div>
       <svg id="signal-svg" viewBox="0 0 92 56" xmlns="http://www.w3.org/2000/svg">
         <path id="signal-path" class="signal-stroke"
           d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
@@ -130,14 +129,13 @@
              C 58,26 63,26 63,34 C 63,40 68,38 70,32
              Q 73,29 76,32 T 84,32"/>
         <!-- Matches the nav logo's own accent marker exactly (small solid
-             core + thin outline ring, index.html's <nav> svg above) — was
-             a single circle whose radius scaled up to 6.5 as a solid
-             filled disc, reading as a glowing orb rather than the actual
-             mark. Ring now carries the "pulse" emphasis; the core dot
-             stays fixed at the logo's real r="3". -->
+             core + thin outline ring, index.html's <nav> svg above). -->
         <circle id="signal-accent-ring" class="signal-accent-ring" cx="86" cy="32" r="6.5" opacity="0"/>
         <circle id="signal-accent-dot" class="signal-accent-dot" cx="86" cy="32" r="3" opacity="0"/>
       </svg>
+      <div id="chaos-field"></div>
+      <div class="chaos-caption" id="chaos-caption">So much. Everywhere. Nowhere.</div>
+      <div class="scene-maie-caption" id="scene-maie-caption-before">Fragmented. Scattered. Disconnected.</div>
       <div class="scene-maie-caption" id="scene-maie-caption-after" style="bottom:auto; top:14%;">The noise fades. The scattered files align. You return to the edit.</div>
     </div>
   </section>
@@ -295,8 +293,7 @@
 <script src="scene-opening.js"></script>
 <script src="scene-frame.js"></script>
 <script src="scene-universe.js"></script>
-<script src="scene-chaos.js"></script>
-<script src="scene-maie-moment.js"></script>
+<script src="scene-chaos-signal.js"></script>
 <script src="scene-lifecycle.js"></script>
 <script src="scene-agent.js"></script>
 </body>

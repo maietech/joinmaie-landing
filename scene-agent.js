@@ -1,6 +1,6 @@
 // scene-agent.js — Section 8: "Agent Workflow"
 // The real Pixie Companion engine (pixie-companion.js) travels along a
-// signal-line path — same technique as scene-maie-moment.js's path
+// signal-line path — same technique as scene-chaos-signal.js's path
 // reveal — with mode/phase/temperament changing live as scroll progress
 // crosses each of six workflow steps. Uses pixie-companion.js's update()
 // hook rather than a second, bespoke companion visual, per the dev
