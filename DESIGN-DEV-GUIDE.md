@@ -101,11 +101,13 @@ change.
 | `styles.css` | All styles — tokens, reveal sections, story scenes |
 | `theme.js` | Dark/light toggle (`data-theme` attr + `localStorage`) |
 | `nav-theme.js` | Darkens the nav bar whenever it's pinned over a `.story-scene.force-dark` scene (only `#scene-chaos-signal` now — see §14), independent of the light/dark toggle |
+| `nav-menu.js` | Mobile nav disclosure (open/close/click-away/Escape) for `#nav-secondary` behind `#nav-more-toggle` — see §16 |
 | `reveal.js` | Fade-in-on-scroll for the simple `[data-reveal]` sections (companion-intro/trust/paths) + the side progress rail |
 | `story-scroll.js` | Shared scroll-progress engine for **story scenes** — read this before building a new cinematic section |
 | `scene-opening.js` | Section 1 |
 | `scene-frame.js` | Section 2 |
 | `scene-universe.js` | Section 3 |
+| `scene-human-hand.js` | Section 4 — see §17. Built once real documentary photography was sourced |
 | `scene-chaos-signal.js` | Sections 5+6, merged into one continuous scene — see §14. Supersedes the old `scene-chaos.js` + `scene-maie-moment.js` pair |
 | `scene-lifecycle.js` | Section 7 |
 | `scene-agent.js` | Section 8 |
@@ -147,7 +149,7 @@ data for either — that's accurate, not a missing feature.
 | 1 | Before the Media | Immersion (hybrid — see §12) | ✅ Built | `scene-opening.js` | Nav auto-hides for first 50% of scroll depth per brief. Now a six-beat caption narrative, not a single line — see §12. Height bumped to 380vh (was the default 250vh) for pacing room across six beats |
 | 2 | One Moment | Exploration | ✅ Built | `scene-frame.js` | Fracture-growth technique instead of literal slice-translation (steadier across aspect ratios). Photo is `media/staircase-by-robert-schwarz.jpg` (swapped from `makabera-pop-up-9977615_1920.jpg` — see §15); still an arbitrary-per-the-brief pick, swap freely. Reuses the Signal-line device from Sections 1/6 |
 | 3 | Universe to You | Revelation | ✅ Built | `scene-universe.js` | DOM+CSS transforms, not canvas text — no raster blur at scale. Categories/atoms use a deterministic ring layout, not real data — swap in real domain/primitive taxonomy if it ever changes |
-| 4 | The Human Hand | Reflection | ⛔ Not started | — | **Needs real documentary photography** — can't fabricate |
+| 4 | The Human Hand | Reflection | ✅ Built | `scene-human-hand.js` | Real documentary photography sourced — see §17. Slowest scene on the page by design (480vh, no idle motion) |
 | 5 | Chaos of Creation | Immersion | ✅ Built | `scene-chaos-signal.js` | Merged with Section 6 into one continuous scene (progress 0.0-0.45) — see §14. Message-chip mechanic added: a curated subset of chips carry their text through convergence instead of dissolving |
 | 6 | Everything Connects | Revelation | ✅ Built | `scene-chaos-signal.js` | Merged with Section 5 into one continuous scene (progress 0.45-1.0) — see §14. Ignition-flash/accent-ring tuning from §13 unchanged, just rescoped to a sub-window of the shared progress value |
 | 7 | Media Lifecycle (8 stages) | Exploration | ✅ Built | `scene-lifecycle.js` | Horizontal filmstrip driven by vertical scroll progress (translateX only) — no real horizontal scroll, no scroll-jacking |
@@ -216,19 +218,24 @@ all decided:
 
 **Still open:**
 
-4. **Four sections still need real content.** 9, 10, and 11 need
-   product content (marketplace previews, a real provenance/hash
-   example, real or plausible platform metrics) that photography can't
-   substitute for. Section 4 was checked against the 10 photos added
-   and remains blocked too: the brief calls for documentary shots of
-   people mid-craft — an editor at night, a colorist adjusting a grade
-   — and what's on hand is portraits/nature/product shots, none of it
-   "creator at work." Worth sourcing all four in parallel with 12,
-   which depends on 11.
+4. **Three sections still need real content (Section 4 resolved — see
+   §17).** 9, 10, and 11 need product content (marketplace previews, a
+   real provenance/hash example, real or plausible platform metrics)
+   that photography can't substitute for. Section 12 depends on 11.
+   Section 4 was checked against the first 10 stock photos added and
+   stayed blocked at that point — portraits/nature/product shots, none
+   of it "creator at work" — but a second batch of real documentary/
+   editorial photography (colorist grading suites, a story-structure
+   card wall, a music session) unblocked it; see §17 for the build.
 
 ---
 
 ## 7. Suggested Build Order (unblocked work first)
+
+**Stale as a status snapshot — kept for history, see §5 for current
+status.** At the time this was written, only 2/3/7/8 were built.
+Sections 1, 4, 5, and 6 have since been built/reworked (§§10, 12, 14, 17).
+Only 9, 10, and 11 remain content-blocked today; 12 depends on 11.
 
 Sections 2, 3, 7, and 8 are now built (see §5). Everything remaining
 (4, 9, 10, 11, 12) is blocked on real content that doesn't exist yet —
@@ -949,3 +956,213 @@ swap, caught before shipping rather than after:
   screenshot, not just by inspecting the crop math — the mosaic steps,
   the mural face, and the colorful buildings on both sides all land in
   frame together.
+
+---
+
+## 16. Changelog — nav mobile wrap fix
+
+There was **no responsive handling for `.nav` at all** before this —
+`.nav-links`' four items (Trust, Pitch Deck, theme toggle, primary CTA)
+just overflowed the fixed 64px bar at phone widths, wrapping text inside
+flex items and overlapping page content underneath. First noticed during
+the Sections 5+6 merge's mobile testing (§14), fixed as its own pass.
+
+**Approach:** collapse the two secondary links into a disclosure panel
+rather than reaching for a full hamburger menu — the theme toggle and
+primary CTA are important enough to stay always visible, and Trust/Pitch
+Deck are secondary enough (Trust is just an in-page anchor a mobile
+visitor would reach by scrolling anyway) to tuck behind a toggle instead.
+
+- **New markup:** `#nav-secondary` wraps the Trust/Pitch Deck links;
+  `#nav-more-toggle` ("⋯") is the disclosure button, `aria-expanded` +
+  `aria-controls`-wired to it.
+- **New file `nav-menu.js`:** open/close on click, closes on click-away,
+  Escape, or clicking a link inside (Trust is an in-page anchor — without
+  this the panel would stay open floating over whatever section the
+  visitor just jumped to). No-ops entirely above the breakpoint since the
+  toggle button is `display:none` there.
+- **CSS, two breakpoints, both measured against the actual page, not
+  guessed:**
+  - `@media (max-width: 640px)`: `.nav-secondary` becomes the disclosure
+    panel (`position:absolute`, hidden until `.is-open`); `#nav-more-
+    toggle` becomes visible; theme toggle drops its text label (icon
+    only, `.nav-theme-label`).
+  - `@media (max-width: 359px)`: even with the above, "Join the Exchange"
+    still wrapped onto two lines, clipped against the nav's fixed 64px
+    height. Measured the actual failure range with a script rather than
+    guessing a breakpoint: wraps through 350px, clean at 360px. Fixed by
+    dropping the "MAIE" wordmark (icon stays) at ≤359px — cheaper than
+    shortening the CTA's actual copy, and doesn't touch marketing
+    language to solve a layout problem.
+  - `.nav.nav--on-dark .nav-secondary` also themed to match — the panel
+    otherwise uses `var(--surface)` (follows the light/dark toggle, not
+    force-dark), which would have looked wrong opened while pinned over
+    `#scene-chaos-signal` in light mode.
+
+**Validation:** measured (not eyeballed) across 320/360/390/430/640/700/
+860/1024/1440px — confirmed no horizontal overflow and correct
+toggle-visibility switch at every width via a script reading actual
+`getBoundingClientRect()`/`getComputedStyle()` values, not just
+screenshots. Interactive test at 320/360/390px: panel opens, closes on
+clicking the Trust link inside, closes on click-away. Desktop (1440px)
+screenshotted in both themes to confirm zero visual regression — nav is
+pixel-identical to before at desktop widths. One test-methodology note
+worth keeping: an initial pass wrongly flagged 390px as "wrapped" too,
+using a height-based heuristic (`> 20px`) that didn't account for
+`.nav-cta`'s own single-line height already being ~27px given its
+padding — caught by looking at the actual screenshot instead of trusting
+the heuristic, not by re-deriving the CSS math.
+
+---
+
+## 17. Changelog — Section 4 built (The Human Hand)
+
+Real documentary/editorial photography was sourced (30 `made-by-*.jpg`
+files added to `media/`), unblocking the last remaining "needs real
+content" item that wasn't gated on internal product data. Built as
+`scene-human-hand.js` + new CSS block + a new `<section id="scene-human-
+hand">` inserted between Sections 3 and 5 in `index.html`, restoring the
+brief's original 12-section order (it had been sitting adjacent in DOM
+order since Sections 5/6 don't need Section 4 for anything technical —
+this was purely a content gap, not a structural one).
+
+### Curation — 30 photos down to 7
+
+Cataloged all 30 sourced photos before selecting. Three excluded as
+off-brand, flagged explicitly rather than silently dropped:
+- A wealth/lifestyle mood board (PayPal balances, cash, a passport) —
+  reads as influencer content, contradicts the section's documentary,
+  humble-craft ethos entirely.
+- A crochet/craft desk with a dog — real, but fiber craft, not media
+  production; off-topic for this page.
+- A real but empty office with no human presence — the section is
+  specifically "The Human Hand"; a person-less workspace doesn't serve it.
+
+Final 7, sequenced to loosely follow the brief's own list order, sourced
+mostly from two cohesive editorial series (a colorist grading suite shoot
+and a vintage indie-film-production shoot) plus standalone shots for
+variety of setting/media type:
+
+| # | File | Brief beat | Caption |
+|---|---|---|---|
+| 1 | `made-by-fari-14122231.jpg` | "A hand holding a camera" | "A hand, holding the shot before it's taken." |
+| 2 | `made-by-nicolas-rueda-175965148-15713296.jpg` | "Someone editing at 2 AM" | "Still awake. Still cutting." |
+| 3 | `made-by-ron-lach-8089248.jpg` | "A filmmaker reviewing a frame" | "One frame, checked, and checked again." |
+| 4 | `made-by-john-taran-166597215-11044765.jpg` | (audio craft, not in brief's list — added for media-type variety) | "A sound, built by hand." |
+| 5 | `made-by-ron-lach-8100065.jpg` | "A designer adjusting a curve by one pixel" (literal DaVinci curves panel visible) | "A curve, adjusted by one degree." |
+| 6 | `made-by-ron-lach-8035286.jpg` | "A producer organizing thousands of files" (story-structure index cards) | "A story, still finding its order." |
+| 7 | `made-by-ron-lach-8102680.jpg` | "A creative team debating one shot" (two colorists, one pointing) | "Two people. One shot. A hundred small decisions." |
+
+All 7 resized from their original 4000-6720px/1.2-4.7MB sourced
+dimensions down to a 2000px long edge at quality 80 (`convert -resize
+2000x2000 -quality 80 -strip`) — full-bleed images need more resolution
+than Section 2's capped-width photo, but the originals were still far
+larger than any display needs. Final sizes: 141-414KB each, ~1.8MB total
+for the section. The other 23 sourced photos were left in `media/`
+unused, not deleted, in case a future section wants them.
+
+### Structure
+
+One `.story-scene` (`height: 480vh` — deliberately the most generous
+per-beat pacing on the page: ~480vh/7 photo-beats ≈ 68vh/beat, more than
+`scene-opening`'s 380vh/6-beat ≈ 63vh or `scene-lifecycle`'s 420vh/8-stage
+≈ 52.5vh, since the brief explicitly calls this section out as where "the
+experience should deliberately slow down"). No idle `requestAnimationFrame`
+loop — pure scroll-driven crossfade only, matching Reflection mode's
+"silence" rather than continuous ambient motion.
+
+The brief's own thesis line — "Technology does not create meaning. People
+do." — is split across the scene: "Technology does not create meaning."
+alone on black at the very start (progress 0.0-0.06), then the 7 photos
+crossfade through evenly (progress 0.08-0.92), then "People do." resolves
+over the final photo (0.96-1.0). The **last photo's fade window extends to
+progress 1.0 with no fade-out** (same "final beat holds" convention as
+`scene-opening.js`'s data-fields stage and `scene-chaos-signal.js`'s
+resolved message chips) — without this, a visitor under `prefers-reduced-
+motion`, who only ever sees the single settled frame at progress=1, would
+see a blank frame with "People do." floating over nothing. Caught and
+fixed before shipping, not after.
+
+Each photo also gets a very subtle zoom (`scale(1 + weight*0.035)`) tied
+directly to its own crossfade weight — no separate animation system, just
+reusing the opacity value already being computed every frame.
+
+### Not force-dark, but hardcoded white text
+
+Unlike Sections 5+6, this section is **not** `force-dark` — it's not
+mandated a specific dark mood-color by the brief, so per this project's
+own convention it should respect the light/dark toggle. But the caption
+and thesis text are hardcoded white with a scrim gradient + text-shadow,
+not theme tokens — the one case on this page where text sits over a real
+photograph (variable brightness/color) rather than the page's own
+background, so `var(--text-1)` couldn't reliably stay legible against
+every photo regardless of toggle state the way it does everywhere else.
+Verified in both themes: the nav and rest of the page respond to the
+toggle normally; the photography itself (correctly) doesn't change.
+
+### Validation
+
+`node --check`, HTML tag-balance, CSS brace-balance — clean. Headless-
+browser pass: read live DOM opacity/caption state at 7 progress points
+end-to-end (confirmed correct photo-to-caption mapping and the thesis
+bookend timing, including the reduced-motion-relevant progress=1 state);
+screenshotted the opening thesis, a mid-sequence photo, and the closing
+thesis-over-final-photo composite; confirmed light-mode (nav toggles,
+photo/caption intentionally doesn't) and a 390px mobile viewport (caption
+wraps correctly, `object-fit: cover` crops sensibly, works cleanly
+alongside the §16 nav collapse).
+
+---
+
+## 18. Changelog — verified security record added to Trust (not Section 11)
+
+A 4th `.reflect-item` was added to the existing `#trust` section
+("Built to Be Trusted"), not to the brief's Section 11 ("Story Becomes
+Data" — still `⛔ Not started`, see §5). Worth recording the reasoning,
+since the two were briefly conflated mid-discussion:
+
+**Why not Section 11.** The brief's Section 11 is specifically a *scale*
+visualization — "one creator becomes 12 projects becomes 4,200 assets...
+an entire creative history" — real usage numbers growing organically.
+That data doesn't exist yet (the actual reason it's blocked — see §5/§6
+item 4). A verified pre-launch security record is a different kind of
+claim (rigor, not creative-activity scale) and forcing it into a scene
+built for the brief's specific relationship-visualization concept would
+have stretched that concept to fit data it wasn't designed for.
+
+**Why Trust.** The three existing Trust items (SHA-256 verification,
+per-project storage, migration-safety) are already exactly this register
+— technical trust signals in plain language. A verified security record
+is the same *kind* of claim through a different mechanism, so it extends
+already-shipped content instead of introducing new scene architecture.
+
+**Sourcing and verification, for the record:** the codebase at
+`/home/xzavier/Desktop/MAIE_Framework_2.0` has a dated (2026-07-19 through
+2026-07-23) sequence of 18 `*_FIX_*.md` documents. A dedicated pass
+verified each one individually (not just the filenames): 14 are confirmed
+security/data-isolation fixes with real before/after evidence (a blocked
+unauthorized attempt, then a working legitimate one) — not bare
+assertions. 3 more are real, verified fixes but not security-relevant
+(billing/reliability correctness) — excluded from this count. 1 document
+was raw command output, not a real fix record — excluded entirely. The
+team separately confirmed these were reported to an auditor and, in some
+cases, live-verified directly — the independent-re-verification caveat
+this pass originally flagged as a blocker before shipping any public
+number was resolved on that basis, not silently dropped.
+
+**Copy added** (`index.html`, matching the existing three items' voice —
+benefit-first headline, plain-language body, technical detail as a
+supporting kicker rather than leading with jargon, per the audit fix this
+section already went through — see §11):
+
+> **Held to Its Own Standard**
+> Before anything shipped, the system was put through its own audit —
+> real attempts to access what shouldn't be reachable, tracked down and
+> closed one by one.
+> *14 security & data-isolation issues, found and resolved pre-launch*
+
+Verified via headless-browser screenshot at desktop and 390px mobile —
+the longer kicker string (a full sentence, versus the other three items'
+short phrases) wraps cleanly at both widths without breaking the
+established pattern. `node --check` N/A (no JS changed); HTML tag-balance
+clean.

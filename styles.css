@@ -70,8 +70,19 @@ a { color: inherit; }
 .nav-brand svg { width: 30px; height: auto; }
 .nav-brand-word { font-size: 15px; font-weight: 600; transition: color 0.3s ease; }
 .nav-links { display: flex; align-items: center; gap: 22px; }
+.nav-secondary { display: flex; align-items: center; gap: 22px; }
 .nav-link { font-size: 14px; color: var(--text-2); text-decoration: none; transition: color 0.3s ease; }
 .nav-link:hover { color: var(--text-1); }
+/* Hidden above the 640px breakpoint below — .nav-secondary renders inline
+   as a normal flex group at desktop/tablet widths, so this has no effect
+   there. */
+.nav-more-toggle {
+  display: none; background: none; border: 1px solid var(--border); border-radius: 999px;
+  width: 30px; height: 30px; align-items: center; justify-content: center;
+  color: var(--text-2); font-size: 15px; line-height: 1; cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.nav-more-toggle:hover { color: var(--text-1); }
 /* De-escalated from a filled button (see maie-narrative-audit.md §9/§11 D3) —
    a persistent, filled-button ask visible from the first pixel on every
    scroll position undid the same "no early ask" decision already made for
@@ -90,6 +101,36 @@ a { color: inherit; }
   border-radius: 999px; padding: 6px 10px; color: var(--text-2); cursor: pointer; font-size: 12px;
 }
 
+/* ── Nav at narrow viewports ──────────────────────────────────────────
+   No responsive handling existed for the nav at all before this — at
+   phone widths, .nav-links' four items (Trust/Pitch Deck/theme toggle/
+   CTA) didn't fit the fixed 64px bar and wrapped internally, overlapping
+   page content. Below 640px: .nav-secondary (Trust, Pitch Deck) moves
+   into a small disclosure panel behind #nav-more-toggle instead of
+   wrapping; the theme toggle drops its text label (icon only). See
+   nav-menu.js for the toggle behavior. */
+@media (max-width: 640px) {
+  .nav-links { gap: 12px; }
+  .nav-secondary {
+    display: none; position: absolute; top: 100%; right: clamp(16px, 3vw, 40px);
+    margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+  }
+  .nav-secondary.is-open { display: flex; }
+  .nav-more-toggle { display: inline-flex; }
+  .nav-theme-label { display: none; }
+}
+/* Even with the collapse above, "Join the Exchange" still wrapped onto
+   two lines (clipped against the fixed 64px nav height) on anything
+   ≤350px wide — measured directly, not guessed: wraps through 350px,
+   clean at 360px. Dropping the "MAIE" wordmark (icon stays) is the
+   cheapest way to claw back enough width without touching the CTA's
+   actual copy. */
+@media (max-width: 359px) {
+  .nav-brand-word { display: none; }
+}
+
 /* ── Nav over a story scene — story scenes force a dark cinematic
    backdrop regardless of the light/dark toggle (see DESIGN-DEV-GUIDE.md
    §6), so the nav needs its own dark treatment while pinned over one,
@@ -101,7 +142,13 @@ a { color: inherit; }
 .nav.nav--on-dark .nav-brand-word,
 .nav.nav--on-dark .nav-link { color: rgba(232,230,227,0.85); }
 .nav.nav--on-dark .nav-link:hover { color: rgba(232,230,227,1); }
-.nav.nav--on-dark #theme-toggle { border-color: rgba(255,255,255,0.18); color: rgba(232,230,227,0.75); }
+.nav.nav--on-dark #theme-toggle,
+.nav.nav--on-dark .nav-more-toggle { border-color: rgba(255,255,255,0.18); color: rgba(232,230,227,0.75); }
+/* The mobile disclosure panel uses var(--surface), which follows the
+   light/dark toggle, not force-dark — without this override, a mobile
+   visitor in light mode opening the panel while pinned over a force-dark
+   scene would get a light panel under a dark nav bar. */
+.nav.nav--on-dark .nav-secondary { background: rgba(17,19,24,0.97); border-color: rgba(255,255,255,0.14); }
 
 /* ── Story rail (progress indicator down the side) ──────────────── */
 #story-rail {
@@ -473,6 +520,42 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .universe-project-label {
   font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--text-2);
+}
+
+/* ── Section 4 — The Human Hand (Reflection) ──────────────────────────
+   A slow crossfade sequence of real documentary photography — see
+   scene-human-hand.js. Deliberately the slowest, quietest scene on the
+   page (480vh — more generous per-beat pacing than scene-opening's
+   380vh/6-beat or scene-lifecycle's 420vh/8-stage, since this is the
+   brief's explicit "the experience should deliberately slow down" beat).
+   Not force-dark — theme-aware like most of the page — but the caption/
+   thesis text is hardcoded white with a scrim + text-shadow rather than
+   theme tokens, since it sits over real photographs (varying brightness/
+   color themselves) rather than the page's own background, the one case
+   on this page where theme-token text color wouldn't reliably stay
+   legible either way. */
+#scene-human-hand { height: 480vh; }
+#scene-human-hand .scene-sticky { background: #000; overflow: hidden; }
+.hand-frame { position: absolute; inset: 0; }
+.hand-photo {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; will-change: opacity, transform;
+}
+.hand-scrim {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.18) 32%, transparent 58%);
+}
+.hand-thesis {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(28px, 5vw, 52px);
+  letter-spacing: 0.02em; color: #fff; text-align: center; opacity: 0;
+  pointer-events: none; max-width: 80vw; text-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+.hand-caption {
+  position: absolute; left: 50%; bottom: 11%; transform: translateX(-50%);
+  font-family: 'DM Sans', sans-serif; font-size: clamp(16px, 2.2vw, 22px);
+  font-weight: 500; color: #fff; text-align: center; opacity: 0;
+  pointer-events: none; max-width: 70vw; text-shadow: 0 2px 12px rgba(0,0,0,0.55);
 }
 
 /* ── Section 7 — The Media Lifecycle (8-stage filmstrip) ─────────────
