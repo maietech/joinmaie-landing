@@ -45,12 +45,30 @@
     return path.getPointAtLength(t * len);
   });
 
+  // Stagger + rotation (§24 refinement pass): nodePts come from evenly
+  // spaced arc-length positions along a wavy path, so neighboring points
+  // can land close together vertically — on narrow viewports (where
+  // .agent-stage shrinks but .agent-node-label's font-size doesn't) that
+  // put labels directly on top of each other; a real if smaller risk on
+  // wide viewports too. STAGGER_Y is expressed as a percentage of the
+  // stage's own height, same coordinate space as the base top% below, so
+  // it scales correctly at any viewport width instead of drifting at the
+  // extremes the way a fixed-px offset would. STAGGER_ROT rotates only
+  // the inner dot+label group (see .agent-node-inner in styles.css), not
+  // the outer positioned element, so it can't fight the outer element's
+  // own translate(-50%,-50%) placement transform.
+  var STAGGER_Y = [-4.5, 4.5, -4.5, 4.5, -4.5, 4.5];
+  var STAGGER_ROT = [-7, 7, -7, 7, -7, 7];
+
   var nodeEls = STEPS.map(function (s, i) {
     var el = document.createElement('div');
     el.className = 'agent-node';
     el.style.left = (nodePts[i].x / VB_W * 100) + '%';
-    el.style.top = (nodePts[i].y / VB_H * 100) + '%';
-    el.innerHTML = '<div class="agent-node-dot"></div><div class="agent-node-label">' + s.label + '</div>';
+    el.style.top = (nodePts[i].y / VB_H * 100 + STAGGER_Y[i % STAGGER_Y.length]) + '%';
+    el.innerHTML =
+      '<div class="agent-node-inner" style="transform: rotate(' + STAGGER_ROT[i % STAGGER_ROT.length] + 'deg);">' +
+        '<div class="agent-node-dot"></div><div class="agent-node-label">' + s.label + '</div>' +
+      '</div>';
     el.addEventListener('click', function () { showStep(i); });
     nodesEl.appendChild(el);
     return el;
