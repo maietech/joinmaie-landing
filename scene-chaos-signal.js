@@ -237,6 +237,32 @@
   var clock = 0;
 
   function render(progress, isStatic) {
+    // Hold the fully-resolved end state (§28 refinement pass). The
+    // architectural problem: .scene-sticky can only stay pinned for
+    // (wrapper height - 100vh) of scroll — that's what makes the sticky
+    // technique work at all — and story-scroll.js's progress formula
+    // reaches exactly 1.0 at that exact same scroll position. So
+    // progress=1 (chips fully converged, capAfter fully visible) and
+    // "the panel starts releasing" were literally the same instant —
+    // there was no scroll distance anywhere where a visitor could see
+    // the resolved state while it was still pinned on screen. Widening
+    // fade windows (§22) couldn't fix this; it's not a timing-within-
+    // the-scene problem, it's that "resolved" and "about to disappear"
+    // were the same moment.
+    //
+    // Fix: compress this scene's whole raw-progress choreography into
+    // the first HOLD_FRACTION of its actual scroll distance, then clamp
+    // — every calculation below (chaosLocal, convLocalRaw, eased, chip
+    // positions, captions) reads this remapped value, so the scene now
+    // finishes its full arc slightly "early" in scroll terms and then
+    // genuinely holds — nothing moving, capAfter fully visible — for the
+    // remaining (1-HOLD_FRACTION) of its scroll distance before the
+    // panel finally releases at raw progress=1. This is a local remap,
+    // not a change to story-scroll.js itself (shared by every other
+    // scene) or to this scene's own height (already tuned in §24).
+    var HOLD_FRACTION = 0.85;
+    progress = Math.min(1, progress / HOLD_FRACTION);
+
     var chaosLocal = Math.min(1, progress / CONV_START);
     // Two variants of the same local progress, deliberately: storyStageWeight
     // already handles out-of-range input correctly on its own (returns 0
