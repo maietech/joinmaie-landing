@@ -1523,3 +1523,115 @@ uses `force-dark`.
   check §12 flagged as still outstanding for the ignition-spark timing,
   ideally in the same pass.
 
+---
+
+## 22. Changelog — heavy-scroll defense (follow-up to §21)
+
+Follow-up brief, prompted by mobile fling/momentum-scroll specifically
+skipping `#scene-chaos-signal` (and, more broadly, other scenes) almost
+entirely. Explicitly reaffirmed the no-scroll-jacking constraint and
+asked for the strongest solution available *within* it before treating
+actual scroll interception as a separate, explicitly-approved product
+decision. Nothing below intercepts scroll position, listens to raw
+touch/wheel deltas, or overrides momentum — everything is either scroll
+*distance*, fade-window *timing*, or the browser's own native
+scroll-snap machinery.
+
+### 1. Widened the load-bearing narrative-text windows in `scene-chaos-signal.js`
+
+`chaosCaption` ("So much. Everywhere. Nowhere.") and both resolution
+captions (`capBefore`/`capAfter`) had the narrowest fade windows of any
+text on the page relative to their scene's total scroll distance — exactly
+the content most likely to land at 0 opacity during a fast flick. Widened
+all three (plateau bounds and fade edges both) — same technique as
+`scene-opening.js`'s §21 fix, just applied to the scene actually named in
+this brief. Also nudged `scene-frame.js`'s caption window and
+`scene-human-hand.js`'s per-photo fade tail slightly wider, and moved
+`scene-universe.js`'s final caption's fade-in to start exactly when its
+visual reveal does rather than 6% of scroll distance later.
+`scene-lifecycle.js` and `scene-agent.js` captions were already spanning
+their scene's *entire* progress range (0.00-1.00) — structurally already
+about as unskippable as a fading caption can be, so left untouched.
+
+### 2. Mobile-specific height bump on `#scene-chaos-signal`, following an already-existing precedent
+
+`.lifecycle-scene` already had `height: 420vh` → `500vh` under
+`max-width: 720px` before this brief arrived — turns out "mobile-specific
+pacing that preserves native scrolling" was already a shipped pattern on
+this page, just not yet applied to the scene actually flagged as the
+problem. Applied the same convention: `#scene-chaos-signal` goes from
+`500vh` to `640vh` under 720px, desktop untouched. This is a real,
+if imperfect, mitigation — a hard mobile fling can still cover more
+effective scroll distance than a scene budget realistically accounts
+for, so this raises the bar rather than removing the ceiling entirely
+(see §3 below for the honest limit of this lever).
+
+### 3. `scroll-snap-align`/`scroll-snap-stop` — the requested "third approach"
+
+Added to the shared `.story-scene` base rule: `scroll-snap-align: start;
+scroll-snap-stop: always;`, with `scroll-snap-type: y proximity` set on
+`html`. This is native browser scroll-snap, not a JS override — no
+listener anywhere touches scroll position or reads raw touch/wheel
+deltas. `scroll-snap-stop: always` means a fling that would otherwise
+carry a visitor straight through a scene's entrance is required to fully
+stop there first, aligned to that scene's top edge, before a second,
+independent gesture continues further in. This directly answers "prevent
+a single aggressive swipe from destroying a scene" for the entrance to
+every story scene, not just chaos-signal.
+
+**What this does not do:** it doesn't stop skipping *within* a scene's
+own multi-hundred-vh body once already inside it — that's what §1/§2
+above are for. It's a guardrail at each scene's threshold, not a
+speed limiter throughout.
+
+**Explicitly unverified — needs a real-device QA pass before this is
+trusted as the primary defense.** `scroll-snap-stop`'s exact
+"cannot be skipped" guarantee has a history of inconsistent behavior
+across browser engines (older iOS Safari in particular — the exact
+platform this brief is most concerned about), and there's no live
+browser available in this environment to confirm actual behavior on a
+real fling. It's pure progressive enhancement either way — unsupported
+or buggy engines just ignore the two properties and scroll exactly as
+before, so the failure mode is "no extra protection," not breakage —
+but "doesn't break anything" and "reliably solves the problem" are two
+different claims, and only the first one is verified right now.
+
+### 4. Items evaluated and deliberately left alone
+
+- **Stronger visual continuity between beats** — already true
+  architecturally: every scene's render is a pure function of scroll
+  progress (no accumulated state that depends on having rendered every
+  intermediate frame), so a visitor landing anywhere in a scene sees a
+  coherent frame for that exact position, not a broken one. Checked
+  `scene-chaos-signal.js`'s chip drift specifically, since it's the one
+  scene with any per-frame mutable state (`chip.x`/`chip.y` drift during
+  the idle loop) — confirmed the chaos→resolution interpolation reads
+  whatever the chip's current position happens to be and blends toward
+  its path target using `eased` directly, so it degrades gracefully with
+  fewer idle frames rather than breaking.
+- **More obvious "something is happening here" cues** — already covered
+  by the existing story-rail progress dots (`#story-rail`) and the §21
+  opening marquee; didn't add a second, redundant UI element for this.
+- **A CONV_START mid-scene snap checkpoint inside `#scene-chaos-signal`**
+  (i.e., a second snap point partway through the scene, at the
+  chaos→resolution turn) was considered and not built. It would require
+  a marker positioned at a height-dependent offset that has to be kept
+  in lockstep with the scene's own vh value by hand (including the
+  mobile override above) — a real "these two numbers must never drift
+  apart or the snap point silently lands in the wrong place" fragility,
+  for a benefit that's genuinely unverified without live testing. Worth
+  revisiting with real-device data on where visitors are actually
+  landing after the entrance-snap change, rather than guessing a second
+  checkpoint's position now.
+
+### Validation performed
+
+- `node --check` on all seven scene `.js` files plus `story-scroll.js` —
+  clean.
+- CSS brace-balance check on the full stylesheet — clean.
+- Not performed: any real-device or headless-browser scroll-behavior
+  test (no live browser/server in this environment). The scroll-snap
+  behavior in particular should not be treated as confirmed until that
+  happens.
+
+

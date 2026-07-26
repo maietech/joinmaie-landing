@@ -54,7 +54,7 @@ html[data-theme="light"] {
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
 body {
   margin: 0;
   background: var(--bg);
@@ -408,12 +408,39 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    regardless of the site's light/dark toggle; it's now theme-aware like
    the rest of the page (background/chip/caption colors all run through
    var(--surface-2)/var(--bg)/var(--text-1)/var(--text-2) tokens). */
+/* scroll-snap-align/-stop (§22 refinement pass) — the "third approach"
+   requested explicitly instead of JS scroll interception. This is the
+   browser's own native scroll-snap machinery, not a JS override: no
+   listener touches scroll position, nothing here can desync from real
+   input the way a hand-rolled velocity-damper could. scroll-snap-stop:
+   always means a fling that would otherwise carry the visitor straight
+   through a scene's entrance and into (or past) its content is required
+   to fully stop at that entrance first — a second, independent gesture
+   is needed to continue in. This doesn't (and isn't meant to) stop
+   skipping *within* a scene's own multi-hundred-vh body once inside it;
+   see the mobile height bump on #scene-chaos-signal above and the
+   widened fade windows in each scene's .js for that half of the problem.
+   NEEDS REAL-DEVICE QA before this is treated as reliable — scroll-snap-
+   stop's exact "cannot be skipped" guarantee has historically had
+   inconsistent behavior across engines (particularly older iOS Safari),
+   and there's no live browser in this environment to verify it. Pure
+   progressive enhancement either way: unsupported browsers just ignore
+   these two properties and scroll exactly as before, so worst case is
+   "no extra protection," not breakage. */
+.story-scene { scroll-snap-align: start; scroll-snap-stop: always; }
 .story-scene { position: relative; height: 250vh; padding: 0; max-width: none; margin: 0; }
 /* Sections 5+6 merged into one continuous scroll region (was 250vh each,
    500vh total) — kept the same combined scroll distance so pacing feels
    the same as before, redistributed internally 0.45/0.55 between the
    chaos and convergence stages (see scene-chaos-signal.js). */
 #scene-chaos-signal { height: 500vh; }
+/* Mobile-specific pacing bump, same established pattern as
+   .lifecycle-scene below (§21/§22 refinement passes) — a mobile fling
+   covers proportionally more of a short scene than the same gesture on
+   desktop, and this is the specific scene named as getting skipped.
+   Desktop is untouched; this isn't "make the whole page longer," it's
+   more scroll room specifically where the mobile-flick problem is real. */
+@media (max-width: 720px) { #scene-chaos-signal { height: 640vh; } }
 /* Section 1 now carries a six-beat caption narrative (see scene-opening.js)
    instead of a single line — more scroll distance per beat than the
    default 250vh would give (250/6 ≈ 42vh/beat, tighter than felt right
