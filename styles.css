@@ -201,12 +201,14 @@ a { color: inherit; }
 
 /* ── Opening cinematic marquee ─────────────────────────────────────
    A one-time "slow down" cue, per the refinement brief's §1: teaches
-   the visitor how to approach the experience before the story begins,
-   without becoming a conventional site announcement banner. Mono/
-   uppercase/tracked, matching the site's established "kicker"/system-
-   status typographic role (§2 of this guide) rather than borrowing the
-   Bebas Neue register reserved for actual narrative titles — this is
-   atmosphere, not a story beat.
+   the visitor how to approach the experience before the story begins.
+   Mono/uppercase/tracked, matching the site's established "kicker"/
+   system-status typographic role (§2 of this guide) rather than
+   borrowing the Bebas Neue register reserved for actual narrative
+   titles — this is atmosphere, not a story beat. Now a full-width
+   banner bar per the follow-up request (§23) rather than bare floating
+   text, with a subtle themed background/border so the edge-to-edge
+   span actually reads visually, not just structurally.
 
    Deliberately TIME-based (plays on load, three passes, then gone for
    the rest of the session), not scroll-linked — it has nothing to read
@@ -218,20 +220,30 @@ a { color: inherit; }
    scrolls back to the top later. */
 #intro-marquee {
   position: fixed; top: 84px; left: 0; right: 0; z-index: 95;
-  height: 24px; overflow: hidden; pointer-events: none;
+  height: 38px; overflow: hidden; pointer-events: none;
   opacity: 1;
+  background: color-mix(in srgb, var(--text-1) 4%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--text-1) 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-1) 10%, transparent);
   animation: intro-marquee-fadeout 0.7s ease 12.4s forwards;
 }
 .intro-marquee-track {
   display: inline-block; white-space: nowrap;
-  font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.16em;
+  line-height: 38px;
+  font-family: 'JetBrains Mono', monospace; font-size: 14px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--text-2-small);
-  transform: translateX(100%);
+  /* Was translateX(100%)/(-100%) — percentages relative to the TRACK's
+     own (text-sized, ~250px) box, not the page, so the "pass" almost
+     never reached center and the banner read as stuck near the left
+     edge. vw is relative to the actual viewport, so this now genuinely
+     enters from off-screen right and exits off-screen left, passing
+     through true center of the full-width bar each cycle. */
+  transform: translateX(100vw);
   animation: intro-marquee-scroll 4s linear 3;
 }
 @keyframes intro-marquee-scroll {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(-100%); }
+  from { transform: translateX(100vw); }
+  to   { transform: translateX(-100vw); }
 }
 @keyframes intro-marquee-fadeout {
   to { opacity: 0; visibility: hidden; }
@@ -248,7 +260,8 @@ a { color: inherit; }
   }
 }
 @media (max-width: 640px) {
-  #intro-marquee { top: 72px; }
+  #intro-marquee { top: 72px; height: 34px; }
+  .intro-marquee-track { font-size: 12.5px; line-height: 34px; }
 }
 
 /* ── Reveal sections ─────────────────────────────────────────────── */
@@ -430,17 +443,23 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .story-scene { scroll-snap-align: start; scroll-snap-stop: always; }
 .story-scene { position: relative; height: 250vh; padding: 0; max-width: none; margin: 0; }
 /* Sections 5+6 merged into one continuous scroll region (was 250vh each,
-   500vh total) — kept the same combined scroll distance so pacing feels
-   the same as before, redistributed internally 0.45/0.55 between the
-   chaos and convergence stages (see scene-chaos-signal.js). */
-#scene-chaos-signal { height: 500vh; }
-/* Mobile-specific pacing bump, same established pattern as
-   .lifecycle-scene below (§21/§22 refinement passes) — a mobile fling
-   covers proportionally more of a short scene than the same gesture on
-   desktop, and this is the specific scene named as getting skipped.
-   Desktop is untouched; this isn't "make the whole page longer," it's
-   more scroll room specifically where the mobile-flick problem is real. */
-@media (max-width: 720px) { #scene-chaos-signal { height: 640vh; } }
+   500vh total) — originally kept at that same combined distance for
+   pacing parity with the pre-merge version, redistributed internally
+   0.45/0.55 between the chaos and convergence stages (see
+   scene-chaos-signal.js). Bumped 500vh -> 720vh (§24 refinement pass):
+   confirmed by real usage that even normal desktop scroll speeds don't
+   give the convergence phase (chips traveling in to the logo, progress
+   0.45-1.0) enough room to actually read as chips-converging before the
+   section ends — not just a mobile-fling problem. The 0.45/0.55 split
+   itself is untouched, so both phases get proportionally more room
+   rather than rebalancing which phase "wins" the extra space. */
+#scene-chaos-signal { height: 720vh; }
+/* Mobile-specific pacing bump on top of the desktop increase above,
+   same established pattern as .lifecycle-scene below (§21/§22 refinement
+   passes) — a mobile fling covers proportionally more of a scene than
+   the same gesture on desktop. Kept the same +140vh gap over desktop
+   this scene has had since §22. */
+@media (max-width: 720px) { #scene-chaos-signal { height: 860vh; } }
 /* Section 1 now carries a six-beat caption narrative (see scene-opening.js)
    instead of a single line — more scroll distance per beat than the
    default 250vh would give (250/6 ≈ 42vh/beat, tighter than felt right
@@ -786,7 +805,21 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .agent-nodes { position: absolute; inset: 0; }
 .agent-node {
   position: absolute; transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
+  cursor: pointer;
+}
+/* Rotation applied here, not on .agent-node itself, so it doesn't
+   collide with the outer element's own translate(-50%,-50%) positioning
+   transform — scene-agent.js sets this per-node, alternating direction
+   (see STAGGER_ROT there). Combined with the alternating top-offset
+   stagger scene-agent.js applies to .agent-node's own position (in the
+   same % coordinate space as the base placement, so it scales correctly
+   at any viewport width), this keeps path points that land close
+   together from stacking their labels directly on top of each other —
+   the specific overlap reported on narrow viewports, and a real if
+   smaller risk on wide ones too (§24 refinement pass). */
+.agent-node-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  transition: transform 0.2s ease;
 }
 .agent-node-dot {
   width: 10px; height: 10px; border-radius: 50%;

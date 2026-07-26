@@ -1634,4 +1634,58 @@ different claims, and only the first one is verified right now.
   behavior in particular should not be treated as confirmed until that
   happens.
 
+---
+
+## 24. Changelog — chaos-scene desktop dwell time + agent-node stagger
+
+Two independent reports.
+
+### 1. `#scene-chaos-signal` desktop height: 500vh → 720vh
+
+Confirmed by real usage: even normal desktop scroll speeds weren't giving
+the convergence phase (chips traveling in toward the logo, progress
+0.45-1.0) enough room to read as chips-converging before the section
+ended. This is a different failure mode than the §22 mobile-fling fix —
+that guards the scene's *entrance* (via `scroll-snap-stop`) and helps
+mobile specifically; this is about not enough absolute scroll distance
+for content already well inside the scene, on desktop. The 0.45/0.55
+chaos/convergence split is untouched — both phases get proportionally
+more room rather than favoring one. Mobile override moved 640vh → 860vh
+to preserve the same +140vh gap over desktop it's had since §22. The
+already-widened `chaosCaption`/`capBefore`/`capAfter` fade windows from
+§22 are expressed as fractions of their phase's local progress, so they
+automatically get more absolute room too — no separate change needed
+there.
+
+### 2. Agent-node stagger + rotation (Section 8)
+
+`scene-agent.js` positions each workflow-step node from
+`path.getPointAtLength()` at evenly spaced arc-length intervals along a
+wavy path — points can land close together vertically, and on narrow
+viewports (where `.agent-stage` shrinks but `.agent-node-label`'s
+font-size doesn't) that puts labels directly on top of each other. Real,
+if smaller, risk on wide viewports too, per the report.
+
+Fix: alternating vertical stagger on each node's own `top%` (same
+percentage coordinate space as its base position, so it scales correctly
+at any viewport width instead of drifting at the extremes a fixed-px
+offset would), plus alternating rotation on a new `.agent-node-inner`
+wrapper — split out from `.agent-node` specifically so the rotation
+transform can't collide with the outer element's own
+`translate(-50%,-50%)` positioning transform. Applied unconditionally
+(not mobile-gated), per the report noting this reduces but doesn't
+eliminate overlap risk on large viewports too.
+
+### Validation performed
+
+- `node --check` on `scene-agent.js` — clean.
+- CSS brace-balance check — clean.
+- Not performed: real-device/visual QA on either fix (no live
+  browser in this environment). The agent-node stagger values
+  (`STAGGER_Y`/`STAGGER_ROT`) were chosen reasonably, not measured
+  against this path's actual geometry — worth a visual pass to confirm
+  the alternating pattern doesn't itself introduce new collisions at
+  specific viewport widths.
+
+
 
