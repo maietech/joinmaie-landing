@@ -47,7 +47,7 @@
   var PHOTO_START = 0.08, PHOTO_END = 0.92;
   var n = photos.length;
   var span = (PHOTO_END - PHOTO_START) / n;
-  var FADE = Math.min(0.03, span * 0.35);
+  var FADE = Math.min(0.045, span * 0.4);
   var STAGES = photos.map(function (el, i) {
     var isLast = i === n - 1;
     return {

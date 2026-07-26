@@ -56,6 +56,6 @@
       if (dots[i]) dots[i].style.opacity = w;
     });
 
-    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.0, 0.15, 0.03, 0.08);
+    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.0, 0.20, 0.04, 0.10);
   });
 })();

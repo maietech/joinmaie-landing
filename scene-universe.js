@@ -70,7 +70,7 @@
     project.style.opacity = wProj;
     project.style.transform = 'translate(-50%,-50%) scale(' + (0.4 + projLocal * 0.7).toFixed(2) + ')';
 
-    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.80, 1.00, 0.06, 0.00);
+    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.74, 1.00, 0.08, 0.00);
   }
 
   window.initScrollScene(section, function (progress) { render(progress); });

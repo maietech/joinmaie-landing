@@ -252,7 +252,11 @@
     var eased = ease(convLocal);
 
     // ── Chaos-phase caption + density (0.0-0.45 window) ───────────────
-    if (chaosCaption) chaosCaption.style.opacity = window.storyStageWeight(chaosLocal, 0.10, 0.55, 0.08, 0.15);
+    // Window widened 0.10-0.55/±0.08,0.15 -> 0.04-0.70/±0.12,0.20 (§22
+    // refinement pass): this line carries the whole chaos-phase's meaning,
+    // so it's the highest-priority text on the page to protect against a
+    // fast flick landing between its old, narrower fade edges at 0 opacity.
+    if (chaosCaption) chaosCaption.style.opacity = window.storyStageWeight(chaosLocal, 0.04, 0.70, 0.12, 0.20);
     field.style.setProperty('--chaos-density', 0.5 + chaosLocal * 0.5);
 
     // ── Path stroke-in + ignition (0.45-1.0 window) — tuning unchanged
@@ -279,8 +283,10 @@
       accentRing.setAttribute('opacity', Math.max(ringSteady * 0.4, flashW * 0.85).toFixed(2));
       accentRing.setAttribute('r', (6.5 + flashW * 2.2).toFixed(2));
     }
-    if (capBefore) capBefore.style.opacity = window.storyStageWeight(convLocalRaw, 0.0, 0.28, 0.02, 0.10);
-    if (capAfter) capAfter.style.opacity = window.storyStageWeight(convLocalRaw, 0.78, 1.0, 0.10, 0);
+    // Windows widened (§22 refinement pass), same reasoning as chaosCaption
+    // above — capBefore/capAfter are the scene's actual payoff text.
+    if (capBefore) capBefore.style.opacity = window.storyStageWeight(convLocalRaw, 0.0, 0.34, 0.02, 0.14);
+    if (capAfter) capAfter.style.opacity = window.storyStageWeight(convLocalRaw, 0.68, 1.0, 0.16, 0);
 
     // ── Convergence targets — computed once per frame (not per chip):
     // getScreenCTM()/getBoundingClientRect() are relatively expensive DOM
