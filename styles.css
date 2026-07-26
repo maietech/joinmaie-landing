@@ -199,6 +199,58 @@ a { color: inherit; }
 .rail-dot.active { background: var(--brand); transform: scale(1.4); }
 @media (max-width: 860px) { #story-rail { display: none; } }
 
+/* ── Opening cinematic marquee ─────────────────────────────────────
+   A one-time "slow down" cue, per the refinement brief's §1: teaches
+   the visitor how to approach the experience before the story begins,
+   without becoming a conventional site announcement banner. Mono/
+   uppercase/tracked, matching the site's established "kicker"/system-
+   status typographic role (§2 of this guide) rather than borrowing the
+   Bebas Neue register reserved for actual narrative titles — this is
+   atmosphere, not a story beat.
+
+   Deliberately TIME-based (plays on load, three passes, then gone for
+   the rest of the session), not scroll-linked — it has nothing to read
+   from story-scroll.js and doesn't need to; per the guide's own
+   anti-pattern list (§3), nothing here touches scroll position or
+   listens to scroll events. animation-fill-mode: forwards on the
+   fade-out keeps it invisible and non-interactive (pointer-events:none
+   throughout) permanently after it plays once, even if the visitor
+   scrolls back to the top later. */
+#intro-marquee {
+  position: fixed; top: 84px; left: 0; right: 0; z-index: 95;
+  height: 24px; overflow: hidden; pointer-events: none;
+  opacity: 1;
+  animation: intro-marquee-fadeout 0.7s ease 12.4s forwards;
+}
+.intro-marquee-track {
+  display: inline-block; white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-2-small);
+  transform: translateX(100%);
+  animation: intro-marquee-scroll 4s linear 3;
+}
+@keyframes intro-marquee-scroll {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(-100%); }
+}
+@keyframes intro-marquee-fadeout {
+  to { opacity: 0; visibility: hidden; }
+}
+/* Reduced motion: no horizontal movement (that's the exact thing this
+   mode opts out of) — a single centered fade-in/hold/fade-out instead,
+   same "settle to the calm version" convention every scene on this page
+   already follows under prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  #intro-marquee { animation: intro-marquee-fadeout 0.7s ease 3.2s forwards; }
+  .intro-marquee-track {
+    animation: none; transform: translateX(0);
+    width: 100%; text-align: center;
+  }
+}
+@media (max-width: 640px) {
+  #intro-marquee { top: 72px; }
+}
+
 /* ── Reveal sections ─────────────────────────────────────────────── */
 [data-reveal] {
   opacity: 0; transform: translateY(28px);

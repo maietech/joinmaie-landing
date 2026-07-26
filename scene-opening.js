@@ -144,13 +144,25 @@
   // audit's own pick for the page's strongest deliberately-vague line);
   // beats 2-6 progressively concretize the feeling without ever naming
   // MAIE or the product — that's Section 5/6's job, not this scene's.
+  // Fade windows widened from the original 0.04 to 0.06 (per the scroll-
+  // pacing refinement pass — see DESIGN-DEV-GUIDE.md §21): a fast mobile
+  // flick can cover this section's full 380vh in well under a second,
+  // and a *narrower* crossfade window means a beat is more likely to be
+  // at or near zero opacity the one time a rAF frame actually lands
+  // during that flick. Widening the window doesn't change total scroll
+  // distance or touch scroll behavior at all (still zero scroll-jacking,
+  // per the guide's anti-pattern list, §3) — it just means each beat
+  // holds partial visibility longer at its edges, so a fast scroll is
+  // more likely to catch at least a partial glimpse of every beat
+  // instead of jumping cleanly from one fully-opaque stage to the next
+  // with a dead zone at 0 opacity in between.
   var STAGES = [
-    { key: 'pulse',  start: 0.00, end: 0.14, fadeIn: 0.04, fadeOut: 0.04, text: 'Everything begins with something.' },
-    { key: 'line',   start: 0.14, end: 0.30, fadeIn: 0.04, fadeOut: 0.04, text: 'It becomes something real.' },
-    { key: 'frames', start: 0.30, end: 0.48, fadeIn: 0.04, fadeOut: 0.04, text: 'Then it becomes another.' },
-    { key: 'wave',   start: 0.48, end: 0.66, fadeIn: 0.04, fadeOut: 0.04, text: 'And another.' },
-    { key: 'time',   start: 0.66, end: 0.82, fadeIn: 0.04, fadeOut: 0.04, text: 'Until the work is surrounded by everything that isn’t the work.' },
-    { key: 'data',   start: 0.82, end: 1.00, fadeIn: 0.04, fadeOut: 0,    text: 'You just wanted to make something.' },
+    { key: 'pulse',  start: 0.00, end: 0.14, fadeIn: 0.06, fadeOut: 0.06, text: 'Everything begins with something.' },
+    { key: 'line',   start: 0.14, end: 0.30, fadeIn: 0.06, fadeOut: 0.06, text: 'It becomes something real.' },
+    { key: 'frames', start: 0.30, end: 0.48, fadeIn: 0.06, fadeOut: 0.06, text: 'Then it becomes another.' },
+    { key: 'wave',   start: 0.48, end: 0.66, fadeIn: 0.06, fadeOut: 0.06, text: 'And another.' },
+    { key: 'time',   start: 0.66, end: 0.82, fadeIn: 0.06, fadeOut: 0.06, text: 'Until the work is surrounded by everything that isn’t the work.' },
+    { key: 'data',   start: 0.82, end: 1.00, fadeIn: 0.06, fadeOut: 0,    text: 'You just wanted to make something.' },
   ];
 
   function computeWeights(progress) {
