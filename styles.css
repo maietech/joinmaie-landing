@@ -554,6 +554,21 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   opacity: calc(var(--chaos-density, 1) * 0.9);
   transition: border-color 0.2s ease, background 0.2s ease, opacity 0.3s ease, color 0.2s ease;
 }
+/* §27 fix: on mobile, scroll only registered from the gaps *between*
+   chips, not on top of them — pointing at the chips themselves as
+   touch-hit-test targets, even with no JS handler doing anything wrong
+   (§26 already ruled that out). This is stronger than touch-action,
+   which only constrains gesture interpretation once a touch has already
+   hit an element — pointer-events:none removes the chip from hit-testing
+   altogether, so every point in the field, chip or gap, now behaves
+   identically for touch purposes. Already cursor:default not pointer
+   above — these were never a deliberate tap target, just an ambient
+   desktop mouseenter nicety (see the hover-kick in scene-chaos-signal.js),
+   so mobile loses nothing intentional by this. Scoped to mobile only —
+   desktop keeps the hover interaction, which has no reported issue. */
+@media (max-width: 720px) {
+  .chaos-chip { pointer-events: none; }
+}
 .chaos-chip--window { border-radius: 6px 6px 3px 3px; border-top-width: 5px; border-top-color: color-mix(in srgb, var(--text-1) 22%, transparent); }
 .chaos-chip--alert { border-color: rgba(255,209,102,0.3); color: var(--accent-text); }
 .chaos-chip.is-warning { border-color: rgba(220,80,80,0.8); background: rgba(120,30,30,0.25); color: #fff; }

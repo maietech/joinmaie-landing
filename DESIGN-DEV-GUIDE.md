@@ -1802,6 +1802,79 @@ that it wouldn't have addressed either reported problem.
   already-flagged risk, not a live-device test — worth confirming on the
   same iPhones that surfaced the original report.
 
+---
+
+## 27. Changelog — chaos-chip pointer-events (mobile), and the "automatic start" question
+
+Follow-up: §26's revert didn't fully resolve the mobile chaos-scene
+issue. New detail narrowed it — scroll registered from gaps *between*
+chips, not from on top of them. That's a meaningfully different signal
+than "scroll doesn't work here": it says the chips themselves are the
+touch-hit-test target being landed on, even though §26 already confirmed
+there's no JS handler on them that calls `preventDefault` or otherwise
+should interfere. Rather than keep chasing the exact WebKit mechanism
+without a live device to test on, applied the strongest available
+guarantee: `pointer-events: none` on `.chaos-chip`, mobile only (≤720px).
+This is a stronger fix than `touch-action` (which only constrains how a
+gesture is *interpreted* once it's already landed on an element) —
+`pointer-events: none` removes the element from hit-testing entirely, so
+every point in the field, chip or gap, is now guaranteed to behave
+identically for touch. `.chaos-chip` already had `cursor: default`, not
+`pointer` — these were never a deliberate tap target, just an ambient
+desktop `mouseenter` nicety, so mobile loses nothing intentional.
+Desktop is untouched; the hover interaction has no reported issue there.
+
+### On "automatic start" as a fail-safe
+
+Flagging a tension before building anything here rather than after.
+A literal version of this — the page advancing scroll/scene progress on
+its own if a gesture doesn't cleanly register — is a form of the exact
+thing §3's anti-pattern list rules out: the page moving the scroll
+position instead of only ever reading it. Even framed as a fail-safe
+rather than a feature, it's still the site taking an action a user's
+input didn't request, and it would need the same explicit,
+named-exception treatment `force-dark` got (§14) rather than being
+folded in quietly.
+
+What's *already* true and doesn't need building: the chaos-field's
+ambient chip drift (`scene-chaos-signal.js`'s idle loop) runs
+independent of scroll progress, so the scene was never visually "frozen"
+while someone hunts for a working scroll gesture — it already looks
+alive at progress 0. If the pointer-events fix above resolves the actual
+registration problem, there may be nothing left for a fail-safe to
+compensate for.
+
+If the pointer-events fix *doesn't* fully resolve it on a real device,
+a compliant fallback worth considering — not built here, needs explicit
+sign-off first — would be passive, not corrective: detect (via
+`IntersectionObserver`, which only observes, never sets scroll position)
+that the scene has been in view for an unusually long time with
+progress still near 0, and surface a visual nudge (e.g., a subtle
+animated down-arrow or a rephrased marquee-style cue) — never advancing
+progress itself, only making the "keep scrolling" affordance more
+obvious. That's meaningfully different from an auto-start and stays
+inside the existing constraint.
+
+### Open ask: more files if this isn't sufficient
+
+If pointer-events:none doesn't fully resolve it on real iPhones,
+worth seeing `reveal.js` (owns the shared scroll-batch registry every
+scene reads through) and `nav-menu.js`/`theme.js` (the two other
+scripts on the page not yet reviewed in this session) in case there's a
+page-wide touch handler unrelated to this scene specifically — though
+the gaps-vs-chips correlation reported makes a scene-local cause more
+likely than a global one.
+
+### Validation performed
+
+- CSS brace-balance check — clean.
+- Not performed: real-device confirmation. Same limitation as §26 — this
+  is a strong, low-risk guarantee (pointer-events:none has unambiguous,
+  well-supported semantics, unlike scroll-snap-stop's engine-inconsistent
+  behavior) but still unverified on the actual iPhones that surfaced the
+  report.
+
+
 
 
 
