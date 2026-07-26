@@ -59,10 +59,13 @@ reference these, don't redeclare hex values in a new section's CSS.
 
 **Atmospheric layering:** grain overlay (`.bg-grain`) + scroll-parallax
 orbs (`.bg-orb-*`, driven by `--scroll-y`) sit behind all *reveal*
-sections (toolkit/trust/journey/paths). The three cinematic **story
-scenes** (opening, chaos, MAIE-moment) intentionally override this with
-their own forced-dark backdrop and don't use the orb field — see
-§6 for why that's flagged as an open decision, not settled.
+sections (toolkit/trust/journey/paths). Story scenes don't use the orb
+field either way (their own `.scene-sticky` background sits above it),
+but as of the §21 changelog no story scene forces a dark backdrop
+anymore — `#scene-chaos-signal` was the last holdout (see §14) and is
+now theme-aware like every other scene, following the same
+`var(--surface-2)`/`var(--bg)` gradient pattern. `force-dark` as a class
+is no longer used anywhere in `index.html`.
 
 Scene mood-color cue from the brief, followed so far: cool blue-grey
 for chaos (Section 5), brand crimson for connection (Sections 1, 6).
@@ -100,7 +103,7 @@ change.
 | `index.html` | All sections, in narrative order |
 | `styles.css` | All styles — tokens, reveal sections, story scenes |
 | `theme.js` | Dark/light toggle (`data-theme` attr + `localStorage`) |
-| `nav-theme.js` | Darkens the nav bar whenever it's pinned over a `.story-scene.force-dark` scene (only `#scene-chaos-signal` now — see §14), independent of the light/dark toggle |
+| `nav-theme.js` | Darkened the nav bar whenever it was pinned over a `.story-scene.force-dark` scene, independent of the light/dark toggle. As of §21, no scene uses `force-dark` anymore, so this is currently a no-op in practice — kept in the manifest/script tags rather than removed, in case a future scene reintroduces a deliberately forced mood-color (see §6 discussion) |
 | `nav-menu.js` | Mobile nav disclosure (open/close/click-away/Escape) for `#nav-secondary` behind `#nav-more-toggle` — see §16 |
 | `reveal.js` | Fade-in-on-scroll for the simple `[data-reveal]` sections (companion-intro/trust/paths) + the side progress rail |
 | `story-scroll.js` | Shared scroll-progress engine for **story scenes** — read this before building a new cinematic section |
@@ -117,7 +120,7 @@ change.
 1. **Reveal sections** (`companion-intro`, `trust`, `paths`) — simple fade/rise into view via `reveal.js`'s `IntersectionObserver`. Add `data-reveal` + `data-rail-label` and it's automatically wired into the side progress rail. Use this for any non-cinematic content section. `companion-intro` replaced the old two-button `hero` — see §6 item 1 for why. `toolkit` and `journey` were retired in the §11 changelog round — see there for why.
 2. **Story scenes** (Sections 1, 2, 3, 5+6 merged, 7, 8 — all built so far) — tall wrapper (`height: 250vh` convention, though individual scenes override this — `#scene-opening` is 380vh, `#scene-chaos-signal` is 500vh, `.lifecycle-scene` is 420vh) with a `position: sticky` inner panel (`.scene-sticky`, pinned to 100vh). `story-scroll.js`'s `initScrollScene(sectionEl, onProgress)` reads scroll position and reports `progress` 0→1 as the user scrolls through the wrapper's full height — **never sets scroll position**, so native scroll/momentum is untouched (no scroll-jacking, per the brief's own requirement). Story scenes are *not* wired into the side rail's dots (still true) — a rail dot mid-cinematic-scene would undercut the immersion — but the rail's *fill* now tracks true whole-page scroll progress regardless (§12 changelog, resolved the gap this note used to flag as open).
 
-   **Only add `class="story-scene force-dark"` if the brief explicitly mandates a specific dark mood-color for that section** (as it does for the merged Sections 5+6 scene — see §14). Otherwise use `class="story-scene"` alone and build the scene's CSS with `var(--bg)`/`var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)` tokens, same as a reveal section, so it respects the light/dark toggle. Sections 1 (since §10), 2, 3, 7, 8 all do this now — `#scene-chaos-signal` is the *only* remaining forced-dark scene — check any of those CSS blocks as the reference before writing a new scene's styles, not `#scene-chaos-signal`'s.
+   **Only add `class="story-scene force-dark"` if the brief explicitly mandates a specific dark mood-color for that section.** As of §21, no built scene uses it — `#scene-chaos-signal` was the last one (see §14) and has since been made theme-aware. Build a new scene's CSS with `var(--bg)`/`var(--surface)`/`var(--text-1)`/`var(--text-2)`/`var(--accent)` tokens, same as a reveal section, so it respects the light/dark toggle — any of the existing scene CSS blocks are now a valid reference, not just a subset of them.
 
 ### Building a new story scene — the recipe
 1. Markup: `<section id="scene-X" class="story-scene"><div class="scene-sticky">...</div></section>`
@@ -1418,3 +1421,105 @@ made for Section 4's `.hand-caption`, just scoped to only the centered
 frame instead of the whole scene. At weight 0 (every frame not near
 center) the card is untouched — still the plain theme-token `--surface`
 background with theme-token text, exactly as before this change.
+
+---
+
+## 21. Changelog — scroll pacing & cinematic-invitation refinement pass
+
+Prompted by a refinement brief flagging that visitors (mobile especially)
+can scroll through the page fast enough to technically pass through the
+story without registering it. The brief's own stated principle —
+"protect the story without fighting the user" — maps directly onto this
+guide's existing anti-pattern (§3): *aggressive scroll-jacking that
+breaks native scroll/momentum* was already off the table before this
+brief arrived, not a new constraint introduced by it. Everything below
+was scoped to fit inside that constraint, not around it.
+
+### 1. Opening cinematic marquee (new)
+
+A one-time atmospheric cue — "Take your time. The story is just
+beginning." — makes three horizontal passes near the top of the
+viewport, then fades out permanently for the session. Deliberately
+**time-based, not scroll-linked**: it plays on page load via a plain CSS
+`animation`, doesn't call `initScrollScene`, doesn't listen for scroll
+events, and never reappears once it's played (no re-trigger on scrolling
+back to the top). Typography is mono/uppercase/tracked, matching the
+site's existing kicker/system-status role (§2) rather than borrowing the
+Bebas Neue register reserved for actual narrative titles — this is
+atmosphere framing the experience, not a story beat competing with
+Section 1's own six-beat caption. `prefers-reduced-motion` gets a static
+centered fade in/hold/out instead of horizontal movement, same convention
+every scroll-driven scene on this page already follows. Markup lives in
+`index.html` right after `<nav>`; styles in `styles.css` under a new
+`#intro-marquee` block.
+
+Copy: chose "Take your time. The story is just beginning." over the
+brief's other options — "Slow down. Experience the story." and "Don't
+rush this." both read as direct instruction/UX-copy register, closer to
+a tooltip than the rest of the page's voice; "The experience unfolds
+with you" was a close second but reads slightly more abstract than
+useful on a first-viewport cue whose whole job is to be immediately
+understood.
+
+### 2. Scene-opening fade-window widening (small, targeted)
+
+The brief's fast-scroll concern is real but its suggested fixes
+(reducing effective scene-progress rate, scroll resistance, holding
+beats via scroll manipulation) all cross directly into the anti-pattern
+above. The lever that doesn't — already established elsewhere on this
+page, not invented for this pass — is scroll *distance* (vh) per beat,
+which `#scene-opening` already uses more generously than any other scene
+(380vh/6 beats ≈ 63vh/beat, per §12). Rather than further inflate that
+budget without a specific signal for which beat needs it, this pass
+widened each beat's crossfade window in `scene-opening.js` (`fadeIn`/
+`fadeOut` 0.04 → 0.06) — a beat now holds partial opacity longer at its
+edges instead of a hard 0-opacity gap between stages, which matters
+specifically for the case a fast mobile flick means only one or two rAF
+frames land inside a given beat's window at all. This changes nothing
+about scroll behavior, distance, or momentum — purely how long each
+beat's text lingers at partial visibility.
+
+### 3. Deliberately not implemented
+
+Actual scroll-speed throttling, velocity-based resistance, or holding a
+scene's progress steady against continued scroll input were not built.
+Each is a form of scroll-jacking by this guide's own definition
+(overriding what native scroll/momentum would otherwise show), and nothing
+in the brief's own "do not fight the user's input" framing overrides that
+— if anything it restates it. If the team wants this explored anyway,
+it needs its own explicit sign-off as a deliberate exception to §3, the
+same way `force-dark` was an explicit, named exception rather than a
+silent one.
+
+### 4. Other scenes — blocked on missing files
+
+`scene-frame.js`, `scene-universe.js`, `scene-human-hand.js`,
+`scene-lifecycle.js`, and `scene-agent.js` were not touched — none were
+provided alongside this brief, and their pacing (fade windows, per-beat
+vh budgets, any scroll-driven timing) couldn't be assessed or safely
+edited without seeing them. If the same fade-window widening is wanted
+elsewhere, those files are the dependency.
+
+### 5. Stale doc references fixed along the way
+
+§2 and §4 both still described `force-dark` as in active use on
+`#scene-chaos-signal` (and §2 still listed a now-nonexistent "opening,
+chaos, MAIE-moment" trio as forced-dark) — both predate this session's
+earlier fix that made `#scene-chaos-signal` theme-aware and dropped
+`force-dark` from `index.html` entirely. Updated both sections and the
+`nav-theme.js` file-manifest entry to reflect that no scene currently
+uses `force-dark`.
+
+### Validation performed
+
+- `node --check` on all three touched/read `.js` files (`scene-opening.js`,
+  `scene-chaos-signal.js`, `story-scroll.js`) — clean.
+- CSS brace-balance and HTML tag-balance checks on the full files — clean
+  (one apparent `<nav>` mismatch was a false positive from a `<nav>`
+  mention inside an unrelated HTML comment, not an actual unclosed tag).
+- Not verified: no headless-browser/Playwright pass in this round (no
+  live server available in this environment) — the marquee's timing and
+  the widened fade windows should get the same actual-human-scroll-speed
+  check §12 flagged as still outstanding for the ignition-spark timing,
+  ideally in the same pass.
+
