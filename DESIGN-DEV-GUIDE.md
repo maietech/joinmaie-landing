@@ -1731,6 +1731,78 @@ touch.
   before it went out, which a "looks right" read of the constant-speed
   formula alone would have missed.
 
+---
+
+## 26. Changelog — reverted scroll-snap-stop; corrected mobile-chaos-scene diagnosis
+
+Two reports arrived together: (1) users on iPhones have a hard time
+getting the chaos scene to start scrolling, described as chips "getting
+in the way" of the scroll gesture, and (2) the whole page needs a more
+fluid scroll feel generally.
+
+A gameplan accompanying report (1) proposed the mechanism was
+`scene-chaos-signal.js`'s `mouseenter` hover-kick listener intercepting
+touch input on the chips, and suggested `pointer-events: none` on
+`.universe-chip` as a fix. Checked the actual code before acting on
+either claim: `.universe-chip` doesn't exist in this scene at all — it's
+Section 3's category chips (`scene-universe.js`); the chaos chips are
+`.chaos-chip`. More importantly, there is no `preventDefault`,
+`touchstart`, or `touchmove` handler anywhere in
+`scene-chaos-signal.js` — `mouseenter`/`mouseleave` only perturb a
+chip's drift velocity, and legacy mouse events like these generally
+don't fire from a touch-scroll gesture on a phone (no mouse) in modern
+engines in the first place. The proposed mechanism doesn't hold up
+against what the code actually does.
+
+**Actual cause, high confidence:** §22 of this guide added
+`scroll-snap-align: start; scroll-snap-stop: always;` to every
+`.story-scene`, explicitly flagged at the time as unverified: *"NEEDS
+REAL-DEVICE QA... scroll-snap-stop's exact guarantee has historically
+had inconsistent behavior across engines, particularly older iOS
+Safari."* `scroll-snap-stop: always` forces a hard stop at a scene's
+entrance, requiring a second, separate gesture to continue in — by
+design. That is exactly the reported symptom, on exactly the flagged
+engine, on a feature that had never been validated on a real device.
+Since it applied to *every* story-scene, it's also the more likely
+explanation for report (2) — "the whole page needs more fluid flow" —
+than anything else touched this session.
+
+**Reverted entirely**, rather than scoped down to just chaos-signal:
+`scroll-snap-align`/`scroll-snap-stop` removed from `.story-scene`, and
+`scroll-snap-type: y proximity` removed from `html` (it does nothing
+without at least one `scroll-snap-align` target left, so leaving it
+active elsewhere would carry the same unvalidated risk for other scenes
+without evidence it was helping any of them either). The mobile-fling
+entrance-skip problem §22 was trying to solve is still real — it's just
+back to relying on the two techniques from that pass that don't carry
+this risk: the mobile height bumps and the widened fade windows.
+
+**Added anyway, cheap insurance, not a fix for anything currently
+broken:** `touch-action: pan-y` on `#chaos-field`. Code review found
+nothing here that needs it today, but it costs nothing and guarantees
+vertical scroll is always favored over any interactive gesture a future
+change might add to these chips.
+
+**Not built:** the tap-to-activate / click-gated interaction idea from
+the original report. Since nothing in the current code actually blocks
+scroll, there's nothing for it to fix — happy to build it as a genuine
+interaction enhancement if still wanted on its own merits, just flagging
+that it wouldn't have addressed either reported problem.
+
+### Validation performed
+
+- Read `scene-chaos-signal.js` in full for any touch/scroll-blocking
+  handler — none found.
+- Grepped for the `.universe-chip` class across every file — confirmed
+  it belongs to a different scene entirely.
+- CSS brace-balance check after the revert — clean.
+- Not performed: real-device confirmation that removing scroll-snap-stop
+  actually fixes the reported iPhone behavior. This is a high-confidence
+  diagnosis based on the property's documented behavior and the
+  already-flagged risk, not a live-device test — worth confirming on the
+  same iPhones that surfaced the original report.
+
+
 
 
 
