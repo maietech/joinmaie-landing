@@ -1874,6 +1874,62 @@ likely than a global one.
   behavior) but still unverified on the actual iPhones that surfaced the
   report.
 
+---
+
+## 28. Changelog — holding the resolved end state (chaos scene)
+
+Report: users reach the "chips converged, order restored" payoff and it
+disappears immediately — no scroll distance to actually appreciate it
+before the next scene arrives.
+
+**Root cause is architectural, not a fade-window timing issue** — the
+kind §22's widening couldn't have fixed regardless of how wide the
+windows got. `.scene-sticky` can only stay pinned for
+`(wrapper height - 100vh)` of scroll distance; that's what makes the
+sticky-panel technique work at all. `story-scroll.js`'s progress formula
+(`scrolled / (rect.height - vh)`) reaches exactly `1.0` at that exact
+same scroll position. So "fully resolved" (progress=1) and "the panel is
+now releasing" were literally the same instant — there was no scroll
+distance anywhere in the scene's design where a visitor could see the
+resolved state while it was still on screen and pinned.
+
+**Fix, scoped to this scene, not the shared engine:** `render()` in
+`scene-chaos-signal.js` now remaps raw progress to
+`Math.min(1, progress / HOLD_FRACTION)` (HOLD_FRACTION = 0.85) before
+any of its own calculations (chaosLocal, convLocalRaw, eased, chip
+positions, captions) touch it. The whole scene's choreography now
+finishes slightly "early" in scroll terms and then genuinely holds — no
+value changes — for the remaining 15% of actual scroll distance before
+the panel releases. At this scene's current heights (§24): ~93vh of hold
+on desktop, ~114vh on mobile — a bit under and a bit over one full
+viewport height respectively.
+
+Deliberately didn't touch `story-scroll.js` itself (shared by every
+other scene) or this scene's height (already tuned in §24) — the remap
+lives entirely inside this scene's own `render()`, doesn't change what
+any other scene sees, and doesn't need more scroll distance to work,
+just a different mapping of the distance already there. The
+`lastProgress >= CONV_START` hover-kick gate is untouched — it reads the
+un-remapped raw value from the outer scope, which is correct: that gate
+is about disabling hover once real scroll enters the convergence half,
+independent of this end-of-scene hold.
+
+**Worth knowing, not acted on:** the same mechanism (progress=1
+coinciding exactly with panel-release) is a property of every story
+scene using `story-scroll.js`, not unique to chaos-signal. If another
+scene's ending also feels abrupt, the same local remap would apply
+there too — this fix was scoped to the scene actually reported, not
+applied preemptively elsewhere.
+
+### Validation performed
+
+- `node --check` on `scene-chaos-signal.js` — clean.
+- Worked through the resulting hold distance in vh at both the desktop
+  and mobile heights set in §24 — not a live-browser confirmation that
+  the hold *feels* right, just that the math produces a sane, non-zero
+  number at both breakpoints.
+
+
 
 
 
