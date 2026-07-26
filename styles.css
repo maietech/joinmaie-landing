@@ -225,7 +225,8 @@ a { color: inherit; }
   background: color-mix(in srgb, var(--text-1) 4%, transparent);
   border-top: 1px solid color-mix(in srgb, var(--text-1) 10%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--text-1) 10%, transparent);
-  animation: intro-marquee-fadeout 0.7s ease 12.4s forwards;
+  /* animation set by JS (index.html) once actual travel distance is known
+     — see the comment there for why. */
 }
 .intro-marquee-track {
   display: inline-block; white-space: nowrap;
@@ -237,13 +238,17 @@ a { color: inherit; }
      never reached center and the banner read as stuck near the left
      edge. vw is relative to the actual viewport, so this now genuinely
      enters from off-screen right and exits off-screen left, passing
-     through true center of the full-width bar each cycle. */
+     through true center of the full-width bar each cycle. Stays at this
+     resting (fully off-screen-right) position until JS starts the
+     animation — if JS is blocked for any reason, the marquee just never
+     appears, which is a safe failure mode for a purely decorative,
+     pointer-events:none element. */
   transform: translateX(100vw);
-  animation: intro-marquee-scroll 4s linear 3;
+  /* animation set by JS (index.html) — see below. */
 }
 @keyframes intro-marquee-scroll {
-  from { transform: translateX(100vw); }
-  to   { transform: translateX(-100vw); }
+  from { transform: translateX(var(--marquee-start, 100vw)); }
+  to   { transform: translateX(var(--marquee-end, -100vw)); }
 }
 @keyframes intro-marquee-fadeout {
   to { opacity: 0; visibility: hidden; }

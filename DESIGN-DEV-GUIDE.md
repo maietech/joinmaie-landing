@@ -1687,5 +1687,50 @@ eliminate overlap risk on large viewports too.
   the alternating pattern doesn't itself introduce new collisions at
   specific viewport widths.
 
+---
+
+## 25. Changelog — marquee speed: viewport-aware, with a sane ceiling
+
+Report: the opening marquee was "far too fast," correctly diagnosed as a
+viewport-width problem — the old fixed `4s`/200vw animation meant the
+*same time budget* had to cover more actual pixels on a wide monitor,
+so a 1920px display moved the text at roughly 960px/s.
+
+First attempt was pure constant px/s across the full sweep (viewport
+width + text width) — genuinely fixes the viewport-width issue, but
+creates a worse one: on a 2560px monitor, three passes at a comfortable
+reading speed took over 100 seconds. Nowhere near "brief... temporary"
+(§21). Landed on a clamped version instead: duration still scales with
+`(viewportWidth + textWidth) / 220px/s` for phone-to-tablet widths
+(where the original bug was worst), but is capped to 4-8 seconds per
+pass, so large monitors stay bounded (~24.5s total for 3 passes) instead
+of scaling without limit. Also fixed a related overshoot: the end
+keyframe was a flat `-100vw` regardless of actual text width, traveling
+further than necessary past the left edge — now set via
+`--marquee-end` to the track's exact measured width, so the sweep
+distance used in the duration math matches the actual animation
+distance.
+
+Computed and applied via a small inline `<script>` right after the
+marquee's own markup in `index.html` (not a listener — runs once,
+synchronously, before first paint) — this is unrelated to the
+no-scroll-jacking constraint (§3): nothing here reads scroll position or
+touch/wheel input, it's page-load-time measurement of viewport/text
+width only. Reduced motion is untouched; the script returns immediately
+under `prefers-reduced-motion: reduce` and the existing CSS media query
+owns that case entirely on its own, with no animation for the script to
+touch.
+
+### Validation performed
+
+- `node --check` on the extracted inline script — clean.
+- CSS brace-balance and HTML tag-balance checks — clean.
+- Worked through the duration formula by hand at five representative
+  viewport widths (375/768/1440/1920/2560px) before shipping — not a
+  live-browser measurement, but caught the >100s large-monitor problem
+  before it went out, which a "looks right" read of the constant-speed
+  formula alone would have missed.
+
+
 
 
