@@ -54,7 +54,7 @@ html[data-theme="light"] {
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
+html { scroll-behavior: smooth; }
 body {
   margin: 0;
   background: var(--bg);
@@ -426,26 +426,20 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    regardless of the site's light/dark toggle; it's now theme-aware like
    the rest of the page (background/chip/caption colors all run through
    var(--surface-2)/var(--bg)/var(--text-1)/var(--text-2) tokens). */
-/* scroll-snap-align/-stop (§22 refinement pass) — the "third approach"
-   requested explicitly instead of JS scroll interception. This is the
-   browser's own native scroll-snap machinery, not a JS override: no
-   listener touches scroll position, nothing here can desync from real
-   input the way a hand-rolled velocity-damper could. scroll-snap-stop:
-   always means a fling that would otherwise carry the visitor straight
-   through a scene's entrance and into (or past) its content is required
-   to fully stop at that entrance first — a second, independent gesture
-   is needed to continue in. This doesn't (and isn't meant to) stop
-   skipping *within* a scene's own multi-hundred-vh body once inside it;
-   see the mobile height bump on #scene-chaos-signal above and the
-   widened fade windows in each scene's .js for that half of the problem.
-   NEEDS REAL-DEVICE QA before this is treated as reliable — scroll-snap-
-   stop's exact "cannot be skipped" guarantee has historically had
-   inconsistent behavior across engines (particularly older iOS Safari),
-   and there's no live browser in this environment to verify it. Pure
-   progressive enhancement either way: unsupported browsers just ignore
-   these two properties and scroll exactly as before, so worst case is
-   "no extra protection," not breakage. */
-.story-scene { scroll-snap-align: start; scroll-snap-stop: always; }
+/* scroll-snap-align/-stop — REVERTED, §26. Added in §22 as an
+   explicitly-flagged-unverified experiment ("NEEDS REAL-DEVICE QA
+   before this is treated as reliable... particularly older iOS
+   Safari"). Real iPhone testing has now come back with users unable to
+   comfortably scroll into #scene-chaos-signal — exactly the forced,
+   second-gesture stop this property creates by design, on exactly the
+   engine flagged as the risk. Since it was applied to every
+   `.story-scene`, it's also the more likely explanation for the
+   separate "the whole page needs more fluid flow" complaint than
+   anything else touched in this session. Removing entirely rather than
+   scoping down to just chaos-signal — the html-level `scroll-snap-type`
+   below has no effect without at least one scroll-snap-align target
+   left anyway, so leaving it scoped to other scenes would keep the same
+   risk there without evidence it's actually helping any of them either. */
 .story-scene { position: relative; height: 250vh; padding: 0; max-width: none; margin: 0; }
 /* Sections 5+6 merged into one continuous scroll region (was 250vh each,
    500vh total) — originally kept at that same combined distance for
@@ -538,7 +532,14 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 #scene-chaos-signal .scene-sticky {
   background: radial-gradient(ellipse 70% 60% at 50% 40%, var(--surface-2), var(--bg) 75%);
 }
-#chaos-field { position: absolute; inset: 0; z-index: 1; }
+/* touch-action: pan-y — defensive, not a fix for anything currently
+   broken (§26: reviewed this file, there's no preventDefault/touchstart/
+   touchmove handler here that could block a scroll gesture — mouseenter/
+   mouseleave only kick chip velocity and don't fire from touch-scroll
+   gestures on phones in the first place). Cheap insurance against any
+   future interactive addition to these chips ever accidentally capturing
+   a vertical swipe. */
+#chaos-field { position: absolute; inset: 0; z-index: 1; touch-action: pan-y; }
 .chaos-chip {
   position: absolute; padding: 8px 14px; border-radius: 8px;
   font-family: 'JetBrains Mono', monospace; font-size: 12px; white-space: nowrap;
