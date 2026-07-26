@@ -69,6 +69,50 @@
 <div id="intro-marquee" aria-hidden="true">
   <div class="intro-marquee-track">Take your time. The story is just beginning.</div>
 </div>
+<script>
+(function () {
+  // Speed-based, not a flat duration (§25 refinement pass) — a fixed
+  // animation-duration covering a fixed 200vw of travel meant a wide
+  // monitor (more actual pixels in that same 100vw) moved the text
+  // visibly faster than a phone did, even though the vw-relative rate
+  // was identical: ~960px/s on a 1920px display for the old 4s/200vw
+  // version — genuinely too fast, matching the report.
+  //
+  // First pass at the "obviously correct" fix — constant px/s across
+  // the entire off-screen-right to off-screen-left sweep — turned out
+  // to be a worse bug than the one it fixed: sweep distance is
+  // viewportWidth + textWidth, so on a 2560px monitor 3 passes at a
+  // comfortable reading speed took *over 100 seconds*, nowhere near
+  // "brief... temporary" (see DESIGN-DEV-GUIDE.md §21). So this clamps
+  // duration to [DUR_MIN, DUR_MAX] per pass: still genuinely responsive
+  // to viewport width for phone-to-tablet sizes (where the old bug was
+  // worst), caps out at a sane total display time on large monitors
+  // instead of scaling forever.
+  //
+  // Also fixes a related overshoot: the end keyframe was a flat -100vw
+  // regardless of text width, traveling further than necessary to fully
+  // exit the left edge. --marquee-end below is set to the track's exact
+  // measured width, so the sweep distance used here matches the actual
+  // animation distance instead of over-covering it.
+  var marquee = document.getElementById('intro-marquee');
+  var track = marquee && marquee.querySelector('.intro-marquee-track');
+  if (!marquee || !track) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var PX_PER_SEC = 220;   // target crossing speed before clamping
+  var DUR_MIN = 4;        // seconds/pass — floor, so narrow phones aren't abrupt either
+  var DUR_MAX = 8;        // seconds/pass — ceiling, so wide monitors stay "brief"
+
+  var trackW = track.offsetWidth;
+  track.style.setProperty('--marquee-end', '-' + trackW + 'px');
+
+  var totalTravel = window.innerWidth + trackW; // off-screen-right to off-screen-left, exactly
+  var duration = Math.max(DUR_MIN, Math.min(DUR_MAX, totalTravel / PX_PER_SEC));
+
+  track.style.animation = 'intro-marquee-scroll ' + duration.toFixed(2) + 's linear 3';
+  marquee.style.animation = 'intro-marquee-fadeout 0.7s ease ' + (duration * 3 + 0.5).toFixed(2) + 's forwards';
+})();
+</script>
 
 <div id="story-rail"><div class="rail-fill" id="story-rail-fill"></div></div>
 
