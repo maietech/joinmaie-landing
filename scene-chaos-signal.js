@@ -209,6 +209,16 @@
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(',');
   }
 
+  // Noise-chip shrink animation was hardcoding dark-theme's --text-1 RGB
+  // (232,230,227) directly — wrong once this scene is theme-aware. Cached
+  // once here (getComputedStyle per-chip per-frame would reintroduce the
+  // cost the scroll-jank audit already flagged elsewhere) and refreshed
+  // whenever the theme changes.
+  var textRgb = hexToRgb(pathThemeColor('--text-1', '#E8E6E3'));
+  window.addEventListener('maie:themechange', function () {
+    textRgb = hexToRgb(pathThemeColor('--text-1', '#E8E6E3'));
+  });
+
   function step() {
     chips.forEach(function (c) {
       c.x += c.vx; c.y += c.vy;
@@ -308,8 +318,8 @@
         c.el.style.padding = (8 - shrink * 5).toFixed(1) + 'px';
         c.el.style.fontSize = (12 - shrink * 12).toFixed(1) + 'px';
         c.el.style.borderRadius = (8 + shrink * 50).toFixed(0) + 'px';
-        c.el.style.background = 'rgba(232,230,227,' + (0.05 + shrink * 0.5).toFixed(2) + ')';
-        c.el.style.borderColor = 'rgba(255,255,255,' + (0.12 * (1 - shrink)).toFixed(2) + ')';
+        c.el.style.background = 'rgba(' + textRgb + ',' + (0.05 + shrink * 0.5).toFixed(2) + ')';
+        c.el.style.borderColor = 'rgba(' + textRgb + ',' + (0.12 * (1 - shrink)).toFixed(2) + ')';
         c.el.style.opacity = noiseOpacity.toFixed(2);
       } else {
         // Back in pure-chaos range (including scrolling back up out of
