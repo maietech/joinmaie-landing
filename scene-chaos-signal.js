@@ -428,9 +428,20 @@
     );
   }
 
+  // Narrative Echo (Component 2): fired once as chaos gives way to
+  // convergence (the 0.45 boundary this file already uses internally) —
+  // "network fragments → tiny pulses → Current" per the atmospheric
+  // brief. Reuses the field's own rect rather than iterating all 20 chips.
+  var echoFired = false;
   window.initScrollScene(section, function (progress, staticFrame) {
     lastProgress = progress;
     render(progress, staticFrame);
+    if (!echoFired && progress > 0.45 && window.MaieAtmosphere && cachedFieldRect) {
+      echoFired = true;
+      window.MaieAtmosphere.echo(cachedFieldRect, { count: 6 });
+    } else if (echoFired && progress < 0.4) {
+      echoFired = false;
+    }
   });
 
   // The 20-chip render() (drift/convergence/style updates) ran continuously

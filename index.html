@@ -37,6 +37,7 @@
   <div class="bg-orb bg-orb-3"></div>
 </div>
 <div class="bg-grain" aria-hidden="true"></div>
+<canvas id="atmo-canvas" aria-hidden="true"></canvas>
 
 <nav class="nav">
   <a class="nav-brand" href="#top">
@@ -119,14 +120,14 @@
 
 <main id="top">
 
-  <section id="scene-opening" class="story-scene">
+  <section id="scene-opening" class="story-scene" data-atmo-density="0">
     <div class="scene-sticky">
       <canvas id="scene-opening-canvas" aria-hidden="true"></canvas>
       <div class="scene-caption" id="scene-opening-caption">Everything begins with something.</div>
     </div>
   </section>
 
-  <section id="scene-frame" class="story-scene">
+  <section id="scene-frame" class="story-scene" data-atmo-density="0">
     <div class="scene-sticky">
       <div class="frame-stage">
         <div class="frame-photo-wrap">
@@ -158,7 +159,9 @@
     </div>
   </section>
 
-  <section id="scene-universe" class="story-scene">
+  <div class="atmo-beacon" aria-hidden="true"><div class="atmo-beacon-mark"></div></div>
+
+  <section id="scene-universe" class="story-scene" data-atmo-density="2">
     <div class="scene-sticky">
       <div class="universe-stage">
         <div class="universe-word" id="universe-word">MEDIA</div>
@@ -195,7 +198,7 @@
        photography (a colorist grading suite, a story-structure card wall,
        a music production session). Deliberately the slowest, quietest
        scene on the page — see scene-human-hand.js. -->
-  <section id="scene-human-hand" class="story-scene">
+  <section id="scene-human-hand" class="story-scene" data-atmo-density="1">
     <div class="scene-sticky">
       <div class="hand-frame" id="hand-frame">
         <img class="hand-photo" src="media/made-by-fari-14122231.jpg" alt="A photographer checks a shot on their camera." loading="lazy">
@@ -220,7 +223,9 @@
        plain dots and dissolve onto the signal path, a curated subset of
        "message" chips keep their text and land at ordered points along
        the path, concatenating into one line as the mark ignites. -->
-  <section id="scene-chaos-signal" class="story-scene">
+  <div class="atmo-beacon" aria-hidden="true"><div class="atmo-beacon-mark"></div></div>
+
+  <section id="scene-chaos-signal" class="story-scene" data-atmo-density="0">
     <div class="scene-sticky">
       <svg id="signal-svg" viewBox="0 0 92 56" xmlns="http://www.w3.org/2000/svg">
         <path id="signal-path" class="signal-stroke"
@@ -241,7 +246,7 @@
     </div>
   </section>
 
-  <section id="companion-intro" data-reveal data-rail-label="Companion">
+  <section id="companion-intro" data-reveal data-rail-label="Companion" data-atmo-density="1">
     <div class="intro-inner">
       <div class="intro-text">
         <p class="intro-statement">The burden of the infinite project,<br><span class="accent">lifted.</span></p>
@@ -262,7 +267,7 @@
        built cinematic scene, better. trust is kept — it's the page's only
        real trust/security content — reordered benefit-first, spec-as-
        supporting-detail instead of leading with jargon (see §5). -->
-  <section id="trust" data-reveal data-rail-label="Trust">
+  <section id="trust" data-reveal data-rail-label="Trust" data-atmo-density="1">
     <div class="section-tag">Under the Hood</div>
     <h2 class="section-title">Built to Be Trusted</h2>
     <div class="reflect-list">
@@ -289,7 +294,7 @@
     </div>
   </section>
 
-  <section id="scene-lifecycle" class="story-scene lifecycle-scene">
+  <section id="scene-lifecycle" class="story-scene lifecycle-scene" data-atmo-density="0">
     <div class="scene-sticky">
       <div class="lifecycle-caption" id="lifecycle-caption">The Media Lifecycle</div>
       <div class="lifecycle-window">
@@ -299,7 +304,7 @@
     </div>
   </section>
 
-  <section id="scene-agent" class="story-scene agent-scene">
+  <section id="scene-agent" class="story-scene agent-scene" data-atmo-density="0">
     <div class="scene-sticky">
       <div class="agent-caption" id="agent-caption">Watch the agent work.</div>
       <div class="agent-stage">
@@ -321,7 +326,9 @@
     </div>
   </section>
 
-  <section id="paths" class="final-cta" data-reveal data-rail-label="Your Path">
+  <div class="atmo-beacon" aria-hidden="true"><div class="atmo-beacon-mark"></div></div>
+
+  <section id="paths" class="final-cta" data-reveal data-rail-label="Your Path" data-atmo-density="3">
     <div class="section-tag" style="text-align:center;">The Destination</div>
     <h2>Media, connected. Intelligence, shared. Creation, amplified.</h2>
     <p>Choose where your story goes next.</p>
@@ -397,6 +404,7 @@
 <script src="nav-theme.js"></script>
 <script src="nav-menu.js"></script>
 <script src="story-scroll.js"></script>
+<script src="atmosphere.js"></script>
 <script src="scene-opening.js"></script>
 <script src="scene-frame.js"></script>
 <script src="scene-universe.js"></script>
