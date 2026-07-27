@@ -321,9 +321,30 @@
     updateCaption(settledW);
   } else {
     requestAnimationFrame(runIgnition);
+    // Same visibility-gating idiom scene-chaos-signal.js and
+    // pixie-companion.js already use for their own idle loops (see
+    // DESIGN-DEV-GUIDE.md's scroll-jank audit): this loop previously ran
+    // unconditionally at 60fps for the lifetime of the page, including
+    // every scroll position after the visitor has moved on to any of the
+    // other 11 sections — each frame re-running four getComputedStyle
+    // reads (themeColor() calls inside draw()) for a canvas that isn't
+    // even on screen. An IntersectionObserver pauses the loop's actual
+    // work while #scene-opening isn't visible; the rAF chain itself keeps
+    // ticking at negligible cost so it resumes immediately once the
+    // section re-enters view (e.g. scrolling back up), rather than
+    // needing its own re-arm logic.
+    var openingIsIntersecting = true;
+    if (typeof IntersectionObserver !== 'undefined') {
+      var openingVisibilityObserver = new IntersectionObserver(function (entries) {
+        openingIsIntersecting = entries[entries.length - 1].isIntersecting;
+      }, { threshold: 0 });
+      openingVisibilityObserver.observe(section);
+    }
     (function loop() {
-      t += 0.02;
-      draw(lastProgress, false, computeWeights(lastProgress));
+      if (openingIsIntersecting) {
+        t += 0.02;
+        draw(lastProgress, false, computeWeights(lastProgress));
+      }
       requestAnimationFrame(loop);
     })();
   }
