@@ -73,5 +73,20 @@
     if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.74, 1.00, 0.08, 0.00);
   }
 
-  window.initScrollScene(section, function (progress) { render(progress); });
+  // Narrative Echo (Component 2): fired once as the atom chips re-cluster
+  // and fade into the project ring — "chips shrink → soft particles →
+  // Current" per the brief. One-shot per pass through this window, not
+  // called every tick.
+  var echoFired = false;
+  window.initScrollScene(section, function (progress) {
+    render(progress);
+    if (!echoFired && progress > 0.9 && window.MaieAtmosphere) {
+      echoFired = true;
+      atomChips.forEach(function (chip) {
+        window.MaieAtmosphere.echo(chip.getBoundingClientRect(), { count: 2 });
+      });
+    } else if (echoFired && progress < 0.8) {
+      echoFired = false;
+    }
+  });
 })();

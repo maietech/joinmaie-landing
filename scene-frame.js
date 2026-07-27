@@ -40,6 +40,14 @@
     { start: 0.72, end: 0.94 },
   ];
 
+  // Narrative Echo (Component 2 of the atmospheric system): fired once,
+  // as this scene hands off to the next, from the floating metadata tags'
+  // own screen positions — "metadata loses text → becomes dots → becomes
+  // waveform fragments → absorbed into the Current" per the brief. A
+  // one-shot flag, not a per-frame call — echo() spawns transient
+  // particles, it isn't meant to be re-triggered every tick.
+  var echoFired = false;
+
   window.initScrollScene(section, function (progress) {
     var totalLineWeight = window.storyStageWeight(progress, 0.05, 1.0, 0.05, 0);
     if (signalLine) signalLine.setAttribute('stroke-dasharray', '100');
@@ -57,5 +65,14 @@
     });
 
     if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.0, 0.20, 0.04, 0.10);
+
+    if (!echoFired && progress > 0.96 && window.MaieAtmosphere) {
+      echoFired = true;
+      fractures.forEach(function (el) {
+        if (el) window.MaieAtmosphere.echo(el.getBoundingClientRect(), { count: 3 });
+      });
+    } else if (echoFired && progress < 0.9) {
+      echoFired = false; // re-arm if the visitor scrolls back up through the scene
+    }
   });
 })();

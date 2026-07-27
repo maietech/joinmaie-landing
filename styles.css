@@ -365,6 +365,38 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 }
 @media (prefers-reduced-motion: reduce) { .bg-orb { transform: none !important; } }
 
+/* ── Atmospheric Navigation System ────────────────────────────────
+   #atmo-canvas is the "Current" (Component 1): fixed, viewport-space,
+   drawn by atmosphere.js. Sits above .bg-grain (z-index -1, same as
+   grain, later in DOM so it paints on top of it) and below all real
+   content — most story-scenes have an opaque .scene-sticky background
+   anyway, so it's naturally covered during Level 0 (cinematic) beats
+   without any extra occlusion logic. */
+#atmo-canvas {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+}
+
+/* Destination Beacons (Component 3) — thin, zero-height wrappers dropped
+   between/inside sections at document positions (see index.html); height:0
+   means they never affect layout/flow, only mark a scroll position. Intensity
+   is written as --beacon-intensity (0..1) by atmosphere.js's scroll-batch
+   write, smoothly growing on approach and dissolving after passing. */
+.atmo-beacon {
+  position: relative; height: 0; overflow: visible; pointer-events: none;
+  --beacon-intensity: 0;
+}
+.atmo-beacon-mark {
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  opacity: calc(var(--beacon-intensity) * 0.85);
+  box-shadow: 0 0 calc(var(--beacon-intensity) * 40px) calc(var(--beacon-intensity) * 6px) var(--accent);
+  filter: blur(0.3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .atmo-beacon-mark { transition: none; }
+}
+
 /* ── Companion Intro — two columns, companion on the right ───────── */
 .intro-inner { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
 .intro-text { max-width: 560px; flex: 1 1 380px; }
