@@ -365,16 +365,39 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 }
 @media (prefers-reduced-motion: reduce) { .bg-orb { transform: none !important; } }
 
-/* ── Atmospheric Navigation System ────────────────────────────────
-   #atmo-canvas is the "Current" (Component 1): fixed, viewport-space,
-   drawn by atmosphere.js. Sits above .bg-grain (z-index -1, same as
+/* ── The World Layer (formerly "atmospheric system" internally — the
+   rename matters: an "atmosphere" reads as an overlay/effect, a "World
+   Layer" reads as the persistent environment every scene is a window
+   into, which is the actual architecture below).
+   #atmo-canvas (Component 1, "the Current") is fixed, viewport-space,
+   drawn by atmosphere.js, and is ALWAYS painting behind every scene —
+   it is never occluded by z-index or hidden/shown per scene. What
+   changes per scene is how much of it each .scene-sticky panel *reveals*
+   through its own background, via the --atmo-veil custom property below
+   (set per data-atmo-density level, see index.html) — 100% veil = fully
+   opaque (nothing shows through), lower % lets the World Layer bleed
+   through via color-mix(). This was previously backwards: every
+   .scene-sticky background was a flat opaque color/gradient, so cinematic
+   scenes didn't "dial down" the atmosphere, they erased it outright, and
+   it only ever reappeared in the gaps between scenes — the opposite of a
+   persistent environment. Sits above .bg-grain (z-index -1, same as
    grain, later in DOM so it paints on top of it) and below all real
-   content — most story-scenes have an opaque .scene-sticky background
-   anyway, so it's naturally covered during Level 0 (cinematic) beats
-   without any extra occlusion logic. */
+   content. */
 #atmo-canvas {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
 }
+/* Reveal amount per density level — inherits down from each section's
+   data-atmo-density onto its descendant .scene-sticky (and, for the
+   data-reveal sections, whatever background they add later; none of them
+   currently set an opaque one, so this is inert there today but keeps the
+   language consistent if that changes). Per the design brief's table:
+   Reflection=High, Editorial/Exploration=Medium, Cinematic=Low,
+   Hero=Minimal-baseline (the Hero level's real payoff is atmosphere.js's
+   one-time alignment pulse, not its idle reveal amount). */
+[data-atmo-density="0"] { --atmo-veil: 82%; }  /* Cinematic — low but real, glimpsed at the edges/gutters */
+[data-atmo-density="1"] { --atmo-veil: 46%; }  /* Reflection — high */
+[data-atmo-density="2"] { --atmo-veil: 66%; }  /* Editorial / Exploration — medium */
+[data-atmo-density="3"] { --atmo-veil: 88%; }  /* Hero — minimal ambient baseline */
 
 /* Destination Beacons (Component 3) — thin, zero-height wrappers dropped
    between/inside sections at document positions (see index.html); height:0
@@ -503,7 +526,7 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .scene-sticky {
   position: sticky; top: 0; height: 100vh; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  background: #000;
+  background: color-mix(in srgb, #000 var(--atmo-veil, 100%), transparent);
 }
 .nav.nav-hidden { transform: translateY(-100%); transition: transform 0.3s ease; }
 .nav { transition: transform 0.3s ease; }
@@ -562,7 +585,9 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    no scene-boundary excuse would read as a bug now that it's one
    continuous scroll region, not two stitched panels. */
 #scene-chaos-signal .scene-sticky {
-  background: radial-gradient(ellipse 70% 60% at 50% 40%, var(--surface-2), var(--bg) 75%);
+  background: radial-gradient(ellipse 70% 60% at 50% 40%,
+    color-mix(in srgb, var(--surface-2) var(--atmo-veil, 100%), transparent),
+    color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent) 75%);
 }
 /* touch-action: pan-y — defensive, not a fix for anything currently
    broken (§26: reviewed this file, there's no preventDefault/touchstart/
@@ -643,7 +668,7 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    thin signal line down the left, dash-revealed in sync, is the same
    Signal metaphor as Sections 1 and 6 — recurring on purpose per the
    design system, not a coincidence. */
-#scene-frame .scene-sticky { background: var(--bg); }
+#scene-frame .scene-sticky { background: color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent); }
 .frame-stage { position: relative; width: min(64vw, 620px); }
 .frame-photo-wrap { position: relative; width: 100%; aspect-ratio: 3 / 2; overflow: hidden; border-radius: 4px; }
 /* object-position biased down from center (default 50% 50%) — the source
@@ -679,7 +704,7 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 /* ── Section 3 — Universe to You (scale shift) ───────────────────────
    DOM + CSS transforms, not canvas text — keeps type crisp at any scale,
    per the brief's requirement. See scene-universe.js for the stage math. */
-#scene-universe .scene-sticky { background: var(--bg); }
+#scene-universe .scene-sticky { background: color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent); }
 .universe-stage { position: relative; width: 100%; height: 100%; }
 .universe-word {
   position: absolute; left: 50%; top: 50%;
@@ -738,7 +763,9 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    legible either way. */
 #scene-human-hand { height: 480vh; }
 #scene-human-hand .scene-sticky {
-  background: radial-gradient(ellipse 90% 75% at 50% 50%, var(--surface-2), var(--bg) 70%);
+  background: radial-gradient(ellipse 90% 75% at 50% 50%,
+    color-mix(in srgb, var(--surface-2) var(--atmo-veil, 100%), transparent),
+    color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent) 70%);
   overflow: hidden;
 }
 .hand-frame { position: absolute; inset: 0; }
@@ -772,7 +799,9 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    content, no asset dependency. See scene-lifecycle.js. */
 .lifecycle-scene { height: 420vh; }
 .lifecycle-scene .scene-sticky {
-  background: radial-gradient(ellipse 80% 60% at 50% 50%, var(--surface), var(--bg) 80%);
+  background: radial-gradient(ellipse 80% 60% at 50% 50%,
+    color-mix(in srgb, var(--surface) var(--atmo-veil, 100%), transparent),
+    color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent) 80%);
   flex-direction: column; gap: 22px;
 }
 .lifecycle-caption {
@@ -845,7 +874,9 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    lookalike — which now travels along a signal-line path with its
    mode/phase/temperament updated live per step. See scene-agent.js. */
 .agent-scene .scene-sticky {
-  background: radial-gradient(ellipse 75% 60% at 50% 45%, var(--surface), var(--bg) 78%);
+  background: radial-gradient(ellipse 75% 60% at 50% 45%,
+    color-mix(in srgb, var(--surface) var(--atmo-veil, 100%), transparent),
+    color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent) 78%);
   flex-direction: column; gap: 24px;
 }
 .agent-caption {
