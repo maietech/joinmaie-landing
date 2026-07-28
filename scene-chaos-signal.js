@@ -74,14 +74,16 @@
     { type: 'window', label: 'Drive · Shared with 4' },
     { type: 'window', label: 'iCloud — sync error' },
     { type: 'window', label: 'Dropbox — 2 conflicts' },
-    { type: 'alert', label: '💬 3 unread mentions' },
-    { type: 'alert', label: '⚠ Storage almost full' },
+    { type: 'alert', label: '3 unread mentions' },
+    { type: 'alert', label: 'Storage almost full' },
     { type: 'file', label: 'export_v9(2)(1).mp4' },
     { type: 'window', label: 'Local Bin — untitled' },
     { type: 'file', label: 'audio_MIX_v4.wav' },
     { type: 'window', label: 'Agent Tab — 6 unsaved runs' },
     { type: 'file', label: 'model_checkpoint_v3.safetensors' },
-    { type: 'alert', label: '⚠ 3 agent approvals pending' },
+    { type: 'alert', label: '3 agent approvals pending' },
+    { type: 'window', label: 'Model Registry — 3 versions' },
+    { type: 'file', label: 'inference_log_0182.jsonl' },
     // Message chips — indistinguishable from the noise above during the
     // chaos phase (same drift, same hover behavior), but carry their
     // text through convergence instead of dissolving. Read in
@@ -178,7 +180,7 @@
   // Each chip's target point along the path is fixed for its whole
   // lifetime — noise chips by their fixed index (i / (count-1)), message
   // chips by their fixed MESSAGE_T entry — never by scroll progress or
-  // `eased`. `path.getPointAtLength()` was being called for all 20 chips
+  // `eased`. `path.getPointAtLength()` was being called for every chip
   // on every single frame (both scroll-driven and the continuous idle
   // loop) even though its result never changes once computed; that showed
   // up as the single largest contributor in the pre-production audit's
@@ -431,7 +433,7 @@
   // Narrative Echo (Component 2): fired once as chaos gives way to
   // convergence (the 0.45 boundary this file already uses internally) —
   // "network fragments → tiny pulses → Current" per the atmospheric
-  // brief. Reuses the field's own rect rather than iterating all 20 chips.
+  // brief. Reuses the field's own rect rather than iterating every chip.
   var echoFired = false;
   window.initScrollScene(section, function (progress, staticFrame) {
     lastProgress = progress;
@@ -444,7 +446,7 @@
     }
   });
 
-  // The 20-chip render() (drift/convergence/style updates) ran continuously
+  // The full render() (drift/convergence/style updates) ran continuously
   // at 60fps via this idle loop regardless of whether the scene was even
   // scrolled into view — found as a top-5 scroll-jank contributor. Gated
   // the same way as the Pixie companion's ambient loop: an

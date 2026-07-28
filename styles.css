@@ -327,9 +327,30 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 .reflect-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brand-light-text); margin-top: 14px; }
 
 /* ── Final CTA ────────────────────────────────────────────────────── */
-.final-cta { text-align: center; padding-bottom: 160px; }
+.final-cta { text-align: center; padding-top: 120px; padding-bottom: 160px; }
 .final-cta h2 { font-size: clamp(30px, 5vw, 52px); margin-bottom: 20px; }
 .final-cta p { color: var(--text-2-small); font-size: 16px; margin-bottom: 36px; }
+/* The closing beat (Narrative Strip pass, items 5-6) — a calmed echo of
+   the opening's signal motif (settled wave, no longer the busy/chaotic
+   version from scene-chaos-signal) resolving into a breathing halo — "the
+   signal becomes a doorway rather than an endpoint" — with a dashed line
+   trailing off past it ("the world continues beyond the page"). This is
+   the visual/emotional exhale before the CTA, not the CTA itself. */
+.paths-signal { width: min(420px, 72vw); margin: 0 auto 8px; opacity: 0.85; }
+.paths-signal svg { width: 100%; height: auto; display: block; }
+.paths-signal-wave { opacity: 0.55; }
+.paths-signal-ring { transform-box: fill-box; transform-origin: center; animation: paths-ring-breathe 4.5s ease-in-out infinite; }
+.paths-signal-ring--outer { animation-delay: 0.7s; opacity: 0.6; }
+.paths-signal-continue { opacity: 0.4; }
+@keyframes paths-ring-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.18); opacity: 0.2; }
+}
+@media (prefers-reduced-motion: reduce) { .paths-signal-ring { animation: none; opacity: 0.5; } }
+.paths-arrival {
+  font-family: 'DM Sans', sans-serif; font-style: italic; font-size: 15px;
+  color: var(--text-2); margin-bottom: 46px; letter-spacing: 0.01em;
+}
 /* Demoted out of the closing headline (see maie-narrative-audit.md §11 A) —
    the dev-status disclosure is honest but shouldn't puncture the register
    of the page's most crystallized line. Small, quiet, after the choice. */
@@ -682,9 +703,13 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    no scene-boundary excuse would read as a bug now that it's one
    continuous scroll region, not two stitched panels. */
 #scene-chaos-signal .scene-sticky {
-  background: radial-gradient(ellipse 70% 60% at 50% 40%,
-    color-mix(in srgb, var(--surface-2) var(--atmo-veil, 100%), transparent),
-    color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent) 75%);
+  background:
+    radial-gradient(ellipse 38% 32% at 50% 42%,
+      color-mix(in srgb, var(--surface-2) calc(var(--atmo-veil, 100%) + 18%), transparent),
+      transparent 100%),
+    radial-gradient(ellipse 70% 60% at 50% 40%,
+      color-mix(in srgb, var(--surface-2) var(--atmo-veil, 100%), transparent),
+      color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent) 75%);
 }
 /* touch-action: pan-y — defensive, not a fix for anything currently
    broken (§26: reviewed this file, there's no preventDefault/touchstart/
@@ -694,18 +719,25 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    future interactive addition to these chips ever accidentally capturing
    a vertical swipe. */
 #chaos-field { position: absolute; inset: 0; z-index: 1; touch-action: pan-y; }
+/* Redesigned per the "Chaos of Creation" pass: these used to read as
+   rounded SaaS pills/badges (full border ring, border-radius, filled
+   background) — recognizable as UI components rather than the residue of
+   real creative work. Now: a clipped corner (a cropped fragment, not a
+   neat rounded box), a single accent rule instead of a full border ring,
+   a lighter fill, and a slight blur so each chip reads as a translucent
+   surface layered IN the atmosphere rather than a flat opaque tag sitting
+   ON TOP of it. */
 .chaos-chip {
-  position: absolute; padding: 8px 14px; border-radius: 8px;
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; white-space: nowrap;
-  background: color-mix(in srgb, var(--text-1) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-1) 14%, transparent);
-  /* Scoped to this rule rather than repointing to plain var(--text-2) —
-     verified var(--text-2) only reaches 4.25-4.38:1 here in light theme
-     (just under AA's 4.5:1 for this font size), while this mix reaches
-     ~4.9-5.1:1 in light and ~6.4-6.8:1 in dark. */
-  color: color-mix(in srgb, var(--text-1) 68%, transparent);
+  position: absolute; padding: 7px 13px 7px 11px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11.5px; white-space: nowrap;
+  background: color-mix(in srgb, var(--text-1) 4%, transparent);
+  border: none; border-left: 2px solid color-mix(in srgb, var(--text-1) 20%, transparent);
+  border-radius: 0 2px 2px 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%);
+  backdrop-filter: blur(2px);
+  color: color-mix(in srgb, var(--text-1) 62%, transparent);
   cursor: default; user-select: none;
-  opacity: calc(var(--chaos-density, 1) * 0.9);
+  opacity: calc(var(--chaos-density, 1) * 0.85);
   transition: border-color 0.2s ease, background 0.2s ease, opacity 0.3s ease, color 0.2s ease;
 }
 /* §27 fix: on mobile, scroll only registered from the gaps *between*
@@ -723,16 +755,30 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 @media (max-width: 720px) {
   .chaos-chip { pointer-events: none; }
 }
-.chaos-chip--window { border-radius: 6px 6px 3px 3px; border-top-width: 5px; border-top-color: color-mix(in srgb, var(--text-1) 22%, transparent); }
-.chaos-chip--alert { border-color: rgba(255,209,102,0.3); color: var(--accent-text); }
-.chaos-chip.is-warning { border-color: rgba(220,80,80,0.8); background: rgba(120,30,30,0.25); color: #fff; }
+.chaos-chip--window {
+  border-left-color: color-mix(in srgb, var(--text-1) 34%, transparent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+}
+.chaos-chip--alert {
+  border-left-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--accent-text);
+}
+.chaos-chip--alert::before { content: '\2731'; margin-right: 6px; font-size: 8px; opacity: 0.65; position: relative; top: -1px; }
+.chaos-chip.is-warning { border-left-color: rgba(220,80,80,0.85); background: rgba(120,30,30,0.22); color: #fff; }
 .chaos-warn {
-  position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 6px;
-  font-size: 10.5px; color: #ff8a8a; background: rgba(30,0,0,0.7); border: 1px solid rgba(220,80,80,0.5);
-  padding: 3px 8px; border-radius: 5px; white-space: nowrap; opacity: 0; pointer-events: none;
+  position: absolute; top: 100%; left: 0; margin-top: 5px;
+  font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #ff9d9d;
+  background: none; border: none; border-left: 1.5px solid rgba(220,80,80,0.6);
+  padding: 2px 0 2px 7px; white-space: nowrap; opacity: 0; pointer-events: none;
   transition: opacity 0.15s ease;
 }
 .chaos-chip.is-warning .chaos-warn { opacity: 1; }
+/* Localized focus scrim (Narrative Strip pass, item 2B) — a tighter,
+   slightly more opaque radial layered on top of the existing
+   --atmo-veil-based gradient below it, centered on the signal path/
+   message-chip cluster. This is what gives the cluster its contrast, not
+   an opaque section background — the wider gradient (and, beyond it, the
+   World Layer canvas) stays visible at the edges the whole time. */
 .chaos-caption {
   position: absolute; left: 50%; bottom: 12%; transform: translateX(-50%);
   font-family: 'Bebas Neue', sans-serif; font-size: clamp(18px, 3vw, 26px);
@@ -753,7 +799,8 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .chaos-chip--message { z-index: 2; }
 .chaos-chip--message.is-resolved {
   font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px;
-  background: rgba(255,209,102,0.12); border-color: rgba(255,209,102,0.5);
+  background: rgba(255,209,102,0.12); border-left-color: rgba(255,209,102,0.6);
+  clip-path: none; padding: 8px 14px;
   color: var(--accent, #FFD166);
 }
 
