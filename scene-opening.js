@@ -50,6 +50,20 @@
     return v || fallback;
   }
 
+  // The canvas used to fill itself with a fully opaque --bg every frame —
+  // correct color, but it painted over the World Layer (#atmo-canvas)
+  // sitting behind it regardless of what styles.css's --atmo-veil said,
+  // since a canvas draw call doesn't know or care about CSS. Reading the
+  // same --atmo-veil this section already carries (data-atmo-density="0"
+  // on #scene-opening) keeps the wash a *wash* instead of a wall — the
+  // World Layer stays perceptible through it, same rule as every other
+  // scene's CSS background now follows.
+  function veilAlpha() {
+    var v = getComputedStyle(section).getPropertyValue('--atmo-veil').trim();
+    var pct = parseFloat(v);
+    return (isNaN(pct) ? 82 : pct) / 100;
+  }
+
   function hexRgb(hex) {
     hex = hex.replace('#', '');
     if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
@@ -74,7 +88,9 @@
     var accent = themeColor('--accent', '#FFD166');
     var bg = themeColor('--bg', '#09090B');
 
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(' + hexRgb(bg) + ',' + veilAlpha() + ')';
+    ctx.fillRect(0, 0, W, H);
 
     // Stage A (0 -> 0.28): a full-width line flashes and dissipates.
     var flashW = window.storyStageWeight(p, 0.0, 0.06, 0.0, 0.22);
@@ -195,7 +211,8 @@
     if (!ignitionDone) return; // the ignition loop owns rendering until it settles
     ctx.clearRect(0, 0, W, H);
     var bg = themeColor('--bg', '#09090B');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(' + hexRgb(bg) + ',' + veilAlpha() + ')';
+    ctx.fillRect(0, 0, W, H);
     var cx = W / 2, cy = H / 2;
     var brand = themeColor('--brand-light', '#C24E4E');
     var accent = themeColor('--accent', '#FFD166');
