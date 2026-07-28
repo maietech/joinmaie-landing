@@ -157,9 +157,53 @@
       if (best) {
         targetLevel = parseInt(best.getAttribute('data-atmo-density'), 10) || 0;
         if (best === heroEl && heroPulseStart === null) heroPulseStart = clock;
+        // Exposed so guide.js (the Narrative Guide panel) can drive its
+        // own content off the same "which section currently owns the
+        // viewport" signal instead of registering a second
+        // IntersectionObserver over the same elements.
+        if (window.MaieAtmosphere.currentSection !== best) {
+          window.MaieAtmosphere.currentSection = best;
+          document.dispatchEvent(new CustomEvent('maie:scenechange', { detail: { section: best } }));
+        }
       }
     }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
     densityEls.forEach(function (el) { densityObserver.observe(el); });
+  }
+
+  // ── Cross-scene continuity crossfade ──
+  // Adjacent story-scenes marked below are pulled into a small overlap
+  // (see styles.css's negative margin-top on the same set of ids) so the
+  // outgoing scene's sticky panel can fade out while the incoming one
+  // fades in — previously this was an instant hard cut, one full-bleed
+  // scene disappearing and the next appearing on the very next scroll
+  // pixel, which read as "broken synergy" between scenes rather than one
+  // continuous world. Fractions are each scene's own 20vh overlap
+  // expressed as a share of that scene's total scroll height (20 / height),
+  // so the crossfade's on-screen duration roughly matches the actual
+  // overlap distance rather than a single guessed constant that would run
+  // too long on short scenes or cut off too early on tall ones.
+  var CROSSFADE = {
+    'scene-frame':        { fadeIn: 0.08,  fadeOut: 0.08 },
+    'scene-universe':     { fadeIn: 0.08,  fadeOut: 0.08 },
+    'scene-human-hand':   { fadeIn: 0.042, fadeOut: 0.042 },
+    'scene-chaos-signal': { fadeIn: 0.028, fadeOut: 0 },     // next section (companion-intro) isn't sticky — no partner to crossfade with
+    'scene-lifecycle':    { fadeIn: 0,     fadeOut: 0.048 }, // previous section (trust) isn't sticky — no overlap margin behind it
+    'scene-agent':        { fadeIn: 0.08,  fadeOut: 0.08 },
+  };
+  var originalInitScrollScene = window.initScrollScene;
+  if (originalInitScrollScene && !reducedMotion) {
+    window.initScrollScene = function (sectionEl, onProgress) {
+      var cfg = CROSSFADE[sectionEl.id];
+      var sticky = cfg ? sectionEl.querySelector('.scene-sticky') : null;
+      return originalInitScrollScene(sectionEl, function (progress, isStatic) {
+        onProgress(progress, isStatic);
+        if (sticky && !isStatic) {
+          var inW = cfg.fadeIn > 0 ? Math.min(1, progress / cfg.fadeIn) : 1;
+          var outW = cfg.fadeOut > 0 ? Math.min(1, (1 - progress) / cfg.fadeOut) : 1;
+          sticky.style.opacity = Math.min(inW, outW).toFixed(3);
+        }
+      });
+    };
   }
 
   // ── Destination Beacons — computed inside the shared scroll batch
