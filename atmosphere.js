@@ -1,7 +1,22 @@
-// atmosphere.js — the "Atmospheric Navigation System" per the design brief:
-// a background Current (drifting waveform fragments), Destination Beacons
-// (rare gold markers confirming forward progress), and Narrative Echoes
-// (transient particles spawned when a scene's own elements dissolve).
+// atmosphere.js — the "World Layer": a persistent environment that sits
+// behind every scene on the page, never hidden or replaced by any one
+// scene. Three parts: the Current (drifting waveform fragments/dots/
+// curves), Destination Beacons (rare gold markers confirming forward
+// progress), and Narrative Echoes (transient particles spawned when a
+// scene's own elements dissolve into the Current).
+//
+// Architecture: this canvas always renders, at every scroll position —
+// it is not switched on/off per scene. What changes per scene is how much
+// of it is *revealed*: each scene's own background (styles.css's
+// --atmo-veil, driven by data-atmo-density) goes from mostly-opaque
+// (Cinematic) to mostly-transparent (Reflection), letting more or less of
+// this canvas bleed through, the way stage lighting stays on throughout a
+// show while each set piece is lit to a different degree. The canvas
+// itself still throttles its own opacity/particle-count per level (see
+// LEVEL_BUDGET below) — not to fake occlusion, but because a busy
+// Cinematic scene doesn't need (or want) a full-strength Current
+// competing for attention, and it's real CPU/paint savings during the
+// page's heaviest visual moments.
 //
 // Performance posture, given the pre-production audit's scroll-jank
 // findings (361 long tasks / ~97s across a throttled scroll-through, driven
@@ -15,11 +30,11 @@
 // particle positions and motion deterministically" requirement.
 //
 // Density: every section that wants atmosphere involved carries
-// data-atmo-density="0|1|2|3" (0 Off / 1 Ambient / 2 Transitional /
-// 3 Hero, see index.html). A single IntersectionObserver tracks which
-// such section currently owns the most viewport space and drives the
-// Current's opacity/particle-count toward that level's budget — smoothed
-// (lerped), never a hard jump.
+// data-atmo-density="0|1|2|3" (0 Cinematic / 1 Reflection / 2 Editorial-
+// Exploration / 3 Hero, see index.html). A single IntersectionObserver
+// tracks which such section currently owns the most viewport space and
+// drives both the canvas's own budget (here) and each scene's CSS reveal
+// (styles.css) toward that level — smoothed (lerped), never a hard jump.
 
 (function () {
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -104,12 +119,25 @@
   // ── Adaptive density — one IntersectionObserver for every section
   // that opts in, instead of each scene wiring its own. Whichever
   // observed section currently has the most intersection ratio wins;
-  // its data-atmo-density (0-3) becomes the target level. ──
+  // its data-atmo-density (0-3) becomes the target level.
+  //
+  // This used to assume Level 0 scenes hid the Current entirely (their
+  // .scene-sticky backgrounds were flat opaque colors) — that was the
+  // wrong architecture: the Current is a persistent World Layer that
+  // never actually turns off, scenes just reveal more or less of it
+  // (see styles.css's --atmo-veil, which now controls the *visual*
+  // reveal). What these budgets control is the canvas's own contribution
+  // — still throttled down for Level 0/3 so CPU/paint cost drops during
+  // the busiest and most deliberately-quiet-atmosphere scenes, but never
+  // to zero. Numbers follow the brief's table: Reflection=High,
+  // Editorial/Exploration=Medium, Cinematic=Low, Hero=Minimal-baseline
+  // (Hero's real payoff is the one-time alignment pulse below, not its
+  // idle budget). ──
   var LEVEL_BUDGET = {
-    0: { opacity: 0.02, particleShare: 0.15 },  // Off — cinematic scenes own the screen
-    1: { opacity: 0.09, particleShare: 1.00 },  // Ambient — reflection/editorial
-    2: { opacity: 0.05, particleShare: 0.55 },  // Transitional — between major scenes
-    3: { opacity: 0.09, particleShare: 1.00 },  // Hero — reserved, adds alignment pulse
+    0: { opacity: 0.045, particleShare: 0.40 },  // Cinematic — low, real, mostly seen at scene edges/gutters
+    1: { opacity: 0.11,  particleShare: 1.00 },  // Reflection — high
+    2: { opacity: 0.075, particleShare: 0.70 },  // Editorial / Exploration — medium
+    3: { opacity: 0.03,  particleShare: 0.35 },  // Hero — minimal baseline; the pulse below is the reveal
   };
   var currentLevel = 0, targetLevel = 0;
   var densityEls = Array.prototype.slice.call(document.querySelectorAll('[data-atmo-density]'));
@@ -249,8 +277,8 @@
         var alignedX = vw * 0.5 + Math.sin((y / vh) * Math.PI * 2 + 1.2) * vw * 0.28;
         x = x + (alignedX - x) * heroPulse * 0.7;
       }
-      var alpha = budgetOpacity * (0.4 + p.depth * 0.6) * (1 + heroPulse * 0.6);
-      var color = p.tint || (heroPulse > 0.6) ? colors.accent : colors.fg;
+      var alpha = budgetOpacity * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3);
+      var color = (p.tint || heroPulse > 0.5) ? colors.accent : colors.fg;
       var size = p.size * (0.7 + p.depth * 0.5);
       if (p.type === 1) drawDot(x, y, size, alpha, color);
       else if (p.type === 2) drawCurve(x, y, size, alpha, color, clock * 0.5 + p.phase);
