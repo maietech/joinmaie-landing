@@ -41,11 +41,27 @@
   // engine's hardcoded default (a fixed muted crimson) regardless of theme.
   // Fallbacks match styles.css's dark-mode :root values, same convention
   // scene-opening.js's themeColor() already uses.
+  //
+  // Light mode gets its own core token and an alpha boost, not just a
+  // straight re-read of the dark-mode tokens: every glow/ring/particle
+  // layer below is a low-alpha (0.02-0.14) wash designed to bloom against
+  // a near-black stage. On a light stage the same alphas read as almost
+  // nothing — hue alone can't fix that, since the problem is opacity
+  // against a light backdrop, not color choice. --primary-dark is also
+  // swapped in for the core (was --brand-light/--primary-light) since
+  // it's the more saturated, higher-contrast end of the brand ramp in
+  // light mode specifically (light mode's --primary-dark is #5C1F18 vs.
+  // --primary-light's #A52A2A).
   window.getPixieThemeColors = function () {
     var s = getComputedStyle(document.documentElement);
-    var core = (s.getPropertyValue('--brand-light') || '').trim();
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    var core = (s.getPropertyValue(isLight ? '--primary-dark' : '--brand-light') || '').trim();
     var accent = (s.getPropertyValue('--accent') || '').trim();
-    return { coreColor: core || '#C24E4E', accentColor: accent || '#FFD166' };
+    return {
+      coreColor: core || (isLight ? '#5C1F18' : '#C24E4E'),
+      accentColor: accent || '#FFD166',
+      boost: isLight ? 1.6 : 1,
+    };
   };
 
   function phaseEnergy(phase, progress) {
@@ -173,6 +189,7 @@
       var aR = theme ? parseInt(theme.accentColor.slice(1, 3), 16) : 0;
       var aG = theme ? parseInt(theme.accentColor.slice(3, 5), 16) : 93;
       var aB = theme ? parseInt(theme.accentColor.slice(5, 7), 16) : 154;
+      var boost = (theme && theme.boost) || 1;
       var baseHue = Math.round(Math.atan2(cG - 128, cR - 128) * (180 / Math.PI) + 180);
 
       if (mouse.active) {
@@ -209,9 +226,9 @@
 
       var glowR = (100 + reactivity * 30) * modeEnergy;
       var og = ctx.createRadialGradient(nx, ny, 0, nx, ny, glowR);
-      og.addColorStop(0, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.06 + reactivity * 0.08) * modeEnergy + ')');
-      og.addColorStop(0.4, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.03 + reactivity * 0.04) * modeEnergy + ')');
-      og.addColorStop(0.7, 'rgba(' + aR + ',' + aG + ',' + aB + ',' + (0.02 + reactivity * 0.03) * modeEnergy + ')');
+      og.addColorStop(0, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.06 + reactivity * 0.08) * modeEnergy * boost + ')');
+      og.addColorStop(0.4, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.03 + reactivity * 0.04) * modeEnergy * boost + ')');
+      og.addColorStop(0.7, 'rgba(' + aR + ',' + aG + ',' + aB + ',' + (0.02 + reactivity * 0.03) * modeEnergy * boost + ')');
       og.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = og; ctx.fillRect(0, 0, w, h);
 
@@ -222,7 +239,7 @@
       for (var layer = 3; layer >= 0; layer--) {
         var lSz = coreSz + layer * (8 + reactivity * 4);
         var grad = ctx.createRadialGradient(nx, ny, 0, nx, ny, lSz);
-        var alpha = ((0.12 - layer * 0.025) + reactivity * 0.06) * modeEnergy;
+        var alpha = ((0.12 - layer * 0.025) + reactivity * 0.06) * modeEnergy * boost;
         if (layer % 2 === 0) {
           grad.addColorStop(0, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + alpha * 1.5 + ')');
           grad.addColorStop(0.6, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + alpha * 0.8 + ')');
@@ -270,7 +287,7 @@
         var pSz = p.size * (1 + reactivity * 0.6) * (modeEnergy * 0.7 + 0.3);
         var hue = baseHue + p.hueShift + reactivity * 20, sat = 70 + reactivity * 20, lght = 55 + reactivity * 15;
 
-        ctx.save(); ctx.globalAlpha = p.opacity * (0.6 + reactivity * 0.4) * modeEnergy;
+        ctx.save(); ctx.globalAlpha = Math.min(1, p.opacity * (0.6 + reactivity * 0.4) * modeEnergy * boost);
         var pG = ctx.createRadialGradient(px, py, 0, px, py, pSz * 3);
         pG.addColorStop(0, 'hsla(' + hue + ',' + sat + '%,' + lght + '%,0.8)');
         pG.addColorStop(0.5, 'hsla(' + hue + ',' + sat + '%,' + (lght - 15) + '%,0.3)');
@@ -285,7 +302,7 @@
         var npx = nx + Math.cos(next.angle) * next.radius, npy = ny + Math.sin(next.angle) * next.radius;
         var lD = Math.sqrt(Math.pow(px - npx, 2) + Math.pow(py - npy, 2));
         if (lD < lineFD) {
-          ctx.strokeStyle = 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (1 - lD / lineFD) * 0.1 * (1 + reactivity) + ')';
+          ctx.strokeStyle = 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (1 - lD / lineFD) * 0.1 * (1 + reactivity) * boost + ')';
           ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(npx, npy); ctx.stroke();
         }
         if (animation === 'neural' && i % 4 === 0) {
@@ -305,7 +322,7 @@
       ctx.rotate(-moveAngle); ctx.translate(-nx, -ny);
       for (var r = 0; r < ringCount; r++) {
         var rSz = 55 + r * 18 + ringAlpha * (12 - r * 3) + reactivity * (18 - r * 4);
-        ctx.strokeStyle = 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.05 * ringAlpha * (1 + reactivity) / (r + 1)) + ')';
+        ctx.strokeStyle = 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.05 * ringAlpha * (1 + reactivity) / (r + 1)) * boost + ')';
         ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(nx, ny, rSz, 0, Math.PI * 2); ctx.stroke();
       }
       ctx.restore();
