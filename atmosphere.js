@@ -134,9 +134,9 @@
   // (Hero's real payoff is the one-time alignment pulse below, not its
   // idle budget). ──
   var LEVEL_BUDGET = {
-    0: { opacity: 0.045, particleShare: 0.40 },  // Cinematic — low, real, mostly seen at scene edges/gutters
-    1: { opacity: 0.11,  particleShare: 1.00 },  // Reflection — high
-    2: { opacity: 0.075, particleShare: 0.70 },  // Editorial / Exploration — medium
+    0: { opacity: 0.075, particleShare: 0.55 },  // Cinematic — low, but genuinely visible in gutters/margins, not compounded away
+    1: { opacity: 0.12,  particleShare: 1.00 },  // Reflection — high
+    2: { opacity: 0.09,  particleShare: 0.80 },  // Editorial / Exploration — medium
     3: { opacity: 0.03,  particleShare: 0.35 },  // Hero — minimal baseline; the pulse below is the reveal
   };
   var currentLevel = 0, targetLevel = 0;

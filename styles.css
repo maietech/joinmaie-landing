@@ -394,10 +394,10 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    Reflection=High, Editorial/Exploration=Medium, Cinematic=Low,
    Hero=Minimal-baseline (the Hero level's real payoff is atmosphere.js's
    one-time alignment pulse, not its idle reveal amount). */
-[data-atmo-density="0"] { --atmo-veil: 82%; }  /* Cinematic — low but real, glimpsed at the edges/gutters */
-[data-atmo-density="1"] { --atmo-veil: 46%; }  /* Reflection — high */
-[data-atmo-density="2"] { --atmo-veil: 66%; }  /* Editorial / Exploration — medium */
-[data-atmo-density="3"] { --atmo-veil: 88%; }  /* Hero — minimal ambient baseline */
+[data-atmo-density="0"] { --atmo-veil: 55%; }  /* Cinematic — low, but a compounding low-veil + low-canvas-budget was reading as fully off; this is the fix */
+[data-atmo-density="1"] { --atmo-veil: 40%; }  /* Reflection — high */
+[data-atmo-density="2"] { --atmo-veil: 60%; }  /* Editorial / Exploration — medium */
+[data-atmo-density="3"] { --atmo-veil: 88%; }  /* Hero — minimal ambient baseline (unchanged: #paths has no opaque backdrop of its own anyway, so this only matters if one is added later) */
 
 /* Destination Beacons (Component 3) — thin, zero-height wrappers dropped
    between/inside sections at document positions (see index.html); height:0
