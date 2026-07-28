@@ -98,6 +98,17 @@
     '<span class="guide-chevron" aria-hidden="true"></span>';
   panel.appendChild(toggle);
 
+  // Mini Pixie — a small companion that peeks up above the toggle bar
+  // only while the Guide is expanded, then settles back down when it
+  // closes. Reuses the same waveform-mark visual language as the
+  // in-body prompt used to (that row now just carries the quote text,
+  // attributed, rather than duplicating the avatar).
+  var miniPixie = document.createElement('div');
+  miniPixie.className = 'guide-mini-pixie';
+  miniPixie.setAttribute('aria-hidden', 'true');
+  miniPixie.innerHTML = '<svg viewBox="0 0 40 40"><path d="M4 20 L9 12 L13 28 L18 8 L22 24 C25 14 28 14 28 20 C28 26 32 26 34 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  panel.appendChild(miniPixie);
+
   var body = document.createElement('div');
   body.className = 'guide-body';
   body.id = 'guide-body';
@@ -114,10 +125,7 @@
       '<div class="guide-why-text" id="guide-why"></div>' +
     '</div>' +
     '<div class="guide-region guide-pixie-row">' +
-      '<div class="guide-pixie-avatar" aria-hidden="true">' +
-        '<svg viewBox="0 0 40 40"><path d="M4 20 L9 12 L13 28 L18 8 L22 24 C25 14 28 14 28 20 C28 26 32 26 34 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-      '</div>' +
-      '<div class="guide-pixie-text" id="guide-pixie"></div>' +
+      '<div class="guide-pixie-text"><span class="guide-pixie-name">Pixie</span> <span id="guide-pixie"></span></div>' +
     '</div>';
   panel.appendChild(body);
 
