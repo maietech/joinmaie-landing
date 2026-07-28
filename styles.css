@@ -85,15 +85,23 @@ a { color: inherit; }
    z-index — consistent with its existing translucent/blurred styling,
    which was already designed to overlay content, not push it down. */
 .nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  position: fixed; top: 10px; left: 10px; right: 10px; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 clamp(16px, 3vw, 40px);
   height: 64px;
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
-  transition: background 0.3s ease, border-color 0.3s ease;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+  transition: background 0.3s ease, border-color 0.3s ease, height 0.25s ease, top 0.25s ease, box-shadow 0.25s ease;
 }
+/* Detached-panel look means the nav no longer meets the very top/sides of
+   the viewport — subtly compresses on scroll (nav-float.js) rather than
+   staying a fixed full-width bar, closer to an instrument panel than a
+   page header. */
+.nav--compact { height: 52px; top: 6px; box-shadow: 0 6px 22px rgba(0,0,0,0.28); }
+.nav--no-motion { transition: none; }
 .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-1); transition: color 0.3s ease; }
 .nav-brand svg { width: 30px; height: auto; }
 .nav-brand-word { font-size: 15px; font-weight: 600; transition: color 0.3s ease; }
@@ -420,6 +428,84 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   .atmo-beacon-mark { transition: none; }
 }
 
+/* ── The Guide — persistent bottom-anchored narrative companion ────
+   Compact by default (a slim bar, never covering content); expands
+   upward on click to reveal the 4 regions from the brief: Scene Context,
+   Story Arc, Why It Matters, Conversation Prompt (Pixie). Content swaps
+   via guide.js listening for atmosphere.js's `maie:scenechange` event —
+   no polling, no separate observer. */
+.guide-panel {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  width: min(640px, calc(100vw - 32px));
+  z-index: 60;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  overflow: hidden;
+  transition: bottom 0.3s ease;
+}
+.guide-toggle {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 13px 18px; background: none; border: none; cursor: pointer;
+  font-family: inherit; text-align: left; color: var(--text-1);
+}
+.guide-toggle-arc {
+  flex: none; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--accent-text, var(--accent)); border: 1px solid var(--border); border-radius: 999px;
+  padding: 3px 9px;
+}
+.guide-toggle-headline {
+  flex: 1; font-size: 14px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.guide-chevron {
+  flex: none; width: 9px; height: 9px; border-right: 1.6px solid var(--text-2); border-bottom: 1.6px solid var(--text-2);
+  transform: rotate(-45deg); transition: transform 0.25s ease; margin-top: -3px;
+}
+.guide-panel.is-expanded .guide-chevron { transform: rotate(135deg); margin-top: 3px; }
+
+.guide-body {
+  max-height: 0; opacity: 0; padding: 0 18px;
+  transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
+}
+.guide-panel.is-expanded .guide-body { max-height: 420px; opacity: 1; padding: 2px 18px 18px; }
+
+.guide-kicker { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2-small); margin-bottom: 4px; }
+.guide-scene-headline { font-size: 17px; font-weight: 600; color: var(--text-1); margin-bottom: 6px; }
+.guide-scene-blurb { font-size: 13.5px; line-height: 1.5; color: var(--text-2); }
+.guide-region + .guide-region { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+.guide-arc-row { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+.guide-arc-stage {
+  font-size: 11px; color: var(--text-2-small); padding: 3px 0; position: relative;
+}
+.guide-arc-stage:not(:last-child)::after { content: '\2192'; margin-left: 10px; color: var(--border); }
+.guide-arc-stage.is-current { color: var(--accent-text, var(--accent)); font-weight: 600; }
+
+.guide-why-text { font-size: 13.5px; line-height: 1.5; color: var(--text-1); }
+
+.guide-pixie-row { display: flex; align-items: center; gap: 10px; }
+.guide-pixie-avatar {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent-text, var(--accent));
+  transform: translateY(14px); opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s ease;
+}
+.guide-pixie-avatar svg { width: 18px; height: 18px; }
+.guide-panel.guide-pixie-visit .guide-pixie-avatar { transform: translateY(0); opacity: 1; }
+.guide-pixie-text { font-size: 13.5px; font-style: italic; color: var(--text-2); }
+
+.guide-reduced-motion, .guide-reduced-motion * { transition: none !important; }
+.guide-reduced-motion .guide-pixie-avatar { transform: none; opacity: 1; }
+
+@media (max-width: 640px) {
+  .guide-panel { bottom: 10px; }
+  .guide-toggle-headline { display: none; }
+}
+
 /* ── Companion Intro — two columns, companion on the right ───────── */
 .intro-inner { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
 .intro-text { max-width: 560px; flex: 1 1 380px; }
@@ -496,6 +582,17 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    left anyway, so leaving it scoped to other scenes would keep the same
    risk there without evidence it's actually helping any of them either. */
 .story-scene { position: relative; height: 250vh; padding: 0; max-width: none; margin: 0; }
+/* Small negative-margin overlap on the scenes that crossfade in from the
+   one before them (see atmosphere.js's CROSSFADE table) — this lets both
+   scenes' sticky panels be pinned in the same on-screen position for a
+   short scroll window, so JS can fade one's opacity out while the other
+   fades in, instead of an instant full-viewport swap. 20vh is a small
+   enough overlap that it doesn't meaningfully shorten any scene's own
+   pacing, but it's the actual mechanism the crossfade depends on — it's
+   not just a visual nicety, removing it also removes the overlap window. */
+#scene-frame, #scene-universe, #scene-human-hand, #scene-chaos-signal, #scene-agent {
+  margin-top: -20vh;
+}
 /* Sections 5+6 merged into one continuous scroll region (was 250vh each,
    500vh total) — originally kept at that same combined distance for
    pacing parity with the pre-merge version, redistributed internally
