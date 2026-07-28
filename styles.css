@@ -543,41 +543,34 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 
 .guide-why-text { font-size: 13.5px; line-height: 1.5; color: var(--text-1); }
 
-.guide-pixie-row { display: flex; align-items: center; }
+.guide-pixie-row { display: flex; align-items: center; gap: 10px; }
 .guide-pixie-name { font-weight: 600; color: var(--accent-text, var(--accent)); font-style: normal; }
 .guide-pixie-text { font-size: 13.5px; font-style: italic; color: var(--text-2); }
 
-/* Mini Pixie — peeks up above the toggle bar only while the Guide is
-   expanded (per the follow-up direction's "Guide Panel / Mini Pixie /
-   Guide Toggle" hierarchy), then settles back down when it closes.
-   Reuses the same waveform-mark visual language as the rest of the
-   site's Pixie references rather than a separate character asset. */
-.guide-mini-pixie {
-  position: absolute; top: 0; left: 50%; z-index: 1;
-  width: 26px; height: 26px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  color: var(--accent-text, var(--accent));
-  box-shadow: 0 4px 14px rgba(0,0,0,0.28);
-  transform: translate(-50%, 10px) scale(0.7); opacity: 0;
-  transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15), opacity 0.3s ease;
+/* Invisible placeholder, same footprint as the docked avatar (see
+   .guide-pixie-avatar below) — reserves space in the flex row so
+   guide-pixie-text shifts right to make room. The real canvas is
+   positioned on top of this via guide.js's reposition(), not moved into
+   the flow itself. */
+.guide-pixie-avatar-slot { width: 28px; height: 28px; flex: none; visibility: hidden; }
+
+/* Mini Pixie — the real Pixie Companion canvas engine (pixie-companion.js),
+   scaled down to badge size. Rests at the panel's top-right corner, above
+   the toggle, at all times; guide.js's reposition() animates it down to
+   dock beside "Pixie" (on top of .guide-pixie-avatar-slot, above) whenever
+   the Guide expands. left/top/width/height are JS-owned throughout — this
+   rule only supplies the transition and the element's own stacking/paint
+   properties, not any positioning values, since a corner-anchored resting
+   spot and a slot-anchored docked one can't both be expressed as static
+   CSS without fighting the JS that measures and sets them per scene. */
+.guide-pixie-avatar {
+  position: absolute; z-index: 2;
+  transition: left 0.4s cubic-bezier(0.3, 0.8, 0.3, 1), top 0.4s cubic-bezier(0.3, 0.8, 0.3, 1),
+              width 0.4s cubic-bezier(0.3, 0.8, 0.3, 1), height 0.4s cubic-bezier(0.3, 0.8, 0.3, 1);
   pointer-events: none;
 }
-.guide-mini-pixie svg { width: 15px; height: 15px; }
-.guide-panel.guide-pixie-visit .guide-mini-pixie {
-  transform: translate(-50%, -60%) scale(1); opacity: 1;
-  animation: guide-pixie-breathe 3.2s ease-in-out 0.5s infinite;
-}
-@keyframes guide-pixie-breathe {
-  0%, 100% { transform: translate(-50%, -60%) scale(1); }
-  50% { transform: translate(-50%, -66%) scale(1.05); }
-}
-.guide-reduced-motion .guide-mini-pixie { transition: none; animation: none !important; }
-.guide-panel.guide-reduced-motion.guide-pixie-visit .guide-mini-pixie { transform: translate(-50%, -60%) scale(1); opacity: 1; }
 
 .guide-reduced-motion, .guide-reduced-motion * { transition: none !important; }
-.guide-reduced-motion .guide-pixie-avatar { transform: none; opacity: 1; }
 
 @media (max-width: 640px) {
   .guide-panel { bottom: 10px; }

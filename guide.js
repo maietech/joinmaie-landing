@@ -98,16 +98,21 @@
     '<span class="guide-chevron" aria-hidden="true"></span>';
   panel.appendChild(toggle);
 
-  // Mini Pixie — a small companion that peeks up above the toggle bar
-  // only while the Guide is expanded, then settles back down when it
-  // closes. Reuses the same waveform-mark visual language as the
-  // in-body prompt used to (that row now just carries the quote text,
-  // attributed, rather than duplicating the avatar).
-  var miniPixie = document.createElement('div');
-  miniPixie.className = 'guide-mini-pixie';
-  miniPixie.setAttribute('aria-hidden', 'true');
-  miniPixie.innerHTML = '<svg viewBox="0 0 40 40"><path d="M4 20 L9 12 L13 28 L18 8 L22 24 C25 14 28 14 28 20 C28 26 32 26 34 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  panel.appendChild(miniPixie);
+  // Mini Pixie — the real theme-responsive Pixie Companion engine
+  // (pixie-companion.js, the same one driving the hero companion and
+  // scene-agent), scaled down to badge size. It rests in the panel's
+  // top-right corner, above the toggle, at all times; when the Guide
+  // expands it relocates down into the pixie-row, docking to the left
+  // of the "Pixie" label. reposition() below drives both the corner
+  // rest position and the docked one purely from live DOM rects — the
+  // docked target can't be a fixed offset, since guide-pixie-row's
+  // position shifts with each scene's headline/blurb length. Parented
+  // directly to the panel (not into .guide-body) so it's never clipped
+  // by that element's overflow:hidden while relocating.
+  var pixieAvatar = document.createElement('canvas');
+  pixieAvatar.className = 'guide-pixie-avatar';
+  pixieAvatar.setAttribute('aria-hidden', 'true');
+  panel.appendChild(pixieAvatar);
 
   var body = document.createElement('div');
   body.className = 'guide-body';
@@ -125,6 +130,11 @@
       '<div class="guide-why-text" id="guide-why"></div>' +
     '</div>' +
     '<div class="guide-region guide-pixie-row">' +
+      // Invisible spacer with the same footprint as the docked avatar —
+      // reserves its place in the flex row so "Pixie" shifts right to
+      // make room, without the real (absolutely-positioned) canvas ever
+      // actually living in the flow here.
+      '<span class="guide-pixie-avatar-slot" id="guide-pixie-slot" aria-hidden="true"></span>' +
       '<div class="guide-pixie-text"><span class="guide-pixie-name">Pixie</span> <span id="guide-pixie"></span></div>' +
     '</div>';
   panel.appendChild(body);
@@ -140,18 +150,69 @@
 
   document.body.appendChild(panel);
 
+  // ── Mini Pixie: engine init + live-measured docking ──
+  // CORNER_SIZE is the on-screen diameter at rest (80px, within the 75-
+  // 100px range the corner badge is meant to stay inside). initPixieCompanion
+  // renders at cssW/H = size * 2.5, so size is derived from that, not passed
+  // as a raw pixel value.
+  var CORNER_TOP = -30, CORNER_RIGHT = 10, CORNER_SIZE = 80;
+  var pixieSlot = body.querySelector('#guide-pixie-slot');
+  var pixieHandle = window.initPixieCompanion(pixieAvatar, {
+    size: CORNER_SIZE / 2.5, mode: 'ambient', phase: 'idle',
+    archetype: 'archivist', temperament: 'idle',
+    theme: window.getPixieThemeColors(),
+  });
+  // Canvas-rendered Pixie can't react to a CSS custom property change on its
+  // own — same live-update wiring the other two Pixie instances on this page
+  // already use for theme.js's toggle.
+  document.addEventListener('maie:themechange', function () {
+    if (pixieHandle && pixieHandle.update) pixieHandle.update({ theme: window.getPixieThemeColors() });
+  });
+
+  // Only ever sets left/top/width/height (never `right`) so the CSS
+  // transition between the corner rest position and the docked one can
+  // interpolate both endpoints as plain numbers — animating to/from `right:
+  // auto` doesn't tween. The docked target is read from guide-pixie-slot's
+  // live rect rather than hardcoded, since guide-pixie-row's position varies
+  // with each scene's headline/blurb length.
+  function reposition(animate) {
+    var panelRect = panel.getBoundingClientRect();
+    var target;
+    if (panel.classList.contains('is-expanded')) {
+      var slotRect = pixieSlot.getBoundingClientRect();
+      target = {
+        left: slotRect.left - panelRect.left, top: slotRect.top - panelRect.top,
+        width: slotRect.width, height: slotRect.height,
+      };
+    } else {
+      target = {
+        left: panelRect.width - CORNER_RIGHT - CORNER_SIZE, top: CORNER_TOP,
+        width: CORNER_SIZE, height: CORNER_SIZE,
+      };
+    }
+    if (!animate) pixieAvatar.style.transition = 'none';
+    pixieAvatar.style.left = target.left + 'px';
+    pixieAvatar.style.top = target.top + 'px';
+    pixieAvatar.style.width = target.width + 'px';
+    pixieAvatar.style.height = target.height + 'px';
+    if (!animate) {
+      void pixieAvatar.offsetWidth; // force layout so the jump above lands before transitions come back on
+      pixieAvatar.style.transition = '';
+    }
+  }
+  reposition(false); // land at the resting corner spot with no animation on load
+
+  var repositionResizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(repositionResizeTimer);
+    repositionResizeTimer = setTimeout(function () { reposition(true); }, 200);
+  });
+
   // ── Expand/collapse ──
   function setExpanded(expanded) {
     panel.classList.toggle('is-expanded', expanded);
     toggle.setAttribute('aria-expanded', String(expanded));
-    if (expanded) {
-      // Pixie "pops up from below the deck" only when the visitor actually
-      // opens the Guide — presence stays occasional/special, not persistent,
-      // per the brief.
-      requestAnimationFrame(function () { panel.classList.add('guide-pixie-visit'); });
-    } else {
-      panel.classList.remove('guide-pixie-visit');
-    }
+    reposition(true);
   }
   toggle.addEventListener('click', function () { setExpanded(!panel.classList.contains('is-expanded')); });
   document.addEventListener('keydown', function (e) {
@@ -178,6 +239,9 @@
     Array.prototype.forEach.call(arcRow.children, function (stage) {
       stage.classList.toggle('is-current', stage.dataset.section === id);
     });
+    // Headline/blurb length varies per scene, which can shift guide-pixie-row's
+    // vertical position while expanded — re-dock to match.
+    if (panel.classList.contains('is-expanded')) reposition(true);
   }
 
   document.addEventListener('maie:scenechange', function (e) {
