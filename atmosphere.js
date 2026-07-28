@@ -170,18 +170,35 @@
     densityEls.forEach(function (el) { densityObserver.observe(el); });
   }
 
-  // ── Cross-scene continuity crossfade ──
+  // ── Cross-scene continuity: alpha-mask taper ──
   // Adjacent story-scenes marked below are pulled into a small overlap
   // (see styles.css's negative margin-top on the same set of ids) so the
-  // outgoing scene's sticky panel can fade out while the incoming one
-  // fades in — previously this was an instant hard cut, one full-bleed
-  // scene disappearing and the next appearing on the very next scroll
-  // pixel, which read as "broken synergy" between scenes rather than one
-  // continuous world. Fractions are each scene's own 20vh overlap
+  // outgoing scene's sticky panel and the incoming one are both pinned on
+  // screen for a short shared scroll window. What happens in that window
+  // used to be a flat `opacity` crossfade of the whole panel — per
+  // follow-up direction, that reads as "two flat layers dissolving into
+  // each other," not "one world changing around you." Replaced with a
+  // CSS mask-image taper instead: the panel's *visible band* grows in
+  // from (and later shrinks back down toward) its bottom edge, so the
+  // World Layer shows through a genuinely dissolving edge rather than an
+  // evenly-dimmed rectangle. Fractions are each scene's own 20vh overlap
   // expressed as a share of that scene's total scroll height (20 / height),
-  // so the crossfade's on-screen duration roughly matches the actual
-  // overlap distance rather than a single guessed constant that would run
-  // too long on short scenes or cut off too early on tall ones.
+  // so the transition's on-screen duration roughly matches the actual
+  // overlap distance rather than a single guessed constant.
+  //
+  // Performance: the mask string is only ever written while a scene is
+  // actually inside its own fadeIn/fadeOut window (`transitioning` below)
+  // — outside of it, mask-image is cleared entirely and the panel is a
+  // plain opaque element again, so there's no ongoing masking/compositing
+  // cost for the ~90% of scroll time a scene spends fully settled. A
+  // `.scene-crossfading` class is toggled alongside it purely to hint
+  // `will-change: opacity` for that same narrow window, so the browser
+  // promotes the panel to its own compositor layer for the transition
+  // instead of the first opacity/mask change forcing a layer creation
+  // mid-animation — the actual "choppy" reports so far are more
+  // consistent with that missing hint than with a genuine dropped-frames
+  // problem elsewhere; I didn't have a live browser to pull a devtools
+  // trace confirming that either way in this pass.
   var CROSSFADE = {
     'scene-frame':        { fadeIn: 0.08,  fadeOut: 0.08 },
     'scene-universe':     { fadeIn: 0.08,  fadeOut: 0.08 },
@@ -190,6 +207,7 @@
     'scene-lifecycle':    { fadeIn: 0,     fadeOut: 0.048 }, // previous section (trust) isn't sticky — no overlap margin behind it
     'scene-agent':        { fadeIn: 0.08,  fadeOut: 0.08 },
   };
+  var TAPER = 46; // max % of the panel eroded from the bottom edge at the extreme of a fade
   var originalInitScrollScene = window.initScrollScene;
   if (originalInitScrollScene && !reducedMotion) {
     window.initScrollScene = function (sectionEl, onProgress) {
@@ -197,11 +215,33 @@
       var sticky = cfg ? sectionEl.querySelector('.scene-sticky') : null;
       return originalInitScrollScene(sectionEl, function (progress, isStatic) {
         onProgress(progress, isStatic);
-        if (sticky && !isStatic) {
-          var inW = cfg.fadeIn > 0 ? Math.min(1, progress / cfg.fadeIn) : 1;
-          var outW = cfg.fadeOut > 0 ? Math.min(1, (1 - progress) / cfg.fadeOut) : 1;
-          sticky.style.opacity = Math.min(inW, outW).toFixed(3);
+        if (!sticky || isStatic) return;
+        var inW = cfg.fadeIn > 0 ? Math.min(1, progress / cfg.fadeIn) : 1;
+        var outW = cfg.fadeOut > 0 ? Math.min(1, (1 - progress) / cfg.fadeOut) : 1;
+        var transitioning = inW < 1 || outW < 1;
+        if (!transitioning) {
+          if (sticky.classList.contains('scene-crossfading')) {
+            sticky.classList.remove('scene-crossfading');
+            sticky.style.maskImage = ''; sticky.style.webkitMaskImage = ''; sticky.style.opacity = '';
+          }
+          return;
         }
+        sticky.classList.add('scene-crossfading');
+        // Visible band: eroding inward from the bottom on both ends —
+        // shrinks toward the bottom edge while fading in (rising into
+        // view), and toward the bottom edge again while fading out
+        // (sinking back down out of view) — one consistent direction of
+        // dissolve rather than two different-feeling edges.
+        var topErode = (1 - inW) * TAPER;
+        var bottomStop = 100 - (1 - outW) * TAPER;
+        var mask = 'linear-gradient(to bottom, transparent 0%, black ' +
+          topErode.toFixed(1) + '%, black ' + bottomStop.toFixed(1) + '%, transparent 100%)';
+        sticky.style.maskImage = mask;
+        sticky.style.webkitMaskImage = mask;
+        // Small residual opacity dip, purely a graceful-degradation floor
+        // for browsers without mask-image support — the mask is doing the
+        // real work where it's available, this never goes below 0.88.
+        sticky.style.opacity = (0.88 + 0.12 * Math.min(inW, outW)).toFixed(3);
       });
     };
   }
