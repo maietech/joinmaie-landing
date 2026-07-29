@@ -331,10 +331,14 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
    the ask lives solely in the closing #paths section now, not repeated
    at the top of the page. Pixie still front-and-center, per the
    standing requirement that it not be centered/hidden. */
-#companion-intro { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; position: relative; }
+#companion-intro { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
 #companion-intro::before {
+  /* radial-gradient's size values are radii, not the full ellipse span, so
+     55%/45% at a 50%/15% center previously pushed the shape ~30% past the
+     top edge and ~5% past each side. Shrunk to fit fully inside the box,
+     and overflow:hidden above is a hard backstop in case of future tweaks. */
   content: ''; position: absolute; inset: 0; z-index: -1;
-  background: radial-gradient(ellipse 55% 45% at 50% 15%, var(--brand-glow), transparent 70%);
+  background: radial-gradient(ellipse 40% 35% at 50% 25%, var(--brand-glow), transparent 70%);
 }
 .intro-statement { font-family: 'Bebas Neue', sans-serif; font-size: clamp(34px, 6vw, 64px); line-height: 1.05; letter-spacing: 0.01em; margin: 0 0 24px; max-width: 18ch; }
 .intro-statement .accent { color: var(--brand-light); }
