@@ -63,6 +63,11 @@
   // split is a judgment call per the direction doc; this mirrors its own
   // suggested rough numbers.
   var CONV_START = 0.45;
+  // Hoisted out of render() (was declared local to it) so step()'s energy
+  // ramp (Narrative Polish Phase 2 item 2) can compute the same remapped
+  // chaosLocal without duplicating the HOLD_FRACTION constant.
+  var HOLD_FRACTION = 0.85;
+  var chaosLocal = 0; // updated by render() every frame, read by step()
 
   var CHIPS = [
     { type: 'file', label: 'v1_final_FINAL.mov' },
@@ -221,9 +226,18 @@
     textRgb = hexToRgb(pathThemeColor('--text-1', '#E8E6E3'));
   });
 
+  // Narrative Polish Phase 2 item 2: chip drift itself gets visibly more
+  // agitated as the chaos phase builds, not just more opaque -- "the air is
+  // getting more charged," reinforcing rising action from the very first
+  // scroll into the scene. Scales the per-frame displacement only, not the
+  // stored vx/vy themselves, so the existing hover-kick/decay physics (see
+  // header note §1) and their MAX_SPEED ceiling are completely unaffected.
+  function chipEnergyMult() { return 1 + chaosLocal * 0.6; }
+
   function step() {
+    var energyMult = chipEnergyMult();
     chips.forEach(function (c) {
-      c.x += c.vx; c.y += c.vy;
+      c.x += c.vx * energyMult; c.y += c.vy * energyMult;
       // Ease current velocity back toward the chip's own base drift —
       // a hover perturbs it, but nothing keeps compounding on top of
       // the last nudge; the field's total energy settles instead of
@@ -262,10 +276,9 @@
     // panel finally releases at raw progress=1. This is a local remap,
     // not a change to story-scroll.js itself (shared by every other
     // scene) or to this scene's own height (already tuned in §24).
-    var HOLD_FRACTION = 0.85;
     progress = Math.min(1, progress / HOLD_FRACTION);
 
-    var chaosLocal = Math.min(1, progress / CONV_START);
+    chaosLocal = Math.min(1, progress / CONV_START);
     // Two variants of the same local progress, deliberately: storyStageWeight
     // already handles out-of-range input correctly on its own (returns 0
     // well outside a fade window) — but clamping to exactly 0 for the whole
@@ -285,7 +298,13 @@
     // so it's the highest-priority text on the page to protect against a
     // fast flick landing between its old, narrower fade edges at 0 opacity.
     if (chaosCaption) chaosCaption.style.opacity = window.storyStageWeight(chaosLocal, 0.04, 0.70, 0.12, 0.20);
-    field.style.setProperty('--chaos-density', 0.5 + chaosLocal * 0.5);
+    // Narrative Polish Phase 2 item 2: widened from 0.5-1.0 (chips already
+    // at half intensity the instant the scene starts, leaving little room
+    // to visibly build) to 0.22-1.0, so the very first scroll into this
+    // scene reads as distinctly quieter than its climax, with real
+    // perceptible room to escalate across the whole chaos phase instead of
+    // only the primary convergence animation carrying that feeling.
+    field.style.setProperty('--chaos-density', 0.22 + chaosLocal * 0.78);
 
     // ── Path stroke-in + ignition (0.45-1.0 window) — tuning unchanged
     // from the pre-merge scene-maie-moment.js, just reading convLocal

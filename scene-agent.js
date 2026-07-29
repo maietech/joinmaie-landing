@@ -65,8 +65,19 @@
     el.className = 'agent-node';
     el.style.left = (nodePts[i].x / VB_W * 100) + '%';
     el.style.top = (nodePts[i].y / VB_H * 100 + STAGGER_Y[i % STAGGER_Y.length]) + '%';
+    // --stagger-dir carries the same alternation STAGGER_Y already uses
+    // (sign of that array's own value at this index), read by styles.css's
+    // .agent-node-inner rule to layer in EXTRA vertical stagger at narrow
+    // viewports via translateY(calc(var(--stagger-dir) * var(--extra-
+    // stagger, 0px))) -- 0px at rest (desktop), so this changes nothing
+    // there; only the media-query-set --extra-stagger makes it visible.
+    // rotate() moved from an inline style into the CSS rule too (--rot),
+    // so both transforms can compose in one place instead of JS owning
+    // part of the transform string and CSS owning the rest.
+    el.style.setProperty('--rot', STAGGER_ROT[i % STAGGER_ROT.length] + 'deg');
+    el.style.setProperty('--stagger-dir', STAGGER_Y[i % STAGGER_Y.length] < 0 ? -1 : 1);
     el.innerHTML =
-      '<div class="agent-node-inner" style="transform: rotate(' + STAGGER_ROT[i % STAGGER_ROT.length] + 'deg);">' +
+      '<div class="agent-node-inner">' +
         '<div class="agent-node-dot"></div><div class="agent-node-label">' + s.label + '</div>' +
       '</div>';
     el.addEventListener('click', function () { showStep(i); });
