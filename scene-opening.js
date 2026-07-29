@@ -71,6 +71,28 @@
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(',');
   }
 
+  // Narrative Polish, Phase 2 item 1: the scene used to hold its full
+  // Cinematic-level veil (55%, from [data-atmo-density="0"] in styles.css)
+  // for its entire 380vh run, then hand off to scene-frame's crossfade mask
+  // with no release of its own — a hard visual boundary rather than a
+  // dissolve. Captured once here (not hardcoded as a duplicate literal) so
+  // this release curve always tracks whatever styles.css's density table
+  // says, even if that number changes later. Eases --atmo-veil down toward
+  // a lower value only in the scene's final stretch, which the canvas wash
+  // (veilAlpha(), below) and .scene-sticky's own CSS background both read
+  // from the same variable — so both layers release into the persistent
+  // World Layer in sync, reusing the existing veil mechanism rather than
+  // adding a second one.
+  var baseVeilPct = parseFloat(getComputedStyle(section).getPropertyValue('--atmo-veil')) || 55;
+  var RELEASE_START = 0.88;
+  var RELEASED_VEIL_PCT = baseVeilPct * 0.3;
+  function updateVeilRelease(progress) {
+    var release = progress > RELEASE_START ? (progress - RELEASE_START) / (1 - RELEASE_START) : 0;
+    release = Math.min(1, Math.max(0, release));
+    var pct = baseVeilPct - (baseVeilPct - RELEASED_VEIL_PCT) * release;
+    section.style.setProperty('--atmo-veil', pct.toFixed(2) + '%');
+  }
+
   var t = 0; // idle animation clock (pulse breathing, data-field blink), independent of scroll
 
   // ── Ignition spark — one-shot intro, plays once on first view ──────
@@ -331,6 +353,7 @@
     // plays out in full then.
     if (!ignitionDone && progress > 0.02) ignitionDone = true;
     lastProgress = progress; isReduced = staticFrame;
+    updateVeilRelease(progress);
     var w = computeWeights(progress);
     var rafTime = window.__scrollTickFrameTime;
     if (lastRenderedFrame !== rafTime) {

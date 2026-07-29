@@ -373,17 +373,59 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
    signal becomes a doorway rather than an endpoint" — with a dashed line
    trailing off past it ("the world continues beyond the page"). This is
    the visual/emotional exhale before the CTA, not the CTA itself. */
+/* Narrative Polish Phase 2 item 5: --paths-signal-progress is written onto
+   #paths itself by atmosphere.js's beaconWrite (mirroring the existing
+   #paths-arrival-beacon's proximity computation — see there), inherited
+   down to every element below. Was previously a purely decorative,
+   scroll-disconnected CSS @keyframes loop; the breathing animation itself
+   is kept (still reads as "alive"), gated by this variable via `filter:
+   opacity()` — a separate compositing step from the `opacity` property the
+   animations already own, so the two don't fight over the same property. */
 .paths-signal { width: min(420px, 72vw); margin: 0 auto 8px; opacity: 0.85; }
 .paths-signal svg { width: 100%; height: auto; display: block; }
-.paths-signal-wave { opacity: 0.55; }
-.paths-signal-ring { transform-box: fill-box; transform-origin: center; animation: paths-ring-breathe 4.5s ease-in-out infinite; }
+/* pathLength="1" (index.html) normalizes this path to exactly 1 unit
+   regardless of its actual curve geometry, so the reveal below doesn't
+   need a measured length. Progressive illumination: fully undrawn at
+   progress 0, fully drawn by progress ~0.7 (a little before the dot/rings
+   finish arriving, so the wave visibly leads the signal reaching its
+   destination rather than completing at the exact same instant). */
+.paths-signal-wave {
+  opacity: 0.55; stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - min(1, var(--paths-signal-progress, 0.5) / 0.7));
+  transition: stroke-dashoffset 0.2s linear;
+}
+.paths-signal-ring {
+  transform-box: fill-box; transform-origin: center;
+  animation: paths-ring-breathe 4.5s ease-in-out infinite;
+  filter: opacity(var(--paths-signal-progress, 0.5));
+}
 .paths-signal-ring--outer { animation-delay: 0.7s; opacity: 0.6; }
-.paths-signal-continue { opacity: 0.4; }
+.paths-signal-dot {
+  transform-box: fill-box; transform-origin: center;
+  opacity: calc(0.25 + var(--paths-signal-progress, 0.5) * 0.75);
+  transform: scale(calc(0.55 + var(--paths-signal-progress, 0.5) * 0.45));
+  transition: opacity 0.2s linear, transform 0.2s linear;
+}
+/* "Traveling energy": the existing dash pattern now drifts continuously
+   (always running, same idiom as the ring's own always-on breathe) but
+   only reads as visible once the signal has actually arrived, via the
+   same filter-opacity gating as the rings above. */
+.paths-signal-continue {
+  opacity: 0.4; filter: opacity(var(--paths-signal-progress, 0.5));
+  animation: paths-signal-flow 1.1s linear infinite;
+}
 @keyframes paths-ring-breathe {
   0%, 100% { transform: scale(1); opacity: 0.75; }
   50% { transform: scale(1.18); opacity: 0.2; }
 }
-@media (prefers-reduced-motion: reduce) { .paths-signal-ring { animation: none; opacity: 0.5; } }
+@keyframes paths-signal-flow {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -8; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .paths-signal-ring { animation: none; opacity: 0.5; }
+  .paths-signal-continue { animation: none; }
+}
 .paths-arrival {
   font-family: 'DM Sans', sans-serif; font-style: italic; font-size: 15px;
   color: var(--text-2); margin-bottom: 46px; letter-spacing: 0.01em;
@@ -552,7 +594,7 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    guide-pixie-text shifts right to make room. The real canvas is
    positioned on top of this via guide.js's reposition(), not moved into
    the flow itself. */
-.guide-pixie-avatar-slot { width: 28px; height: 28px; flex: none; visibility: hidden; }
+.guide-pixie-avatar-slot { width: 40px; height: 40px; flex: none; visibility: hidden; }
 
 /* Mini Pixie — the real Pixie Companion canvas engine (pixie-companion.js),
    scaled down to badge size. Rests at the panel's top-right corner, above
@@ -1100,6 +1142,14 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   position: absolute; transform: translate(-50%, -50%);
   cursor: pointer;
 }
+/* Depth treatment (Narrative Polish Phase 2 item 4): non-active nodes sit
+   back visually — smaller and dimmer — so path points that land close
+   together (see the stagger note below) read as "orbiting at a distance"
+   rather than congested, even where their positions still overlap. The
+   active node's own existing color/glow change (below) already reads as
+   "closer"; this makes every other node explicitly farther, reinforcing
+   the same depth read instead of leaving them all at equal visual weight. */
+.agent-node:not(.is-active) .agent-node-inner { opacity: 0.6; --node-scale: 0.85; }
 /* Rotation applied here, not on .agent-node itself, so it doesn't
    collide with the outer element's own translate(-50%,-50%) positioning
    transform — scene-agent.js sets this per-node, alternating direction
@@ -1112,7 +1162,19 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    smaller risk on wide ones too (§24 refinement pass). */
 .agent-node-inner {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  transition: transform 0.2s ease;
+  /* --extra-stagger defaults to 0px (desktop/wide viewports -- identical to
+     the pre-existing behavior, just re-homed from an inline style into this
+     rule); the narrow-viewport media query below is the only thing that
+     ever makes it nonzero. --node-scale defaults to 1 (set below 0.85 for
+     non-active nodes, see the depth rule above). */
+  transform: rotate(var(--rot, 0deg)) translateY(calc(var(--stagger-dir, 1) * var(--extra-stagger, 0px))) scale(var(--node-scale, 1));
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+@media (max-width: 720px) {
+  .agent-node-inner { --extra-stagger: 5.5px; }
+}
+@media (max-width: 480px) {
+  .agent-node-inner { --extra-stagger: 9px; }
 }
 .agent-node-dot {
   width: 10px; height: 10px; border-radius: 50%;

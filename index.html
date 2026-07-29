@@ -326,12 +326,17 @@
     </div>
   </section>
 
-  <div class="atmo-beacon" aria-hidden="true"><div class="atmo-beacon-mark"></div></div>
+  <!-- id'd specifically so atmosphere.js's existing beaconWrite can mirror
+       this one beacon's --beacon-intensity onto #paths (see there) for
+       .paths-signal's scroll-linked animation — no second scroll listener,
+       reuses the same proximity computation every other beacon already
+       gets. -->
+  <div class="atmo-beacon" id="paths-arrival-beacon" aria-hidden="true"><div class="atmo-beacon-mark"></div></div>
 
   <section id="paths" class="final-cta" data-reveal data-rail-label="Your Path" data-atmo-density="3">
     <div class="paths-signal" aria-hidden="true">
       <svg viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg">
-        <path class="paths-signal-wave" d="M0,70 C40,70 40,52 80,52 C120,52 120,88 160,88 C200,88 200,70 240,70 C280,70 300,70 320,70" fill="none" stroke="var(--brand-light)" stroke-width="2.4" stroke-linecap="round"/>
+        <path class="paths-signal-wave" pathLength="1" d="M0,70 C40,70 40,52 80,52 C120,52 120,88 160,88 C200,88 200,70 240,70 C280,70 300,70 320,70" fill="none" stroke="var(--brand-light)" stroke-width="2.4" stroke-linecap="round"/>
         <circle class="paths-signal-dot" cx="340" cy="70" r="5" fill="var(--accent)"/>
         <circle class="paths-signal-ring" cx="340" cy="70" r="14" fill="none" stroke="var(--accent)" stroke-width="1"/>
         <circle class="paths-signal-ring paths-signal-ring--outer" cx="340" cy="70" r="26" fill="none" stroke="var(--accent)" stroke-width="0.75"/>

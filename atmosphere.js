@@ -255,6 +255,17 @@
   var APPROACH_RANGE = 1.15; // in viewport-heights
   var DISSOLVE_RANGE = 0.45;
 
+  // Narrative Polish Phase 2 item 5: #paths' .paths-signal graphic used to
+  // be pure CSS @keyframes with zero scroll connection. Rather than a
+  // second scroll listener, the specific beacon placed right before #paths
+  // (index.html's #paths-arrival-beacon) already has exactly the proximity
+  // signal this needs computed every tick — mirrored onto #paths itself
+  // (not just the beacon element) as --paths-signal-progress, since
+  // .paths-signal is a sibling of the beacon, not a descendant, so it
+  // wouldn't inherit the beacon's own custom property otherwise.
+  var pathsArrivalBeacon = document.getElementById('paths-arrival-beacon');
+  var pathsSection = document.getElementById('paths');
+
   function beaconRead() {
     return beacons.map(function (b) { return b.getBoundingClientRect(); });
   }
@@ -272,12 +283,16 @@
       }
       intensity = Math.max(0, Math.min(1, intensity));
       b.style.setProperty('--beacon-intensity', intensity.toFixed(3));
+      if (b === pathsArrivalBeacon && pathsSection) {
+        pathsSection.style.setProperty('--paths-signal-progress', intensity.toFixed(3));
+      }
     });
   }
   if (beacons.length) {
     if (reducedMotion) {
       // Settled, static composition — a faint constant glow, no growth/dissolve.
       beacons.forEach(function (b) { b.style.setProperty('--beacon-intensity', '0.35'); });
+      if (pathsSection) pathsSection.style.setProperty('--paths-signal-progress', '0.35');
     } else if (window.registerScrollBatch) {
       window.registerScrollBatch(beaconRead, beaconWrite);
     }

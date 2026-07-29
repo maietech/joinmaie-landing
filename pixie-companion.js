@@ -139,6 +139,22 @@
 
     var w = 120 * 2.5, h = 120 * 2.5;
     var cx = w / 2, cy = h / 2;
+    // Root-cause fix (Narrative Polish Phase 2 item 3): the glow/ring
+    // gradients are drawn inside a rotate+scale "wake stretch" transform
+    // (see wakeStretch below) that elongates their effective on-screen
+    // extent by up to 1.35x in the direction of movement. Their nominal
+    // radii already sit within the canvas's own half-width at rest, but
+    // that stretch — compounded with high reactivity (mouse proximity) —
+    // can push the effective extent past the canvas's own raster boundary,
+    // where it's hard-clipped (not a CSS overflow/mask/stacking issue —
+    // confirmed via a live DOM/ancestor audit: every ancestor of the
+    // canvas is overflow:visible with no masks or clip-paths; the canvas
+    // element's own bitmap is the only thing clipping anything). Caps both
+    // radii so their POST-stretch extent can never exceed a safe fraction
+    // of the canvas's own half-width, engaging only in the exact scenario
+    // that overshoots — at rest (wakeStretch ~= 1) this cap sits well above
+    // every call site's normal radius and changes nothing.
+    var CANVAS_HALF = Math.min(w, h) / 2;
 
     var nucleusPos  = { x: cx, y: cy };
     var targetPos   = { x: cx, y: cy };
@@ -225,6 +241,7 @@
       ctx.rotate(-moveAngle); ctx.translate(-nx, -ny);
 
       var glowR = (100 + reactivity * 30) * modeEnergy;
+      glowR = Math.min(glowR, (CANVAS_HALF * 0.86) / wakeStretch);
       var og = ctx.createRadialGradient(nx, ny, 0, nx, ny, glowR);
       og.addColorStop(0, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.06 + reactivity * 0.08) * modeEnergy * boost + ')');
       og.addColorStop(0.4, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.03 + reactivity * 0.04) * modeEnergy * boost + ')');
@@ -322,6 +339,7 @@
       ctx.rotate(-moveAngle); ctx.translate(-nx, -ny);
       for (var r = 0; r < ringCount; r++) {
         var rSz = 55 + r * 18 + ringAlpha * (12 - r * 3) + reactivity * (18 - r * 4);
+        rSz = Math.min(rSz, (CANVAS_HALF * 0.86) / wakeStretch);
         ctx.strokeStyle = 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.05 * ringAlpha * (1 + reactivity) / (r + 1)) * boost + ')';
         ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(nx, ny, rSz, 0, Math.PI * 2); ctx.stroke();
       }
