@@ -14,11 +14,38 @@ window.initScrollScene = function (sectionEl, onProgress) {
   function read() {
     return sectionEl.getBoundingClientRect();
   }
+
+  // Every registered scene's write() used to run unconditionally on every
+  // single scroll tick, regardless of whether the section was anywhere near
+  // the viewport — found via a live rAF-tagged trace (see the 2026-07-28
+  // Verification & Decision Record): scrolling only through scene-opening
+  // (top of page) still fired scene-agent's (bottom of page) full progress
+  // callback on every tick, at real, non-trivial cost. Fixed with a
+  // visibility early-out, using the exact same rect the read phase already
+  // computes (no new DOM read added): once a section is more than one full
+  // viewport-height outside the visible area in either direction, `progress`
+  // is provably pinned at exactly 0 (below) or 1 (above) for the entire
+  // margin — Math.max(0,...)/Math.min(1,...) below already clamp it there —
+  // so recomputing and re-calling onProgress every tick while deep in that
+  // margin can only ever reproduce the value already reported. `lastReported`
+  // starts null so the very first call, and the one call that settles the
+  // scene to 0/1 the moment it first crosses into the margin, always goes
+  // through — only genuinely redundant repeats of an already-settled value
+  // are skipped. Scenes stay correct scrolling back and forth: re-entering
+  // the margin band always falls through and reports the freshly computed
+  // progress again.
+  var lastReported = null;
   function write(rect) {
     var vh = window.innerHeight;
+    var margin = vh;
+    var farBelow = rect.top > vh + margin;
+    var farAbove = rect.bottom < -margin;
+    if ((farBelow && lastReported === 0) || (farAbove && lastReported === 1)) return;
+
     var total = rect.height - vh;
     var scrolled = -rect.top;
     var progress = total > 0 ? Math.min(1, Math.max(0, scrolled / total)) : (rect.top < vh ? 1 : 0);
+    lastReported = progress;
     onProgress(progress, false);
   }
 

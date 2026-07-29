@@ -169,6 +169,18 @@
     if (pixieHandle && pixieHandle.update) pixieHandle.update({ theme: window.getPixieThemeColors() });
   });
 
+  // This canvas is the one Pixie instance on the page that `pixie-companion.
+  // js`'s own IntersectionObserver-based pause can never help: `.guide-panel`
+  // is `position: fixed`, so it's always "intersecting" the viewport by
+  // construction, at any scroll position, for the entire visit (see the
+  // Verification & Decision Record, Q4). Tied instead to the Guide's own
+  // expanded/collapsed lifecycle via the explicit pause()/resume() lifecycle
+  // added to pixie-companion.js for exactly this case: full animation only
+  // while the panel is actually expanded (the one state where a visitor is
+  // looking at it), a held static frame the rest of the time. Starts paused
+  // — the panel's default state is collapsed.
+  if (pixieHandle && pixieHandle.pause) pixieHandle.pause();
+
   // Only ever sets left/top/width/height (never `right`) so the CSS
   // transition between the corner rest position and the docked one can
   // interpolate both endpoints as plain numbers — animating to/from `right:
@@ -213,6 +225,10 @@
     panel.classList.toggle('is-expanded', expanded);
     toggle.setAttribute('aria-expanded', String(expanded));
     reposition(true);
+    if (pixieHandle) {
+      if (expanded) { if (pixieHandle.resume) pixieHandle.resume(); }
+      else if (pixieHandle.pause) { pixieHandle.pause(); }
+    }
   }
   toggle.addEventListener('click', function () { setExpanded(!panel.classList.contains('is-expanded')); });
   document.addEventListener('keydown', function (e) {

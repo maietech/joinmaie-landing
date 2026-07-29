@@ -305,6 +305,18 @@
     ctx.restore();
   }
 
+  // Shared between this scroll-tick callback and the idle loop() below:
+  // whichever of the two runs first in a given native frame "claims" it by
+  // recording the frame's rAF timestamp here, so the other one (running
+  // later in that same frame, regardless of which one that happens to be)
+  // detects the claim and skips its own redundant draw() call — see
+  // reveal.js's window.__scrollTickFrameTime and the Verification &
+  // Decision Record, Q2. Deliberately only guards the draw() call itself,
+  // not updateCaption() (cheap DOM text/opacity, not the expensive canvas
+  // work) or the idle clock `t`'s own advancement (must keep incrementing
+  // every native frame regardless, or the breathing-pulse/data-blink
+  // timing would visibly slow down during active scrolling).
+  var lastRenderedFrame = null;
   var lastProgress = 0, isReduced = false;
   window.initScrollScene(section, function (progress, staticFrame) {
     // If the visitor has already scrolled meaningfully into the section
@@ -320,7 +332,11 @@
     if (!ignitionDone && progress > 0.02) ignitionDone = true;
     lastProgress = progress; isReduced = staticFrame;
     var w = computeWeights(progress);
-    draw(progress, staticFrame, w);
+    var rafTime = window.__scrollTickFrameTime;
+    if (lastRenderedFrame !== rafTime) {
+      lastRenderedFrame = rafTime;
+      draw(progress, staticFrame, w);
+    }
     updateCaption(w);
     if (nav) nav.classList.toggle('nav-hidden', progress < 0.5 && !staticFrame);
   });
@@ -357,10 +373,13 @@
       }, { threshold: 0 });
       openingVisibilityObserver.observe(section);
     }
-    (function loop() {
+    (function loop(rafTime) {
       if (openingIsIntersecting) {
-        t += 0.02;
-        draw(lastProgress, false, computeWeights(lastProgress));
+        t += 0.02; // idle clock always advances, independent of the dedup guard below
+        if (lastRenderedFrame !== rafTime) {
+          lastRenderedFrame = rafTime;
+          draw(lastProgress, false, computeWeights(lastProgress));
+        }
       }
       requestAnimationFrame(loop);
     })();
