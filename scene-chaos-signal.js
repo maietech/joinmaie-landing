@@ -69,6 +69,23 @@
   var HOLD_FRACTION = 0.85;
   var chaosLocal = 0; // updated by render() every frame, read by step()
 
+  // Tail dissolve into the World Layer, same mechanism as scene-opening.js's
+  // veil release (Narrative Polish item 1) — captured once here rather than
+  // hardcoded, so it always tracks styles.css's density table. Keyed off
+  // raw (pre-HOLD_FRACTION) progress -- see the call site in render() for
+  // why. Starts easing only in the back half of the hold window (raw
+  // progress 0.93-1.0), so the resolved signal state still gets to register
+  // at full strength for a beat before the scene begins dissolving.
+  var baseVeilPct = parseFloat(getComputedStyle(section).getPropertyValue('--atmo-veil')) || 55;
+  var RELEASE_START = 0.93;
+  var RELEASED_VEIL_PCT = baseVeilPct * 0.3;
+  function updateVeilRelease(rawProgress) {
+    var release = rawProgress > RELEASE_START ? (rawProgress - RELEASE_START) / (1 - RELEASE_START) : 0;
+    release = Math.min(1, Math.max(0, release));
+    var pct = baseVeilPct - (baseVeilPct - RELEASED_VEIL_PCT) * release;
+    section.style.setProperty('--atmo-veil', pct.toFixed(2) + '%');
+  }
+
   var CHIPS = [
     { type: 'file', label: 'v1_final_FINAL.mov' },
     { type: 'file', label: 'footage_USE_THIS.mp4' },
@@ -253,6 +270,23 @@
   var clock = 0;
 
   function render(progress, isStatic) {
+    // Narrative Polish follow-up: dissolve this scene's own background into
+    // the World Layer before it hands off to the next section, same
+    // mechanism as scene-opening.js's tail release (item 1) — reused, not
+    // reinvented. Keyed off *raw* progress (captured here, before the
+    // HOLD_FRACTION remap below reassigns `progress`), since the remapped
+    // value already freezes at 1.0 for this scene's entire hold window —
+    // releasing off that would either never fire or fire for the whole
+    // hold, neither of which is the intent (let the resolved signal state
+    // register first, then dissolve near the very end of the hold, right
+    // before the panel actually releases). #companion-intro (this scene's
+    // real successor) isn't a story-scene and was never a crossfade
+    // candidate — its own background is just the faint World Layer/bg-orb
+    // glow, which is exactly what this eases toward instead of holding
+    // this scene's much denser radial-gradient background at full
+    // strength right up to the cut.
+    updateVeilRelease(progress);
+
     // Hold the fully-resolved end state (§28 refinement pass). The
     // architectural problem: .scene-sticky can only stay pinned for
     // (wrapper height - 100vh) of scroll — that's what makes the sticky
