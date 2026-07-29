@@ -58,7 +58,18 @@
     };
   };
 
-  function tick() {
+  // Exposes the native rAF timestamp this tick is running under. The
+  // browser hands the identical timestamp to every rAF callback invoked
+  // within the same native animation frame — scene-opening.js and
+  // scene-chaos-signal.js (the two scenes with their own idle-loop rAF
+  // chain alongside this scroll-tick one) compare their own loop's
+  // timestamp against this value to detect "did a scroll tick already
+  // render this exact frame" and skip a redundant draw()/render() call,
+  // without needing to know or care which of the two chains happened to
+  // run first in that frame. See the Verification & Decision Record, Q2.
+  window.__scrollTickFrameTime = null;
+  function tick(t) {
+    window.__scrollTickFrameTime = t;
     // READ PHASE — every registered read() runs first, before any writes.
     var reads = batchEntries.map(function (e) { return e.read(); });
     // WRITE PHASE — this module's own writes, then every registered write().

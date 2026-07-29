@@ -334,12 +334,18 @@
     // frames before the IntersectionObserver's first async callback fires
     // still render — a brief, harmless grace period, not a correctness gap.
     var isIntersecting = true;
+    // Explicit lifecycle lever for a caller whose canvas can't rely on
+    // viewport intersection at all (see `paused` below) — defaults to
+    // false, so this is a no-op for every existing call site
+    // (companion-intro, scene-agent) that never calls pause()/resume();
+    // their behavior is byte-for-byte unchanged.
+    var paused = false;
     function animate() {
       renderFrame();
-      if (isIntersecting) {
+      if (isIntersecting && !paused) {
         animId = requestAnimationFrame(animate);
       } else {
-        animId = null; // lets the observer's callback know it's safe to restart the chain
+        animId = null; // lets the observer's callback (or resume()) know it's safe to restart the chain
       }
     }
 
@@ -363,7 +369,7 @@
       // re-synced on resume.
       var pixieVisibilityObserver = new IntersectionObserver(function (entries) {
         isIntersecting = entries[entries.length - 1].isIntersecting;
-        if (isIntersecting && !animId) {
+        if (isIntersecting && !paused && !animId) {
           animId = requestAnimationFrame(animate);
         }
       }, { threshold: 0 });
@@ -382,7 +388,10 @@
     // itself here — otherwise every later update() call (the theme-toggle
     // live-update, scene-agent's per-step changes) would silently do
     // nothing visible, leaving the canvas frozen on its init-time state
-    // (found in the pre-production audit).
+    // (found in the pre-production audit). paused is included in that same
+    // exception for the identical reason: a caller that pauses (the
+    // guide-panel Pixie, while collapsed) still needs its held frame to
+    // reflect a live theme toggle, not the stale color from before it paused.
     function update(patch) {
       patch = patch || {};
       if (patch.mode !== undefined) mode = patch.mode;
@@ -391,7 +400,39 @@
       if (patch.archetype !== undefined) archetype = patch.archetype;
       if (patch.temperament !== undefined) temperament = patch.temperament;
       if (patch.theme !== undefined) theme = patch.theme;
-      if (reducedMotion) renderFrame();
+      if (reducedMotion || paused) renderFrame();
+    }
+
+    // pause()/resume(): an explicit lifecycle lever for a caller whose
+    // canvas is permanently `position: fixed` (the guide-panel Pixie),
+    // where the IntersectionObserver above always reports `isIntersecting:
+    // true` and can therefore never gate anything on its own — see the
+    // Verification & Decision Record, Q4. pause() cancels the pending rAF
+    // outright (no frame is scheduled at all while paused — not merely
+    // skipped inside a scheduled callback), so the per-frame cost
+    // (clearRect + ~40 particles + gradients + rings) drops to exactly
+    // zero, not just "cheaper." Nothing else changes: the canvas's own
+    // mousemove/mouseleave listeners and the IntersectionObserver both stay
+    // attached and live (cheap; and keeping the observer live means
+    // isIntersecting stays correct in case a future caller ever un-pauses
+    // based on it). Physics state (nucleusPos/velocity/particles/frame) is
+    // never reset by either call, so resume() continues the spring
+    // animation exactly where it left off — no jump, no re-sync, no
+    // perceptible wake-up delay, same guarantee update() already relies on
+    // above for the visibility-based pause/resume path.
+    function pause() {
+      if (paused) return;
+      paused = true;
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+    }
+    function resume() {
+      if (!paused) return;
+      paused = false;
+      if (reducedMotion) {
+        renderFrame(); // one settled frame, same idiom update() already uses
+      } else if (isIntersecting && !animId) {
+        animId = requestAnimationFrame(animate);
+      }
     }
 
     return {
@@ -402,6 +443,8 @@
         if (pixieVisibilityObserver) pixieVisibilityObserver.disconnect();
       },
       update: update,
+      pause: pause,
+      resume: resume,
     };
   };
 })();

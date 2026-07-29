@@ -299,6 +299,25 @@
     var accent = (s.getPropertyValue('--accent') || '').trim() || '#FFD166';
     return { fg: fg, accent: accent };
   }
+  // Previously called unconditionally inside render() every single frame —
+  // a real, always-on getComputedStyle cost for the entire time the tab is
+  // open, since this canvas (unlike every scene-scoped one) is never paused
+  // per-section. Cached once here, refreshed only on the theme toggle's own
+  // maie:themechange event — same idea scene-chaos-signal.js's textRgb
+  // cache already uses elsewhere in this codebase. NOTE: that cache's own
+  // refresh listener is registered via window.addEventListener, but
+  // theme.js dispatches the event via document.dispatchEvent(...) with no
+  // `bubbles: true` — confirmed live (not assumed) that a window-level
+  // listener never actually receives it, so that pre-existing cache likely
+  // never refreshes on toggle. Left as-is here (out of scope for this
+  // change — flagged separately, not fixed in place); this cache instead
+  // uses document.addEventListener, matching guide.js/scene-agent.js/
+  // index.html's inline script, which is the convention that actually
+  // receives the event.
+  var cachedColors = colorTokens();
+  document.addEventListener('maie:themechange', function () {
+    cachedColors = colorTokens();
+  });
 
   function drawFragment(x, y, size, alpha, color, phase) {
     ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.lineWidth = 1.1;
@@ -336,7 +355,7 @@
     var particleShare = LEVEL_BUDGET[lo].particleShare + (LEVEL_BUDGET[hi].particleShare - LEVEL_BUDGET[lo].particleShare) * frac;
     var activeCount = Math.round(COUNT * particleShare);
 
-    var colors = colorTokens();
+    var colors = cachedColors;
     ctx.clearRect(0, 0, vw, vh);
 
     // Hero pulse (Level 3, reserved — #paths): for ~2.4s after the hero

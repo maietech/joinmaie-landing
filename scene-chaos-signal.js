@@ -434,10 +434,24 @@
   // convergence (the 0.45 boundary this file already uses internally) —
   // "network fragments → tiny pulses → Current" per the atmospheric
   // brief. Reuses the field's own rect rather than iterating every chip.
+  // Shared between this scroll-tick callback and the idle loop() below:
+  // whichever runs first in a given native frame claims it by recording the
+  // frame's rAF timestamp here, so the other (running later in that same
+  // frame, whichever one that happens to be) detects the claim and skips
+  // its own redundant render() call — see reveal.js's
+  // window.__scrollTickFrameTime and the Verification & Decision Record,
+  // Q2. Only guards render() itself (the expensive per-chip DOM/style-write
+  // pass); step() and clock's own advancement in the idle loop always run,
+  // so chip-drift timing is unaffected by whether render() was deduped.
+  var lastRenderedFrame = null;
   var echoFired = false;
   window.initScrollScene(section, function (progress, staticFrame) {
     lastProgress = progress;
-    render(progress, staticFrame);
+    var rafTime = window.__scrollTickFrameTime;
+    if (lastRenderedFrame !== rafTime) {
+      lastRenderedFrame = rafTime;
+      render(progress, staticFrame);
+    }
     if (!echoFired && progress > 0.45 && window.MaieAtmosphere && cachedFieldRect) {
       echoFired = true;
       window.MaieAtmosphere.echo(cachedFieldRect, { count: 6 });
@@ -463,11 +477,14 @@
       }, { threshold: 0 });
       chaosVisibilityObserver.observe(section);
     }
-    (function loop() {
+    (function loop(rafTime) {
       if (chaosIsIntersecting) {
-        clock += 0.02;
+        clock += 0.02; // drift clock always advances, independent of the dedup guard below
         step();
-        render(lastProgress, false);
+        if (lastRenderedFrame !== rafTime) {
+          lastRenderedFrame = rafTime;
+          render(lastProgress, false);
+        }
       }
       requestAnimationFrame(loop);
     })();
