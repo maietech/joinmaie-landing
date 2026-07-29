@@ -691,10 +691,25 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    maie-narrative-audit.md §8 and DESIGN-DEV-GUIDE.md §11 for the
    reasoning already on record about not rushing this section. */
 #scene-opening { height: 380vh; }
+/* Generic fallback background for any .scene-sticky that doesn't define its
+   own override below. Was hardcoded to #000 — harmless for every scene that
+   already has an explicit, more-specific override (#scene-frame, #scene-
+   universe, #scene-human-hand, #scene-chaos-signal, .lifecycle-scene,
+   .agent-scene all win on specificity regardless of this rule's color), but
+   #scene-opening had no override of its own and was silently falling
+   through to it — producing a hardcoded-black panel background that never
+   respected the light/dark toggle, unlike every other scene (confirmed via
+   a 2026-07-29 audit: this was the only story scene missing a theme-aware
+   override, and it directly contradicted DESIGN-DEV-GUIDE.md §11 Decision
+   1's explicit "theme-consistent... in both themes from frame one" call for
+   Section 1). Fixed at the fallback itself, not with a redundant
+   #scene-opening-specific rule, so any future scene that forgets to add its
+   own override (Sections 9-12 are still unbuilt) inherits a theme-correct
+   default instead of silently regressing to black. */
 .scene-sticky {
   position: sticky; top: 0; height: 100vh; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  background: color-mix(in srgb, #000 var(--atmo-veil, 100%), transparent);
+  background: color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent);
 }
 .nav.nav-hidden { transform: translateY(-100%); transition: transform 0.3s ease; }
 .nav { transition: transform 0.3s ease; }
