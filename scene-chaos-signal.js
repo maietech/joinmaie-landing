@@ -41,7 +41,25 @@
 // flash/accent-ring sequence are UNCHANGED in their internal tuning —
 // per the direction doc, that moment is already well-tuned and isn't
 // being re-litigated here. It just now reads off `convLocal` (progress
-// rescaled to the 0.45-1.0 window) instead of its own independent 0-1.
+// rescaled to the current chaos/convergence window, see CONV_START)
+// instead of its own independent 0-1.
+//
+// Crescendo/momentum refinement pass (2026-07-30): live feedback that the
+// scene "takes far too long to initialize" and "lacks real momentum" —
+// traced to the chaos beat (CONV_START) claiming too much of the scene's
+// scroll distance relative to convergence and the resolved hold state.
+// CONV_START/HOLD_FRACTION were rebalanced (see their own comments below)
+// so chaos is shorter and builds on an accelerating curve instead of a
+// linear one (chipEnergyMult(), --chaos-density), convergence keeps its
+// existing absolute room (not shrunk below the live-verified figure), and
+// the resolved "chips arrived at the logo" hold is now deliberately the
+// single longest beat in the scene. styles.css's #scene-chaos-signal
+// height was bumped alongside this (720vh -> 880vh) so convergence's
+// absolute scroll room didn't have to shrink to make room for a longer
+// hold — see that file's comment for the exact reasoning. The signal
+// path/ignition-flash/accent-ring internal tuning referenced above is
+// still untouched by this pass; only the three stages' relative and
+// absolute durations, and the chaos-phase build curve, changed.
 
 (function () {
   var section = document.getElementById('scene-chaos-signal');
@@ -59,14 +77,34 @@
   var len = path.getTotalLength();
   path.style.strokeDasharray = len;
 
-  // 0.0-0.45 chaos/escalation, 0.45-1.0 convergence/ignition — the exact
-  // split is a judgment call per the direction doc; this mirrors its own
-  // suggested rough numbers.
-  var CONV_START = 0.45;
+  // 0.0-0.30 chaos/escalation, 0.30-1.0 convergence/ignition.
+  //
+  // Retuned from 0.45/0.85 (crescendo/momentum refinement pass): live
+  // feedback was that the scene "takes far too long to initialize" — with
+  // the old split, chaos alone ate ~275vh (0.45 * 0.85 * 720vh) of pure
+  // unresolved drift before the signal even began emerging, and the
+  // resolved "arrived" state only got to hold for ~108vh (0.15 * 720vh)
+  // before the section released, the shortest of its three beats despite
+  // being the payoff. Combined with the styles.css height bump
+  // (720vh -> 880vh, see that file's comment), the new split gives:
+  //   chaos        ~0.17 * 0.568 * 880vh ≈ 150vh (was ~275vh)
+  //   convergence  ~0.70 * 0.568 * 880vh ≈ 350vh (was ~336vh — kept at or
+  //                above the live-verified v32 figure, not shrunk, so
+  //                §24's original "convergence needs room to read" fix
+  //                holds)
+  //   hold         ~0.432 * 880vh       ≈ 380vh (was ~108vh) — now
+  //                deliberately the longest beat: chip-arrival/logo-lit
+  //                completion is the part visitors spend the most scroll
+  //                distance inside, not the least.
+  // See chipEnergyMult()/--chaos-density below for the matching change to
+  // how chaos *feels* over that shorter span — an accelerating build
+  // rather than a linear one, so the shortened beat still reads as rising
+  // action into convergence, not a beat that got clipped.
+  var CONV_START = 0.30;
   // Hoisted out of render() (was declared local to it) so step()'s energy
   // ramp (Narrative Polish Phase 2 item 2) can compute the same remapped
   // chaosLocal without duplicating the HOLD_FRACTION constant.
-  var HOLD_FRACTION = 0.85;
+  var HOLD_FRACTION = 0.568;
   var chaosLocal = 0; // updated by render() every frame, read by step()
 
   // Tail dissolve into the World Layer, same mechanism as scene-opening.js's
@@ -249,7 +287,16 @@
   // scroll into the scene. Scales the per-frame displacement only, not the
   // stored vx/vy themselves, so the existing hover-kick/decay physics (see
   // header note §1) and their MAX_SPEED ceiling are completely unaffected.
-  function chipEnergyMult() { return 1 + chaosLocal * 0.6; }
+  //
+  // Curve changed from linear (1 + chaosLocal * 0.6) to an accelerating
+  // power curve (crescendo/momentum refinement pass): the chaos beat is now
+  // ~150vh instead of ~275vh (see CONV_START above), so a flat linear ramp
+  // would visibly shrink the amount of build-up that fits in it. A power
+  // curve keeps the opening calm/legible (chaosLocal^1.6 stays low near 0)
+  // and concentrates most of the rise in the back half, right up against
+  // the handoff into convergence — reads as rising action culminating in a
+  // beat, not a beat that just got clipped shorter.
+  function chipEnergyMult() { return 1 + Math.pow(chaosLocal, 1.6) * 0.85; }
 
   function step() {
     var energyMult = chipEnergyMult();
@@ -338,7 +385,14 @@
     // scene reads as distinctly quieter than its climax, with real
     // perceptible room to escalate across the whole chaos phase instead of
     // only the primary convergence animation carrying that feeling.
-    field.style.setProperty('--chaos-density', 0.22 + chaosLocal * 0.78);
+    //
+    // Base/curve retuned alongside chipEnergyMult() above (crescendo/
+    // momentum refinement pass): starts a touch lower (0.18 vs 0.22) and
+    // rises on the same accelerating chaosLocal^1.4 curve, so density and
+    // drift-energy build in lockstep across the now-shorter chaos beat —
+    // both read as quiet-then-rising, not just present at full intensity
+    // from the first frame.
+    field.style.setProperty('--chaos-density', 0.18 + Math.pow(chaosLocal, 1.4) * 0.82);
 
     // ── Path stroke-in + ignition (0.45-1.0 window) — the convergence
     // *positions*, the message-chip reveal, and the accent dot/ring/flash

@@ -758,23 +758,31 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   margin-top: -20vh;
 }
 /* Sections 5+6 merged into one continuous scroll region (was 250vh each,
-   500vh total) — originally kept at that same combined distance for
-   pacing parity with the pre-merge version, redistributed internally
-   0.45/0.55 between the chaos and convergence stages (see
-   scene-chaos-signal.js). Bumped 500vh -> 720vh (§24 refinement pass):
-   confirmed by real usage that even normal desktop scroll speeds don't
-   give the convergence phase (chips traveling in to the logo, progress
-   0.45-1.0) enough room to actually read as chips-converging before the
-   section ends — not just a mobile-fling problem. The 0.45/0.55 split
-   itself is untouched, so both phases get proportionally more room
-   rather than rebalancing which phase "wins" the extra space. */
-#scene-chaos-signal { height: 720vh; }
-/* Mobile-specific pacing bump on top of the desktop increase above,
-   same established pattern as .lifecycle-scene below (§21/§22 refinement
+   500vh total). Bumped 500vh -> 720vh (§24 refinement pass): confirmed by
+   real usage that even normal desktop scroll speeds don't give the
+   convergence phase (chips traveling in to the logo) enough room to
+   actually read as chips-converging before the section ends.
+   Bumped again 720vh -> 880vh (crescendo/momentum refinement pass): live
+   user feedback that the scene "takes far too long to initialize" traced
+   to the chaos beat eating too much of the 720vh via the untouched
+   0.45/0.55 chaos/convergence split (§24 deliberately kept that ratio
+   fixed, so growing the total also grew the chaos beat proportionally).
+   This pass DOES rebalance the split (see CONV_START/HOLD_FRACTION in
+   scene-chaos-signal.js): chaos shrinks to ~150vh (still a full readable
+   beat, just no longer padded), convergence holds ~350vh (at/above the
+   336vh the live-verified v32 build already used, so §24's fix isn't
+   undone), and the resolved hold state — all chips arrived, logo lit —
+   grows to ~380vh, deliberately the longest single segment now, so
+   "scene completion" is the part visitors spend the most scroll inside
+   rather than the shortest. See scene-chaos-signal.js for the exact
+   fractions. */
+#scene-chaos-signal { height: 880vh; }
+/* Mobile-specific pacing bump on top of the desktop height above, same
+   established pattern as .lifecycle-scene below (§21/§22 refinement
    passes) — a mobile fling covers proportionally more of a scene than
    the same gesture on desktop. Kept the same +140vh gap over desktop
    this scene has had since §22. */
-@media (max-width: 720px) { #scene-chaos-signal { height: 860vh; } }
+@media (max-width: 720px) { #scene-chaos-signal { height: 1020vh; } }
 /* Section 1 now carries a six-beat caption narrative (see scene-opening.js)
    instead of a single line — more scroll distance per beat than the
    default 250vh would give (250/6 ≈ 42vh/beat, tighter than felt right
