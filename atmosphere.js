@@ -144,6 +144,22 @@
   var heroEl = document.querySelector('[data-atmo-density="3"]');
   var heroPulseStart = null; // set once, first time the hero section is seen
 
+  // Phase II, Area 5, Direction A: a second, independent pulse — the World
+  // Layer acknowledging Section 1's one-shot ignition, the same way it
+  // already acknowledges the #paths arrival via heroPulse below. Kept as
+  // its own start-time/trigger rather than reusing heroPulseStart's
+  // scroll-position-driven trigger, since ignition is a TIME event on
+  // load, not a scroll event — scene-opening.js dispatches this once, right
+  // as its spark begins. openingPulse (computed in render()) intentionally
+  // does NOT shift particle color toward --accent the way heroPulse does —
+  // that color shift is reserved as the unique visual signature of the
+  // #paths arrival, the story's actual resolution; reusing it here too
+  // would blunt what makes that later moment read as distinct.
+  var openingPulseStart = null;
+  document.addEventListener('maie:ignition', function () {
+    if (openingPulseStart === null) openingPulseStart = clock;
+  });
+
   if (densityEls.length && typeof IntersectionObserver !== 'undefined') {
     var ratios = new Map();
     var densityObserver = new IntersectionObserver(function (entries) {
@@ -383,6 +399,18 @@
       if (since >= 0 && since < 2.4) heroPulse = Math.sin((since / 2.4) * Math.PI);
     }
 
+    // Opening pulse (Section 1's ignition, see the listener above): a much
+    // quieter, shorter echo of the same rise-and-fall shape — a "first
+    // contact" hint, not a second climax. Pulls particles toward the
+    // viewport's literal center (where the ignition spark itself sits),
+    // not the hero's off-center sine band — a different point of light,
+    // a different gesture, so it shouldn't look identical to the arrival.
+    var openingPulse = 0;
+    if (openingPulseStart !== null) {
+      var sinceOpening = clock - openingPulseStart;
+      if (sinceOpening >= 0 && sinceOpening < 1.6) openingPulse = Math.sin((sinceOpening / 1.6) * Math.PI);
+    }
+
     var band = vh + 220; // loop band height (px), with margin so wrap is off-screen
     for (var i = 0; i < activeCount; i++) {
       var p = particles[i];
@@ -395,7 +423,10 @@
         var alignedX = vw * 0.5 + Math.sin((y / vh) * Math.PI * 2 + 1.2) * vw * 0.28;
         x = x + (alignedX - x) * heroPulse * 0.7;
       }
-      var alpha = budgetOpacity * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3);
+      if (openingPulse > 0) {
+        x = x + (vw * 0.5 - x) * openingPulse * 0.4;
+      }
+      var alpha = budgetOpacity * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3) * (1 + openingPulse * 0.6);
       var color = (p.tint || heroPulse > 0.5) ? colors.accent : colors.fg;
       var size = p.size * (0.7 + p.depth * 0.5);
       if (p.type === 1) drawDot(x, y, size, alpha, color);

@@ -102,10 +102,24 @@
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var ignitionDone = reducedMotion;
   var ignitionStartTime = null;
-  var IGNITION_MS = 950;
+  var IGNITION_MS_BASE = 950;
+
+  // Phase II, Area 5, Direction B: the spark used to peak at the same fixed
+  // ~70-74px radius regardless of viewport, so a phone and a cinema-width
+  // monitor got an identical-size ignition — on a big display this reads as
+  // undersized for the moment it's supposed to open the whole story with.
+  // Scaled off the viewport's *smaller* dimension (not width alone, so a
+  // short-but-wide window doesn't inflate it past what the vertical space
+  // can actually hold) — clamped to [1, 2.2] so phones/small tablets
+  // (min dimension well under 700px) render byte-for-byte as before, and
+  // even very large displays stop growing rather than scaling forever.
+  function sceneScale() {
+    return Math.min(2.2, Math.max(1, Math.min(W, H) / 700));
+  }
 
   function drawIgnition(p) {
     var cx = W / 2, cy = H / 2;
+    var scale = sceneScale();
     var brand = themeColor('--brand-light', '#C24E4E');
     var accent = themeColor('--accent', '#FFD166');
     var bg = themeColor('--bg', '#09090B');
@@ -125,46 +139,70 @@
     // Stage B (0.15 -> 0.55): the spark itself — expanding ring + shards.
     var burstW = window.storyStageWeight(p, 0.18, 0.32, 0.10, 0.20);
     if (burstW > 0.002) {
-      var ringR = 4 + p * 70;
+      var ringR = (4 + p * 70) * scale;
       ctx.strokeStyle = 'rgba(' + hexRgb(brand) + ',' + (burstW * 0.8) + ')';
       ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI * 2); ctx.stroke();
 
-      var shardLen = (1 - p) * 26 + 6;
+      var shardStart = 10 * scale;
+      var shardLen = ((1 - p) * 26 + 6) * scale;
       ctx.strokeStyle = 'rgba(' + hexRgb(accent) + ',' + burstW + ')';
       ctx.lineWidth = 1.4;
       for (var s = 0; s < 6; s++) {
         var ang = (s / 6) * Math.PI * 2;
         ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(ang) * 10, cy + Math.sin(ang) * 10);
-        ctx.lineTo(cx + Math.cos(ang) * (10 + shardLen), cy + Math.sin(ang) * (10 + shardLen));
+        ctx.moveTo(cx + Math.cos(ang) * shardStart, cy + Math.sin(ang) * shardStart);
+        ctx.lineTo(cx + Math.cos(ang) * (shardStart + shardLen), cy + Math.sin(ang) * (shardStart + shardLen));
         ctx.stroke();
       }
     }
 
     // Stage C (0.45 -> 1.0): crossfades into the steady settled glow —
     // the same visual as the ongoing breathing pulse below, so the
-    // handoff to draw() is seamless once ignitionDone flips.
+    // handoff to draw() is seamless once ignitionDone flips. Scaled
+    // identically to draw()'s own wPulse glow (40 * scale) below, so the
+    // handoff never has a jarring size jump between the two.
     var settleW = window.storyStageWeight(p, 0.55, 1.0, 0.25, 0);
     if (settleW > 0.002) {
-      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 40);
+      var glowR = 40 * scale;
+      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
       g.addColorStop(0, 'rgba(' + hexRgb(accent) + ',' + settleW + ')');
       g.addColorStop(0.3, 'rgba(' + hexRgb(brand) + ',' + (settleW * 0.6) + ')');
       g.addColorStop(1, 'rgba(' + hexRgb(brand) + ',0)');
       ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, glowR, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(' + hexRgb(accent) + ',' + settleW + ')';
-      ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, 3.5 * scale, 0, Math.PI * 2); ctx.fill();
     }
   }
+
+  // Duration gets a smaller, separately-capped scale than size (1.25 vs.
+  // 2.2) — a bigger spark earns a beat more time to register, but the
+  // intro shouldn't start to drag just because the window is wide.
+  // Computed once at ignition start (not per-frame): the spark's whole
+  // arc should hold one consistent pace, not shift mid-flight if the
+  // window happens to resize during the ~1s it plays.
+  var ignitionMs = IGNITION_MS_BASE;
 
   function runIgnition(ts) {
     // ignitionDone can now also be set true early, from the scroll-progress
     // guard below — bail out immediately rather than keep painting ignition
     // frames over whatever draw() just rendered for the real scroll position.
     if (ignitionDone) return;
-    if (ignitionStartTime === null) ignitionStartTime = ts;
-    var p = Math.min(1, (ts - ignitionStartTime) / IGNITION_MS);
+    if (ignitionStartTime === null) {
+      ignitionStartTime = ts;
+      ignitionMs = IGNITION_MS_BASE * Math.min(1.25, sceneScale());
+      // Phase II, Area 5, Direction A: ties this scene's one-shot ignition
+      // to the same alignment-pulse grammar atmosphere.js already runs for
+      // the #paths arrival beacon (heroPulse) — a second call site for a
+      // mechanic that already exists, not a new one. Fires once, here,
+      // right as the spark actually begins (not on scroll, not on a timer
+      // of its own) so the World Layer's "first contact" nudge and the
+      // spark's own ignition are the same instant. No-op if atmosphere.js
+      // hasn't loaded for some reason.
+      if (document.dispatchEvent) document.dispatchEvent(new CustomEvent('maie:ignition'));
+    }
+    var p = Math.min(1, (ts - ignitionStartTime) / ignitionMs);
     drawIgnition(p);
     if (p < 1) {
       requestAnimationFrame(runIgnition);
@@ -253,15 +291,18 @@
 
     // 1. Pulse — a breathing point of light. Accent-hot core / brand
     // glow, not literal white — stays visible against either theme's bg.
+    // Scaled the same way drawIgnition()'s Stage C is (sceneScale()), so
+    // the handoff from ignition to this ongoing pulse never jumps size.
     if (wPulse > 0.002) {
+      var scale = sceneScale();
       var breathe = isStatic ? 1 : 1 + Math.sin(t * 1.6) * 0.25;
-      var r = 3.5 * breathe;
-      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 40 * breathe);
+      var r = 3.5 * scale * breathe;
+      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 40 * scale * breathe);
       g.addColorStop(0, 'rgba(' + hexRgb(accent) + ',' + wPulse + ')');
       g.addColorStop(0.3, 'rgba(' + hexRgb(brand) + ',' + (wPulse * 0.6) + ')');
       g.addColorStop(1, 'rgba(' + hexRgb(brand) + ',0)');
       ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(cx, cy, 40 * breathe, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, 40 * scale * breathe, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(' + hexRgb(accent) + ',' + wPulse + ')';
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
     }
