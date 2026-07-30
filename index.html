@@ -41,7 +41,7 @@
 
 <nav class="nav">
   <a class="nav-brand" href="#top">
-    <span class="nav-brand-word">MAIE</span>
+    <span class="nav-brand-word signal-link">MAIE</span>
     <svg viewBox="0 0 92 56" fill="none" stroke="var(--brand-light)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
                C 29,20 33,20 33,30 C 33,40 39,40 41,28
@@ -132,11 +132,20 @@
       <div class="frame-stage">
         <div class="frame-photo-wrap">
           <img class="frame-photo" src="media/staircase-by-robert-schwarz.jpg" alt="" aria-hidden="true" loading="lazy">
+          <!-- Copy revised, Phase II Area 6 — same four slots, same
+               JetBrains Mono "data readout" register (DESIGN-DEV-GUIDE.md
+               §2: mono signals hashes/EXIF/metadata), but the raw values
+               themselves were legible only to a photographer/engineer (a
+               literal hex hash; GPS + f-stop + color-temperature-in-Kelvin;
+               developer-craft hashtags). Each slot now states the plain
+               fact the original value stood for, so the visitor still
+               watches a frame reveal hidden data — just data whose meaning
+               lands without a decoder ring. -->
           <div class="frame-fracture" id="frame-fracture-0" style="top: 20%;">
-            <span class="frame-tag frame-tag--mono">0x9F2E1A · verified</span>
+            <span class="frame-tag frame-tag--mono">untouched · verified</span>
           </div>
           <div class="frame-fracture" id="frame-fracture-1" style="top: 40%;">
-            <span class="frame-tag frame-tag--mono">36.1°N · f/2.8 · 5600K</span>
+            <span class="frame-tag frame-tag--mono">36.1°N · golden hour</span>
           </div>
           <div class="frame-fracture" id="frame-fracture-2" style="top: 60%;">
             <div class="frame-wave" aria-hidden="true">
@@ -144,7 +153,7 @@
             </div>
           </div>
           <div class="frame-fracture" id="frame-fracture-3" style="top: 80%;">
-            <span class="frame-tag">#paper-craft &nbsp;#texture &nbsp;#studio-light</span>
+            <span class="frame-tag">#small-details &nbsp;#texture &nbsp;#warm-light</span>
           </div>
         </div>
         <svg class="frame-signal" viewBox="0 0 20 100" preserveAspectRatio="none" aria-hidden="true">
@@ -201,13 +210,18 @@
   <section id="scene-human-hand" class="story-scene" data-atmo-density="1">
     <div class="scene-sticky">
       <div class="hand-frame" id="hand-frame">
-        <img class="hand-photo" src="media/made-by-fari-14122231.jpg" alt="A photographer checks a shot on their camera." loading="lazy">
-        <img class="hand-photo" src="media/made-by-nicolas-rueda-175965148-15713296.jpg" alt="An editor works alone at night, lit only by their monitor." loading="lazy">
-        <img class="hand-photo" src="media/made-by-ron-lach-8089248.jpg" alt="A camera operator's monitor shows the scene being filmed." loading="lazy">
-        <img class="hand-photo" src="media/made-by-john-taran-166597215-11044765.jpg" alt="Two people work together at a music production session." loading="lazy">
-        <img class="hand-photo" src="media/made-by-ron-lach-8100065.jpg" alt="A close view of color-grading curves and wheels on an editing monitor." loading="lazy">
-        <img class="hand-photo" src="media/made-by-ron-lach-8035286.jpg" alt="Hands arrange story-structure index cards on a table." loading="lazy">
-        <img class="hand-photo" src="media/made-by-ron-lach-8102680.jpg" alt="Two colorists review and discuss a shot together." loading="lazy">
+        <!-- object-position tuned per photo (Phase II, Area 2, Direction B) —
+             each value set after viewing the actual image, not guessed:
+             a plain center crop clipped the real subject (the camera, the
+             screens, the hands) on several of these at typical viewport
+             aspect ratios. -->
+        <img class="hand-photo" src="media/made-by-fari-14122231.jpg" alt="A photographer checks a shot on their camera." loading="lazy" style="object-position: 44% 58%;">
+        <img class="hand-photo" src="media/made-by-nicolas-rueda-175965148-15713296.jpg" alt="An editor works alone at night, lit only by their monitor." loading="lazy" style="object-position: 66% 52%;">
+        <img class="hand-photo" src="media/made-by-ron-lach-8089248.jpg" alt="A camera operator's monitor shows the scene being filmed." loading="lazy" style="object-position: 34% 42%;">
+        <img class="hand-photo" src="media/made-by-john-taran-166597215-11044765.jpg" alt="Two people work together at a music production session." loading="lazy" style="object-position: 50% 40%;">
+        <img class="hand-photo" src="media/made-by-ron-lach-8100065.jpg" alt="A close view of color-grading curves and wheels on an editing monitor." loading="lazy" style="object-position: 50% 66%;">
+        <img class="hand-photo" src="media/made-by-ron-lach-8035286.jpg" alt="Hands arrange story-structure index cards on a table." loading="lazy" style="object-position: 48% 58%;">
+        <img class="hand-photo" src="media/made-by-ron-lach-8102680.jpg" alt="Two colorists review and discuss a shot together." loading="lazy" style="object-position: 50% 64%;">
       </div>
       <div class="hand-scrim" aria-hidden="true"></div>
       <div class="hand-thesis" id="hand-thesis-before">Technology does not create meaning.</div>

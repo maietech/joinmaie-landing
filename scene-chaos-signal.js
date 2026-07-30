@@ -340,21 +340,30 @@
     // only the primary convergence animation carrying that feeling.
     field.style.setProperty('--chaos-density', 0.22 + chaosLocal * 0.78);
 
-    // ── Path stroke-in + ignition (0.45-1.0 window) — tuning unchanged
-    // from the pre-merge scene-maie-moment.js, just reading convLocal
-    // instead of its own independent progress. Not re-litigated per the
-    // direction doc — this moment is already right. ───────────────────
+    // ── Path stroke-in + ignition (0.45-1.0 window) — the convergence
+    // *positions*, the message-chip reveal, and the accent dot/ring/flash
+    // sequence below are pre-merge tuning, unchanged, per the direction
+    // doc: that moment already reads right. What changed (Phase II, Area
+    // 3): the stroke's own width/glow used to sit flat for this entire
+    // window and only gain any energy in the ~4%-of-scroll flash right at
+    // the end — a static line that "wakes up" once, not a rising signal.
+    // Both are now a continuous function of `eased` (already computed
+    // above, 0 at convergence's start through 1 at full draw), so the line
+    // visibly gains weight and light throughout the draw-in instead of
+    // only at the finish — the flash below is now the crest of a rise,
+    // not the only beat. restGlow/restWidth also give the resolved hold
+    // state (eased stays 1 there) more presence than the old flat resting
+    // width, so the conclusion reads as the strongest point, not a snap
+    // back to baseline.
     path.style.strokeDashoffset = len * (1 - eased);
 
+    var accentRgb = hexToRgb(pathThemeColor('--accent', '#FFD166'));
     var flashW = window.storyStageWeight(convLocalRaw, 0.82, 0.86, 0.06, 0.10);
-    if (flashW > 0.002) {
-      var accentRgb = hexToRgb(pathThemeColor('--accent', '#FFD166'));
-      path.style.filter = 'drop-shadow(0 0 ' + (1.5 + flashW * 2.5).toFixed(1) + 'px rgba(' + accentRgb + ',' + (flashW * 0.65).toFixed(2) + '))';
-      path.style.strokeWidth = (1.6 + flashW * 0.7).toFixed(2);
-    } else {
-      path.style.filter = '';
-      path.style.strokeWidth = '';
-    }
+    var restGlow = eased * 0.34;
+    var glowAlpha = Math.max(restGlow, flashW * 0.65);
+    var glowRadius = 0.8 + eased * 2.2 + flashW * 2.5;
+    path.style.filter = 'drop-shadow(0 0 ' + glowRadius.toFixed(1) + 'px rgba(' + accentRgb + ',' + glowAlpha.toFixed(2) + '))';
+    path.style.strokeWidth = (1.1 + eased * 1.0 + flashW * 0.7).toFixed(2);
     if (accentDot) {
       var dotW = window.storyStageWeight(convLocalRaw, 0.90, 1.0, 0.04, 0);
       accentDot.setAttribute('opacity', Math.max(dotW, flashW));
