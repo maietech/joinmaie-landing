@@ -2,9 +2,10 @@
 // directly into "Everything Connects" as one continuous scroll region,
 // per chaos-to-signal-merge-direction.md. One .story-scene wrapper, one
 // sticky panel, one initScrollScene progress driver — internally split
-// into a chaos/escalation stage (progress 0.0-0.45) and a convergence/
-// ignition stage (0.45-1.0) via storyStageWeight, same idiom every other
-// scene on this page already uses for its own sub-beats.
+// into a chaos/escalation stage, a convergence/ignition stage, and a
+// resolved hold (see CONV_START/HOLD_FRACTION below for the current
+// split) via storyStageWeight, same idiom every other scene on this page
+// already uses for its own sub-beats.
 //
 // Three things changed from the pre-merge scene-chaos.js + scene-maie-
 // moment.js pair, per the direction doc:
@@ -60,6 +61,40 @@
 // path/ignition-flash/accent-ring internal tuning referenced above is
 // still untouched by this pass; only the three stages' relative and
 // absolute durations, and the chaos-phase build curve, changed.
+//
+// Narrative Polish pass — living resolution (per NARRATIVE_LOCK.md
+// Category B, strengthening the Chaos → Signal landmark, not competing
+// with it): user testing found the chaos buildup still ran a little long,
+// and — separately — that the resolved end state (chips arrived, logo
+// lit) went completely static: nothing in render()'s hold-window output
+// (glowAlpha/glowRadius/dotW/ringSteady) depends on anything but the
+// now-constant `eased`/`convLocalRaw` once the hold begins, so every
+// value it writes is a flat constant for the entire ~380vh hold. Three
+// changes, all additive to the untouched ignition tuning above:
+//   1. CONV_START shortened again (0.30 -> 0.22, see its own comment) —
+//      chaos now ~110vh instead of ~150vh, convergence gains the
+//      difference (~390vh), hold unchanged (~380vh).
+//   2. A CSS-only "ember" breathing ring (styles.css's
+//      .signal-ember-ring / @keyframes chaos-ember-breathe) plus
+//      periodic MaieAtmosphere.echo() bursts off the accent dot, both
+//      gated by a new --chaos-resolved custom property (0/1, set below)
+//      — "the lingering beauty after fireworks," not a second climax:
+//      quiet, decaying, additive to the existing static glow rather than
+//      replacing or upstaging it.
+//   3. One additional caption beat (#scene-maie-caption-awaken) that
+//      crossfades in partway through the hold, after capAfter's line has
+//      already had room to register — reinforces the existing realization
+//      ("the system is no longer merely organized") without introducing a
+//      new theme or a second emotional peak.
+// Two real bugs found and fixed while reading through the previous pass's
+// changes (STRONG, direct source read): the mouseenter hover-kick guard
+// and the Narrative-Echo trigger below both compared *raw* scroll
+// progress against CONV_START/a hardcoded 0.45 — correct back when
+// CONV_START was itself expressed against raw progress, but CONV_START
+// has been a *remapped* (post-HOLD_FRACTION) fraction since the
+// crescendo pass, so both comparisons have been silently firing at the
+// wrong scroll position since that pass. Fixed by introducing
+// CONV_START_RAW below and using it at both call sites.
 
 (function () {
   var section = document.getElementById('scene-chaos-signal');
@@ -72,40 +107,46 @@
   var accentRing = document.getElementById('signal-accent-ring');
   var capBefore = document.getElementById('scene-maie-caption-before');
   var capAfter = document.getElementById('scene-maie-caption-after');
+  var capAwaken = document.getElementById('scene-maie-caption-awaken');
   if (!field || !svg || !path) return;
 
   var len = path.getTotalLength();
   path.style.strokeDasharray = len;
 
-  // 0.0-0.30 chaos/escalation, 0.30-1.0 convergence/ignition.
+  // 0.0-0.22 chaos/escalation, 0.22-1.0 convergence/ignition.
   //
-  // Retuned from 0.45/0.85 (crescendo/momentum refinement pass): live
-  // feedback was that the scene "takes far too long to initialize" — with
-  // the old split, chaos alone ate ~275vh (0.45 * 0.85 * 720vh) of pure
-  // unresolved drift before the signal even began emerging, and the
-  // resolved "arrived" state only got to hold for ~108vh (0.15 * 720vh)
-  // before the section released, the shortest of its three beats despite
-  // being the payoff. Combined with the styles.css height bump
-  // (720vh -> 880vh, see that file's comment), the new split gives:
-  //   chaos        ~0.17 * 0.568 * 880vh ≈ 150vh (was ~275vh)
-  //   convergence  ~0.70 * 0.568 * 880vh ≈ 350vh (was ~336vh — kept at or
-  //                above the live-verified v32 figure, not shrunk, so
-  //                §24's original "convergence needs room to read" fix
-  //                holds)
-  //   hold         ~0.432 * 880vh       ≈ 380vh (was ~108vh) — now
-  //                deliberately the longest beat: chip-arrival/logo-lit
-  //                completion is the part visitors spend the most scroll
-  //                distance inside, not the least.
+  // Retuned from 0.45/0.85 (crescendo/momentum refinement pass), then
+  // again from 0.30 (this pass, Narrative Polish — user testing: "the
+  // current balance still feels a little long"). With HOLD_FRACTION
+  // unchanged at 0.568 and the styles.css height unchanged at 880vh:
+  //   chaos        ~0.22 * 0.568 * 880vh ≈ 110vh (was ~150vh)
+  //   convergence  ~0.78 * 0.568 * 880vh ≈ 390vh (was ~350vh — gains the
+  //                difference; per this pass's own instruction to
+  //                preserve/improve convergence's readability rather than
+  //                rush it, the saved chaos time goes to convergence, not
+  //                away from it)
+  //   hold         ~0.432 * 880vh       ≈ 380vh (unchanged — already the
+  //                longest beat as of the previous pass, and this pass
+  //                gives it a living resolution instead of touching its
+  //                length further, see the header note above)
   // See chipEnergyMult()/--chaos-density below for the matching change to
   // how chaos *feels* over that shorter span — an accelerating build
   // rather than a linear one, so the shortened beat still reads as rising
   // action into convergence, not a beat that got clipped.
-  var CONV_START = 0.30;
+  var CONV_START = 0.22;
   // Hoisted out of render() (was declared local to it) so step()'s energy
   // ramp (Narrative Polish Phase 2 item 2) can compute the same remapped
   // chaosLocal without duplicating the HOLD_FRACTION constant.
   var HOLD_FRACTION = 0.568;
+  // CONV_START is a fraction of *remapped* progress (post-HOLD_FRACTION),
+  // not raw scroll progress — anything that needs to compare against raw
+  // progress (the mouseenter guard below, the Narrative Echo trigger)
+  // needs this instead. Two call sites were found still comparing raw
+  // progress directly against CONV_START/a stale hardcoded fraction (see
+  // the header note above) — both now read this.
+  var CONV_START_RAW = CONV_START * HOLD_FRACTION;
   var chaosLocal = 0; // updated by render() every frame, read by step()
+  var isResolved = false; // updated by render() every frame, read by the idle loop's ember-burst timer
 
   // Tail dissolve into the World Layer, same mechanism as scene-opening.js's
   // veil release (Narrative Polish item 1) — captured once here rather than
@@ -122,6 +163,21 @@
     release = Math.min(1, Math.max(0, release));
     var pct = baseVeilPct - (baseVeilPct - RELEASED_VEIL_PCT) * release;
     section.style.setProperty('--atmo-veil', pct.toFixed(2) + '%');
+  }
+
+  // Narrative Polish pass — the second caption beat (header note above).
+  // Same raw-progress idiom as updateVeilRelease: convLocalRaw/eased are
+  // pinned flat for the entire hold (that's the whole point of the
+  // HOLD_FRACTION remap), so a beat *within* the hold has to key off raw
+  // progress instead. Starts well after capAfter has had room to register
+  // (RELEASE_START's own comment: "let the resolved state register first"
+  // — same principle, applied one beat earlier) and finishes crossfading
+  // before RELEASE_START begins dissolving the panel, so the two never
+  // fight over the same window.
+  var AWAKEN_START = 0.72;
+  var AWAKEN_END = 0.80;
+  function awakenWeight(rawProgress) {
+    return Math.max(0, Math.min(1, (rawProgress - AWAKEN_START) / (AWAKEN_END - AWAKEN_START)));
   }
 
   var CHIPS = [
@@ -225,8 +281,10 @@
     el.addEventListener('mouseenter', function () {
       // Only perturbable during pure chaos — once convergence begins,
       // chips are resolving into position/message and shouldn't be
-      // freely kickable, or the "magnetic anchor" read breaks.
-      if (lastProgress >= CONV_START) return;
+      // freely kickable, or the "magnetic anchor" read breaks. lastProgress
+      // is raw scroll progress, so this compares against CONV_START_RAW
+      // (CONV_START is a remapped fraction) — see that constant's comment.
+      if (lastProgress >= CONV_START_RAW) return;
       chip.hovered = true;
       var kicked = clampSpeed(chip.vx * -1.8, chip.vy * -1.8, MAX_SPEED);
       chip.vx = kicked.vx; chip.vy = kicked.vy;
@@ -332,7 +390,9 @@
     // glow, which is exactly what this eases toward instead of holding
     // this scene's much denser radial-gradient background at full
     // strength right up to the cut.
-    updateVeilRelease(progress);
+    var rawProgress = progress; // captured before the HOLD_FRACTION remap below reassigns `progress`
+    updateVeilRelease(rawProgress);
+    var awaken = awakenWeight(rawProgress);
 
     // Hold the fully-resolved end state (§28 refinement pass). The
     // architectural problem: .scene-sticky can only stay pinned for
@@ -372,6 +432,18 @@
     var convLocalRaw = (progress - CONV_START) / (1 - CONV_START);
     var convLocal = Math.max(0, Math.min(1, convLocalRaw));
     var eased = ease(convLocal);
+
+    // Narrative Polish pass: drives styles.css's .signal-ember-ring (a
+    // pure-CSS breathing halo, same idiom as #paths' own
+    // paths-ring-breathe) and gates the periodic MaieAtmosphere.echo()
+    // bursts in the idle loop below — both only "on" once the signal is
+    // genuinely fully resolved (eased reaches exactly 1 only inside the
+    // hold), not during the ignition flash itself, so this never competes
+    // with that untouched crescendo — it only picks up once the crescendo
+    // has already landed.
+    var resolved = eased >= 0.999;
+    isResolved = resolved;
+    section.style.setProperty('--chaos-resolved', resolved ? '1' : '0');
 
     // ── Chaos-phase caption + density (0.0-0.45 window) ───────────────
     // Window widened 0.10-0.55/±0.08,0.15 -> 0.04-0.70/±0.12,0.20 (§22
@@ -430,7 +502,14 @@
     // Windows widened (§22 refinement pass), same reasoning as chaosCaption
     // above — capBefore/capAfter are the scene's actual payoff text.
     if (capBefore) capBefore.style.opacity = window.storyStageWeight(convLocalRaw, 0.0, 0.34, 0.02, 0.14);
-    if (capAfter) capAfter.style.opacity = window.storyStageWeight(convLocalRaw, 0.68, 1.0, 0.16, 0);
+    // capAfter's own arrival (convLocalRaw 0.68-1.0) is unchanged — it still
+    // reaches full opacity right as the hold begins and stays there for a
+    // while. `awaken` (0 until raw progress 0.72, see AWAKEN_START/END
+    // above) only starts pulling it back down well into the hold, once the
+    // realization it carries has had room to land — a crossfade to
+    // capAwaken, not a second caption stacking on top of the first.
+    if (capAfter) capAfter.style.opacity = (window.storyStageWeight(convLocalRaw, 0.68, 1.0, 0.16, 0) * (1 - awaken)).toFixed(2);
+    if (capAwaken) capAwaken.style.opacity = awaken.toFixed(2);
 
     // ── Convergence targets — computed once per frame (not per chip):
     // getScreenCTM()/getBoundingClientRect() are relatively expensive DOM
@@ -547,9 +626,13 @@
   }
 
   // Narrative Echo (Component 2): fired once as chaos gives way to
-  // convergence (the 0.45 boundary this file already uses internally) —
-  // "network fragments → tiny pulses → Current" per the atmospheric
-  // brief. Reuses the field's own rect rather than iterating every chip.
+  // convergence (CONV_START_RAW — the raw-progress boundary this file
+  // already uses internally; this was comparing against a hardcoded 0.45
+  // left over from before the crescendo pass remapped CONV_START, so it
+  // had drifted well past the actual chaos/convergence handoff — see the
+  // header note above) — "network fragments → tiny pulses → Current" per
+  // the atmospheric brief. Reuses the field's own rect rather than
+  // iterating every chip.
   // Shared between this scroll-tick callback and the idle loop() below:
   // whichever runs first in a given native frame claims it by recording the
   // frame's rAF timestamp here, so the other (running later in that same
@@ -559,7 +642,23 @@
   // Q2. Only guards render() itself (the expensive per-chip DOM/style-write
   // pass); step() and clock's own advancement in the idle loop always run,
   // so chip-drift timing is unaffected by whether render() was deduped.
-  var lastRenderedFrame = null;
+  //
+  // Bug found live while verifying this pass's prefers-reduced-motion path
+  // (STRONG — reproduced, not assumed): under reduced motion,
+  // story-scroll.js's initScrollScene calls onProgress(1, true) exactly
+  // once, synchronously, at registration — before reveal.js's tick() has
+  // ever run, so window.__scrollTickFrameTime is still its initial `null`.
+  // Starting lastRenderedFrame at `null` too meant that one and only call
+  // hit `null !== null` → false, and render() silently never ran at all —
+  // reduced-motion visitors got the scene's raw pre-render DOM (scattered
+  // chips, no signal path drawn in, no captions) forever, not the resolved
+  // "settled final frame" prefers-reduced-motion is supposed to guarantee.
+  // -1 can never equal a real rAF timestamp, so the first call now always
+  // goes through; every later comparison (two real timestamps) is
+  // unaffected. Same initial value / same risk likely exists in
+  // scene-opening.js's own copy of this idiom — flagged, not fixed here,
+  // since that scene is outside this pass's scope.
+  var lastRenderedFrame = -1;
   var echoFired = false;
   window.initScrollScene(section, function (progress, staticFrame) {
     lastProgress = progress;
@@ -568,10 +667,10 @@
       lastRenderedFrame = rafTime;
       render(progress, staticFrame);
     }
-    if (!echoFired && progress > 0.45 && window.MaieAtmosphere && cachedFieldRect) {
+    if (!echoFired && progress > CONV_START_RAW && window.MaieAtmosphere && cachedFieldRect) {
       echoFired = true;
       window.MaieAtmosphere.echo(cachedFieldRect, { count: 6 });
-    } else if (echoFired && progress < 0.4) {
+    } else if (echoFired && progress < CONV_START_RAW - 0.05) {
       echoFired = false;
     }
   });
@@ -593,6 +692,16 @@
       }, { threshold: 0 });
       chaosVisibilityObserver.observe(section);
     }
+    // Narrative Polish pass — the "living resolution" embers (header note
+    // above). Deliberately NOT a per-frame cost: getBoundingClientRect() on
+    // the accent dot only runs once per burst (every ~2-3.5s, randomized so
+    // it doesn't read as a metronome — see the Animation Rules' "avoid
+    // obvious looping"), reusing atmosphere.js's existing Narrative-Echo
+    // particle system rather than a second, bespoke one. Only ever armed
+    // while isResolved (the hold) and intersecting; nextEmberAt is left
+    // wherever it was if the visitor scrolls back out and returns, no
+    // reset needed since it's just a monotonically-advancing threshold.
+    var emberClock = 0, nextEmberAt = 2.4;
     (function loop(rafTime) {
       if (chaosIsIntersecting) {
         clock += 0.02; // drift clock always advances, independent of the dedup guard below
@@ -600,6 +709,13 @@
         if (lastRenderedFrame !== rafTime) {
           lastRenderedFrame = rafTime;
           render(lastProgress, false);
+        }
+        if (isResolved && window.MaieAtmosphere && accentDot) {
+          emberClock += 0.02;
+          if (emberClock >= nextEmberAt) {
+            window.MaieAtmosphere.echo(accentDot.getBoundingClientRect(), { count: 2 });
+            nextEmberAt = emberClock + 1.8 + Math.random() * 1.6;
+          }
         }
       }
       requestAnimationFrame(loop);

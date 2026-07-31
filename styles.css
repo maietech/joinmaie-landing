@@ -291,74 +291,49 @@ a { color: inherit; }
 .rail-dot.active { background: var(--brand); transform: scale(1.4); }
 @media (max-width: 860px) { #story-rail { display: none; } }
 
-/* ── Opening cinematic marquee ─────────────────────────────────────
-   A one-time "slow down" cue, per the refinement brief's §1: teaches
-   the visitor how to approach the experience before the story begins.
-   Mono/uppercase/tracked, matching the site's established "kicker"/
-   system-status typographic role (§2 of this guide) rather than
-   borrowing the Bebas Neue register reserved for actual narrative
-   titles — this is atmosphere, not a story beat. Now a full-width
-   banner bar per the follow-up request (§23) rather than bare floating
-   text, with a subtle themed background/border so the edge-to-edge
-   span actually reads visually, not just structurally.
+/* ── Opening cinematic cue ──────────────────────────────────────────
+   Narrative Polish pass — this is the page's actual "SCROLL banner":
+   formerly #intro-marquee, a horizontal text sweep ("Take your time. The
+   story is just beginning.") playing three passes on load, then gone for
+   the session. Per the user's own direction: replace it with the same
+   no-text fingerprint+arrow cue built for the Universe/MEDIA scene (see
+   .universe-scroll-cue below) rather than a second bespoke treatment —
+   .scroll-cue-ridge/.scroll-cue-arrow and their keyframes are already
+   scene-agnostic for exactly this reuse.
 
-   Deliberately TIME-based (plays on load, three passes, then gone for
-   the rest of the session), not scroll-linked — it has nothing to read
-   from story-scroll.js and doesn't need to; per the guide's own
-   anti-pattern list (§3), nothing here touches scroll position or
-   listens to scroll events. animation-fill-mode: forwards on the
-   fade-out keeps it invisible and non-interactive (pointer-events:none
-   throughout) permanently after it plays once, even if the visitor
-   scrolls back to the top later. */
-#intro-marquee {
-  position: fixed; top: 84px; left: 0; right: 0; z-index: 95;
-  height: 38px; overflow: hidden; pointer-events: none;
-  opacity: 1;
-  background: color-mix(in srgb, var(--text-1) 4%, transparent);
-  border-top: 1px solid color-mix(in srgb, var(--text-1) 10%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--text-1) 10%, transparent);
-  /* animation set by JS (index.html) once actual travel distance is known
-     — see the comment there for why. */
+   Still a one-time, TIME-based cue (not scroll-linked — same reasoning as
+   the marquee it replaces: this plays before the visitor has scrolled at
+   all, so there's no scroll position yet to read). Unlike the old
+   marquee, this needed NO JS at all: the marquee's index.html script
+   existed purely to compute a viewport-width-dependent sweep speed/
+   distance (a fixed-width text banner needed different pixel travel on a
+   phone vs. an ultrawide monitor) — a static breathing icon has no
+   width-dependent timing to solve, so the whole problem class (and the
+   script that solved it) is gone, not just hidden. animation-fill-mode:
+   forwards keeps it invisible and inert (pointer-events:none throughout)
+   permanently after it plays once, same guarantee the marquee made. */
+#intro-cue {
+  position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 95;
+  pointer-events: none; opacity: 0;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent));
+  animation: intro-cue-lifecycle 6.5s ease-in-out 0.3s forwards;
 }
-.intro-marquee-track {
-  display: inline-block; white-space: nowrap;
-  line-height: 38px;
-  font-family: 'JetBrains Mono', monospace; font-size: 14px; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--text-2-small);
-  /* Was translateX(100%)/(-100%) — percentages relative to the TRACK's
-     own (text-sized, ~250px) box, not the page, so the "pass" almost
-     never reached center and the banner read as stuck near the left
-     edge. vw is relative to the actual viewport, so this now genuinely
-     enters from off-screen right and exits off-screen left, passing
-     through true center of the full-width bar each cycle. Stays at this
-     resting (fully off-screen-right) position until JS starts the
-     animation — if JS is blocked for any reason, the marquee just never
-     appears, which is a safe failure mode for a purely decorative,
-     pointer-events:none element. */
-  transform: translateX(100vw);
-  /* animation set by JS (index.html) — see below. */
+@keyframes intro-cue-lifecycle {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  78%  { opacity: 1; }
+  100% { opacity: 0; }
 }
-@keyframes intro-marquee-scroll {
-  from { transform: translateX(var(--marquee-start, 100vw)); }
-  to   { transform: translateX(var(--marquee-end, -100vw)); }
-}
-@keyframes intro-marquee-fadeout {
-  to { opacity: 0; visibility: hidden; }
-}
-/* Reduced motion: no horizontal movement (that's the exact thing this
-   mode opts out of) — a single centered fade-in/hold/fade-out instead,
-   same "settle to the calm version" convention every scene on this page
-   already follows under prefers-reduced-motion. */
+/* The ridge/arrow breathe-and-flow animations (below, shared with
+   .universe-scroll-cue) already go static under reduced motion; this
+   only shortens the fade-in/hold/fade-out envelope itself, same "settle
+   to the calm version, still eventually gone" convention the old
+   marquee's own reduced-motion path used. */
 @media (prefers-reduced-motion: reduce) {
-  #intro-marquee { animation: intro-marquee-fadeout 0.7s ease 3.2s forwards; }
-  .intro-marquee-track {
-    animation: none; transform: translateX(0);
-    width: 100%; text-align: center;
-  }
+  #intro-cue { animation: intro-cue-lifecycle 4s ease 0.3s forwards; }
 }
 @media (max-width: 640px) {
-  #intro-marquee { top: 72px; height: 34px; }
-  .intro-marquee-track { font-size: 12.5px; line-height: 34px; }
+  #intro-cue { top: 72px; }
 }
 
 /* ── Reveal sections ─────────────────────────────────────────────── */
@@ -850,6 +825,33 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    a brief pulse carries the arrival emphasis instead of inflating the
    solid dot into a disc the real mark doesn't have. */
 .signal-accent-ring { fill: none; stroke: var(--accent); stroke-width: 1; }
+/* Narrative Polish pass — "living resolution" (see scene-chaos-signal.js's
+   header note): a quiet breathing halo around the resolved mark, same
+   idiom as #paths' own .paths-signal-ring/paths-ring-breathe pair —
+   always-on CSS animation, gated to invisible via filter:opacity() until
+   JS sets --chaos-resolved to 1 (only true once the signal is fully
+   converged, never during the ignition flash itself), so there is no
+   ongoing paint cost anywhere else in the scene and no competing motion
+   during the crescendo. transform-box/transform-origin are required for
+   the scale() in the keyframes to animate from the ring's own center
+   instead of the SVG viewport's origin. */
+.signal-ember-ring {
+  fill: none; stroke: var(--accent); stroke-width: 0.6;
+  transform-box: fill-box; transform-origin: center;
+  filter: opacity(var(--chaos-resolved, 0));
+  animation: chaos-ember-breathe 4.2s ease-in-out infinite;
+}
+/* Staggered, same reasoning as #paths' ring--outer delay — two rings
+   breathing in lockstep reads as mechanical; offset, it reads as one
+   continuous field of energy instead. */
+.signal-ember-ring--outer { animation-delay: 0.9s; opacity: 0.6; }
+@keyframes chaos-ember-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 0.08; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-ember-ring { animation: none; opacity: 0.3; }
+}
 /* white-space was nowrap — overflows badly on narrow viewports (the
    "before"/"after" captions run up to 11 words at 13px monospace,
    clipped off-screen on both sides under ~450px). Found while verifying
@@ -1030,6 +1032,33 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   white-space: nowrap;
   will-change: transform, opacity, filter;
 }
+/* Narrative Polish pass (Category A — execution improvement per
+   NARRATIVE_LOCK.md; doesn't touch this scene's meaning, only how a
+   scroll pause on it reads): user testing found visitors staring at the
+   enormous word assumed the page had stalled. A slow internal light
+   sweep keeps it visibly alive without touching scale/position/blur —
+   those stay 100% scroll-driven (scene-universe.js sets transform/
+   opacity/filter inline every tick) and this animates background-
+   position, a property JS never touches, so the two can never fight over
+   the same frame. @supports-gated: browsers without text background-clip
+   keep the plain solid color above instead of silently rendering
+   invisible transparent text. */
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .universe-word {
+    color: transparent;
+    background-image: linear-gradient(115deg, var(--text-1) 35%, var(--accent) 50%, var(--text-1) 65%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    animation: universe-word-shimmer 6s linear infinite;
+  }
+}
+@keyframes universe-word-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .universe-word { animation: none; background-position: 0 0; }
+}
 .universe-cluster { position: absolute; inset: 0; }
 /* Phase III restoration: this carried its own `opacity: 0` with nothing in
    scene-universe.js ever clearing it on the individual chip — only the
@@ -1073,6 +1102,58 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .universe-project-label {
   font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--text-2-small);
+}
+
+/* Narrative Polish pass — cinematic downward guidance (Category A
+   execution improvement; index.html has the full rationale). No text —
+   a fingerprint motif (human creativity, not generic scroll UI) breathing
+   above a soft double-chevron arrow. Shared between two places that both
+   turned out to need "keep going" guidance: this scene (--cue-opacity,
+   scroll-driven, scene-universe.js) and #intro-cue below (the page's
+   actual "SCROLL banner," replaced wholesale — see that rule for why it
+   isn't scroll-driven at all). .scroll-cue-ridge/.scroll-cue-arrow and
+   their keyframes are intentionally scene-agnostic (not "universe-"
+   prefixed) for that reuse; only .universe-scroll-cue's own positioning
+   is specific to this scene. The breathing/flow animations run
+   continuously and independently of scroll/time, same "stays alive
+   through a pause" reasoning as .signal-ember-ring above. */
+.universe-scroll-cue {
+  /* bottom:22% clears both #universe-caption (bottom:10%, visible at the
+     same time as this during the project-consolidation stage) and the
+     fixed Narrative Guide bar docked at the very bottom of the viewport —
+     found overlapping both at bottom:6% when checked in a live browser. */
+  position: absolute; left: 50%; bottom: 22%; transform: translateX(-50%);
+  opacity: var(--cue-opacity, 0); pointer-events: none; z-index: 2;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+.universe-scroll-cue svg, #intro-cue svg { display: block; overflow: visible; }
+.scroll-cue-ridge {
+  fill: none; stroke: var(--accent); stroke-width: 1.1; opacity: 0.5;
+  transform-box: fill-box; transform-origin: center;
+  animation: cue-breathe 3.6s ease-in-out infinite;
+}
+/* Staggered per ring, same "don't move in lockstep" reasoning as
+   .signal-ember-ring's own paired delay. */
+.scroll-cue-ridge:nth-child(2) { animation-delay: 0.3s; }
+.scroll-cue-ridge:nth-child(3) { animation-delay: 0.6s; }
+.scroll-cue-arrow {
+  fill: none; stroke: var(--accent); stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+  transform-box: fill-box; transform-origin: center;
+  animation: cue-arrow-flow 2.4s ease-in-out infinite;
+}
+.scroll-cue-arrow--trail { animation-delay: 0.55s; }
+@keyframes cue-breathe {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+}
+@keyframes cue-arrow-flow {
+  0% { opacity: 0.15; transform: translateY(-3px); }
+  50% { opacity: 0.8; transform: translateY(3px); }
+  100% { opacity: 0.15; transform: translateY(7px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue-ridge, .scroll-cue-arrow { animation: none; opacity: 0.45; }
 }
 
 /* ── Section 4 — The Human Hand (Reflection) ──────────────────────────
