@@ -13,6 +13,7 @@
   var atomCluster = document.getElementById('universe-atoms');
   var project = document.getElementById('universe-project');
   var caption = document.getElementById('universe-caption');
+  var scrollCue = document.getElementById('universe-scroll-cue');
   if (!word || !catCluster || !atomCluster || !project) return;
 
   var catChips = Array.prototype.slice.call(catCluster.querySelectorAll('[data-cat]'));
@@ -71,6 +72,15 @@
     project.style.transform = 'translate(-50%,-50%) scale(' + (0.4 + projLocal * 0.7).toFixed(2) + ')';
 
     if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.74, 1.00, 0.08, 0.00);
+
+    // Narrative Polish pass: a persistent, low-key "keep going" cue —
+    // present through nearly the whole scene (fades in shortly after it
+    // starts, out shortly before the project consolidation lands), not
+    // just during the MEDIA-word beat, since the complaint was about the
+    // scene reading as stalled in general, not one specific stage. The
+    // element's own CSS animation runs continuously regardless of this
+    // value; this only controls whether it's visible.
+    if (scrollCue) scrollCue.style.setProperty('--cue-opacity', window.storyStageWeight(progress, 0.06, 0.86, 0.12, 0.10).toFixed(2));
   }
 
   // Narrative Echo (Component 2): fired once as the atom chips re-cluster

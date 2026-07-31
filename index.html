@@ -68,53 +68,28 @@
   </div>
 </nav>
 
-<div id="intro-marquee" aria-hidden="true">
-  <div class="intro-marquee-track">Take your time. The story is just beginning.</div>
+<!-- Narrative Polish pass — replaces the old #intro-marquee (a horizontal
+     "Take your time. The story is just beginning." text sweep, 3 passes
+     then gone for the session). Same one-time, no-scroll-position-yet
+     lifecycle and the same "gone for the session, even scrolled back to
+     top" guarantee (styles.css's animation-fill-mode:forwards), but no
+     text and no JS: a static breathing icon has no viewport-width-
+     dependent timing to solve, so the script that solved exactly that for
+     the old text banner isn't needed at all — see styles.css's #intro-cue
+     comment. Same fingerprint+arrow glyph as the Universe/MEDIA scene's
+     own cue (.scroll-cue-ridge/.scroll-cue-arrow), reused rather than
+     rebuilt. -->
+<div id="intro-cue" aria-hidden="true">
+  <svg viewBox="0 0 48 64" width="34" height="45">
+    <g>
+      <path class="scroll-cue-ridge" d="M24,6 a13,9 0 1,1 -0.05,0"/>
+      <path class="scroll-cue-ridge" d="M24,13 a9,6.4 0 1,1 -0.05,0"/>
+      <path class="scroll-cue-ridge" d="M24,19.5 a5,3.6 0 1,1 -0.05,0"/>
+    </g>
+    <path class="scroll-cue-arrow" d="M13,33 L24,43 L35,33"/>
+    <path class="scroll-cue-arrow scroll-cue-arrow--trail" d="M13,43 L24,53 L35,43"/>
+  </svg>
 </div>
-<script>
-(function () {
-  // Speed-based, not a flat duration (§25 refinement pass) — a fixed
-  // animation-duration covering a fixed 200vw of travel meant a wide
-  // monitor (more actual pixels in that same 100vw) moved the text
-  // visibly faster than a phone did, even though the vw-relative rate
-  // was identical: ~960px/s on a 1920px display for the old 4s/200vw
-  // version — genuinely too fast, matching the report.
-  //
-  // First pass at the "obviously correct" fix — constant px/s across
-  // the entire off-screen-right to off-screen-left sweep — turned out
-  // to be a worse bug than the one it fixed: sweep distance is
-  // viewportWidth + textWidth, so on a 2560px monitor 3 passes at a
-  // comfortable reading speed took *over 100 seconds*, nowhere near
-  // "brief... temporary" (see DESIGN-DEV-GUIDE.md §21). So this clamps
-  // duration to [DUR_MIN, DUR_MAX] per pass: still genuinely responsive
-  // to viewport width for phone-to-tablet sizes (where the old bug was
-  // worst), caps out at a sane total display time on large monitors
-  // instead of scaling forever.
-  //
-  // Also fixes a related overshoot: the end keyframe was a flat -100vw
-  // regardless of text width, traveling further than necessary to fully
-  // exit the left edge. --marquee-end below is set to the track's exact
-  // measured width, so the sweep distance used here matches the actual
-  // animation distance instead of over-covering it.
-  var marquee = document.getElementById('intro-marquee');
-  var track = marquee && marquee.querySelector('.intro-marquee-track');
-  if (!marquee || !track) return;
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-  var PX_PER_SEC = 220;   // target crossing speed before clamping
-  var DUR_MIN = 4;        // seconds/pass — floor, so narrow phones aren't abrupt either
-  var DUR_MAX = 8;        // seconds/pass — ceiling, so wide monitors stay "brief"
-
-  var trackW = track.offsetWidth;
-  track.style.setProperty('--marquee-end', '-' + trackW + 'px');
-
-  var totalTravel = window.innerWidth + trackW; // off-screen-right to off-screen-left, exactly
-  var duration = Math.max(DUR_MIN, Math.min(DUR_MAX, totalTravel / PX_PER_SEC));
-
-  track.style.animation = 'intro-marquee-scroll ' + duration.toFixed(2) + 's linear 3';
-  marquee.style.animation = 'intro-marquee-fadeout 0.7s ease ' + (duration * 3 + 0.5).toFixed(2) + 's forwards';
-})();
-</script>
 
 <div id="story-rail"><div class="rail-fill" id="story-rail-fill"></div></div>
 
@@ -197,6 +172,29 @@
         </div>
       </div>
       <div class="scene-caption" id="universe-caption" style="top: auto; bottom: 10%;">Every project is built from the same primitives.</div>
+      <!-- Narrative Polish pass — Category A execution improvement
+           (NARRATIVE_LOCK.md §Category A: doesn't touch this scene's
+           meaning/role, only how continuing forward is communicated).
+           User testing: visitors pausing on the enormous MEDIA word read
+           the page as stalled. No text ("SCROLL"/"scroll down") by
+           design — a fingerprint motif (human creativity, the page's own
+           recurring idea, not generic UI) plus a soft downward arrow, so
+           the cue reads as "there's more to discover" rather than an
+           instruction. Opacity is scroll-driven (scene-universe.js sets
+           --cue-opacity); the breathing/flow animation itself is pure CSS
+           and runs independent of scroll, so it keeps reading as alive
+           even while the visitor holds still. -->
+      <div class="universe-scroll-cue" id="universe-scroll-cue" aria-hidden="true">
+        <svg viewBox="0 0 48 64" width="40" height="53">
+          <g>
+            <path class="scroll-cue-ridge" d="M24,6 a13,9 0 1,1 -0.05,0"/>
+            <path class="scroll-cue-ridge" d="M24,13 a9,6.4 0 1,1 -0.05,0"/>
+            <path class="scroll-cue-ridge" d="M24,19.5 a5,3.6 0 1,1 -0.05,0"/>
+          </g>
+          <path class="scroll-cue-arrow" d="M13,33 L24,43 L35,33"/>
+          <path class="scroll-cue-arrow scroll-cue-arrow--trail" d="M13,43 L24,53 L35,43"/>
+        </svg>
+      </div>
     </div>
   </section>
 
@@ -252,11 +250,28 @@
              core + thin outline ring, index.html's <nav> svg above). -->
         <circle id="signal-accent-ring" class="signal-accent-ring" cx="86" cy="32" r="6.5" opacity="0"/>
         <circle id="signal-accent-dot" class="signal-accent-dot" cx="86" cy="32" r="3" opacity="0"/>
+        <!-- Narrative Polish pass — "living resolution" (see scene-chaos-
+             signal.js's header note): a quiet, pure-CSS breathing halo
+             around the resolved mark, same idiom as #paths' own
+             paths-ring-breathe. Gated entirely by --chaos-resolved
+             (styles.css), which JS only ever sets to 1 once the signal is
+             fully converged — invisible and inert everywhere else. Two
+             rings with a staggered animation-delay (styles.css), same
+             "don't move in lockstep" reasoning as #paths' own ring pair. -->
+        <circle class="signal-ember-ring" cx="86" cy="32" r="8.5" aria-hidden="true"/>
+        <circle class="signal-ember-ring signal-ember-ring--outer" cx="86" cy="32" r="11.5" aria-hidden="true"/>
       </svg>
       <div id="chaos-field"></div>
       <div class="chaos-caption" id="chaos-caption">So much. Everywhere. Nowhere.</div>
       <div class="scene-maie-caption" id="scene-maie-caption-before">Fragmented. Scattered. Disconnected.</div>
       <div class="scene-maie-caption" id="scene-maie-caption-after" style="bottom:auto; top:14%;">The noise fades. The scattered files align. You return to the edit.</div>
+      <!-- Narrative Polish pass — one additional beat, crossfading in from
+           capAfter well into the hold (scene-chaos-signal.js's
+           AWAKEN_START/AWAKEN_END). Reinforces the existing realization
+           ("no longer merely organized") rather than introducing a new
+           one — per NARRATIVE_LOCK.md, amplifying Chaos → Signal, not
+           competing with it. -->
+      <div class="scene-maie-caption" id="scene-maie-caption-awaken" style="bottom:auto; top:14%;">The signal is found. Now, it's alive.</div>
     </div>
   </section>
 
