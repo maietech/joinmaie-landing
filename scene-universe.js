@@ -14,10 +14,17 @@
   var project = document.getElementById('universe-project');
   var caption = document.getElementById('universe-caption');
   var scrollCue = document.getElementById('universe-scroll-cue');
+  var proofLines = Array.prototype.slice.call(document.querySelectorAll('#universe-proof [data-proof]'));
   if (!word || !catCluster || !atomCluster || !project) return;
+
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var catChips = Array.prototype.slice.call(catCluster.querySelectorAll('[data-cat]'));
   var atomChips = Array.prototype.slice.call(atomCluster.querySelectorAll('[data-atom]'));
+
+  // Sequential, non-overlapping fade windows for #universe-proof's lines
+  // (one per proofLines entry, in order) — see the render() call site.
+  var PROOF_WINDOWS = [[0.02, 0.09], [0.11, 0.18]];
 
   function clamp01(v) { return Math.max(0, Math.min(1, v)); }
   function localP(progress, start, end) { return clamp01((progress - start) / (end - start)); }
@@ -73,6 +80,17 @@
 
     if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.74, 1.00, 0.08, 0.00);
 
+    // Narrative Polish pass — concrete proof accompanying the word's own
+    // zoom (styles.css/index.html have the full rationale). Two windows
+    // inside the macro (word-zoom) stage only, each ~7% of total scroll
+    // progress — comfortably before wMacro's own fadeOut starts pulling
+    // the word away, so these never linger into the categories stage.
+    // Sequential, not simultaneous: PROOF_WINDOWS' ranges don't overlap,
+    // so at most one line carries any opacity at a given progress.
+    PROOF_WINDOWS.forEach(function (win, i) {
+      if (proofLines[i]) proofLines[i].style.opacity = window.storyStageWeight(progress, win[0], win[1], 0.02, 0.02).toFixed(2);
+    });
+
     // Narrative Polish pass: a persistent, low-key "keep going" cue —
     // present through nearly the whole scene (fades in shortly after it
     // starts, out shortly before the project consolidation lands), not
@@ -99,4 +117,35 @@
       echoFired = false;
     }
   });
+
+  // Narrative Polish pass — a gentle "nudge" if the visitor stops
+  // scrolling while the cue is supposed to be on screen: the original
+  // reported complaint was visitors staring at the enormous word with no
+  // sense the page was still alive. The continuous breathe/flow animation
+  // (styles.css) already solves "doesn't look frozen"; this solves the
+  // separate "hasn't noticed there's more below" case specifically.
+  //
+  // Deliberately a single setInterval poll, not a second rAF loop — idle
+  // detection doesn't need 60fps precision, and this scene has no idle
+  // loop of its own to extend (unlike scene-chaos-signal.js/scene-
+  // opening.js). Gates on the cue's own --cue-opacity (set by render()
+  // above) rather than a second IntersectionObserver: if the cue isn't
+  // meant to be visible right now (scrolled well past/before this scene),
+  // there's nothing to nudge. Never arms under reduced motion at all —
+  // a static, non-animated presence is already the correct reduced-motion
+  // behavior (styles.css), and a nudge is motion by definition.
+  if (!reducedMotion && scrollCue) {
+    var IDLE_MS = 5000;
+    var lastActivity = Date.now();
+    function markActivity() { lastActivity = Date.now(); }
+    window.addEventListener('scroll', markActivity, { passive: true });
+    window.addEventListener('wheel', markActivity, { passive: true });
+    window.addEventListener('touchmove', markActivity, { passive: true });
+    window.addEventListener('keydown', markActivity);
+    setInterval(function () {
+      var cueOpacity = parseFloat(scrollCue.style.getPropertyValue('--cue-opacity')) || 0;
+      var idle = Date.now() - lastActivity > IDLE_MS;
+      scrollCue.classList.toggle('is-nudging', idle && cueOpacity > 0.1);
+    }, 500);
+  }
 })();

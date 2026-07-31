@@ -149,6 +149,19 @@
     <div class="scene-sticky">
       <div class="universe-stage">
         <div class="universe-word" id="universe-word">MEDIA</div>
+        <!-- Narrative Polish pass — concrete proof accompanying the word's
+             own zoom (index.html/scene-universe.js has the full
+             rationale). One at a time, not a list: MEDIA's own scale
+             leaves almost no on-screen room that stays clear of the
+             glyph for long, so these hand off sequentially in the same
+             top:13% band scene-chaos-signal already established for
+             top-anchored caption text, not stacked over the word itself.
+             Real content (not aria-hidden) — same reasoning as
+             .paths-proof. -->
+        <div class="universe-proof" id="universe-proof">
+          <span class="universe-proof-line" data-proof>46 hours freed. Every cycle.</span>
+          <span class="universe-proof-line" data-proof>Migraines: mitigated.</span>
+        </div>
         <div class="universe-cluster" id="universe-categories">
           <span class="universe-chip" data-cat>Film</span>
           <span class="universe-chip" data-cat>Audio</span>
@@ -323,6 +336,30 @@
     </div>
   </section>
 
+  <!-- Narrative Polish pass — Trust -> Lifecycle transition (Category A/B,
+       flagged in memory as this page's weakest transition: Trust is plain
+       reveal-on-scroll content, not a sticky story-scene, so it previously
+       cut straight into Lifecycle's filmstrip with zero connective tissue,
+       per atmosphere.js's own CROSSFADE comment ("previous section (trust)
+       isn't sticky — no overlap margin behind it"). Not a new scroll-scene
+       or a new reveal mechanism — a plain, always-in-flow divider, same
+       restraint as the rest of this pass. Reuses the exact nav-brand mark
+       (index.html's own <nav> svg) rather than a new glyph. Deliberately
+       just the mark + a brand-voice line, not an explanation of the
+       signal-curve recurring through the page — that pattern stays a
+       discovery, per the standing decision not to call attention to it. -->
+  <div class="brand-divider">
+    <svg class="brand-divider-mark" viewBox="0 0 92 56" fill="none" stroke="var(--brand-light)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
+               C 29,20 33,20 33,30 C 33,40 39,40 41,28
+               L 46,44 L 50,20 L 54,38
+               C 58,26 63,26 63,34 C 63,40 68,38 70,32
+               Q 73,29 76,32 T 84,32"/>
+      <circle cx="86" cy="32" r="3" fill="var(--accent)" stroke="none"/>
+    </svg>
+    <p class="brand-divider-line">Protected. Connected. Ready for what's next.</p>
+  </div>
+
   <section id="scene-lifecycle" class="story-scene lifecycle-scene" data-atmo-density="0">
     <div class="scene-sticky">
       <div class="lifecycle-caption" id="lifecycle-caption">The Media Lifecycle</div>
@@ -376,6 +413,20 @@
     <div class="section-tag" style="text-align:center;">The Destination</div>
     <h2>Media, connected. Intelligence, shared. Creation, amplified.</h2>
     <p>Choose where your story goes next.</p>
+    <!-- Narrative Polish pass — the ending's "definitives" (Category B:
+         strengthens the closing beat's payoff without adding a second
+         climax, since it fades in via the same --paths-signal-progress
+         proximity variable the dot/rings already use — same arrival, not
+         a new one). Real, accessible content (not aria-hidden like the
+         decorative signal-wave above) — these are the actual concrete
+         claim, so screen-reader visitors get them same as anyone else.
+         One line is deliberately dry humor (per direction), keeping the
+         close from reading as a straight feature-list recitation. -->
+    <div class="paths-proof">
+      <span class="paths-proof-line">46 hours freed. Every production cycle.</span>
+      <span class="paths-proof-line">Every version remembered. Nothing lost, ever.</span>
+      <span class="paths-proof-line">Migraines: mitigated.</span>
+    </div>
     <div class="path-choice">
       <a class="path-link path-link--primary" href="https://waitlist.joinmaie.com">
         <span class="path-link-kicker">Begin Your Story</span>
