@@ -334,8 +334,17 @@
   // once here (getComputedStyle per-chip per-frame would reintroduce the
   // cost the scroll-jank audit already flagged elsewhere) and refreshed
   // whenever the theme changes.
+  //
+  // Bug fix (JOINMAIE_LANDING_THEMECHANGE_LISTENER_MISMATCH_FOLLOWUP_7-28,
+  // confirmed live): theme.js dispatches this event via
+  // document.dispatchEvent(...) with no `bubbles: true`, so a listener
+  // registered on `window` never actually receives it — 4 of 5 listeners
+  // elsewhere in the codebase (guide.js, scene-agent.js, atmosphere.js)
+  // already correctly use `document`; this was the one holdout. Confirmed
+  // the fix live: textRgb now actually updates on a real theme toggle,
+  // where before it silently never did.
   var textRgb = hexToRgb(pathThemeColor('--text-1', '#E8E6E3'));
-  window.addEventListener('maie:themechange', function () {
+  document.addEventListener('maie:themechange', function () {
     textRgb = hexToRgb(pathThemeColor('--text-1', '#E8E6E3'));
   });
 
