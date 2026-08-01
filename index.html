@@ -211,6 +211,36 @@
     </div>
   </section>
 
+  <!-- MAIE Cinematic Commitment Slider. Deliberately placed as its own
+       in-flow [data-reveal] section immediately after #scene-universe,
+       not inside it: #scene-universe's "Every project is built from the
+       same primitives." caption (id="universe-caption") is the last beat
+       of a pinned, scroll-progress-driven scene (see scene-universe.js —
+       render() maps scroll progress to opacity/transform per stage, and
+       the section's own scroll-cue is the deliberate hand-off to what
+       comes next). An auto-advancing timer-based slider dropped inside
+       that pin would run while off-screen/mid-pin, fight the scene's own
+       progress-driven reveal of that exact line, and require resizing a
+       hand-tuned pinned scroll scene — the kind of architecture change
+       CLAUDE.md §2/§4 says needs Discovery+Verification, not a
+       same-pass insertion. Placing it here instead keeps the change
+       localized: the heading below echoes universe-caption's line as the
+       reader arrives at it in normal flow, and the six commitment
+       statements (cinematic-slider.js, same engine as #paths-cinematic)
+       unfold immediately beneath it. -->
+  <section id="primitives" data-reveal data-rail-label="Primitives" data-atmo-density="1">
+    <div class="section-tag" style="text-align:center;">The Foundation</div>
+    <h2 class="section-title" style="text-align:center;">Every project is built with the same primitives.</h2>
+    <div class="cinematic-slider" id="primitives-cinematic" data-cinematic-slider role="group" aria-label="What MAIE has committed to building" aria-live="off">
+      <span class="cinematic-slider-line" data-line>1,000+ hours invested. So you can spend fewer hours figuring it out.</span>
+      <span class="cinematic-slider-line" data-line>Thousands of decisions made before you ever had to make one.</span>
+      <span class="cinematic-slider-line" data-line>We built the infrastructure. You build what comes next.</span>
+      <span class="cinematic-slider-line" data-line>The complexity is ours to solve. The possibility is yours to explore.</span>
+      <span class="cinematic-slider-line" data-line>Built deliberately. Tested relentlessly. Designed around your work.</span>
+      <span class="cinematic-slider-line" data-line>The foundation is already built. Now build something extraordinary.</span>
+    </div>
+  </section>
+
   <!-- Section 4 — The Human Hand (Reflection). Previously blocked on real
        documentary photography — the 10 stock photos on hand were
        portraits/nature/product shots, not "creator at work" (see
@@ -422,10 +452,23 @@
          claim, so screen-reader visitors get them same as anyone else.
          One line is deliberately dry humor (per direction), keeping the
          close from reading as a straight feature-list recitation. -->
-    <div class="paths-proof">
-      <span class="paths-proof-line">46 hours freed. Every production cycle.</span>
-      <span class="paths-proof-line">Every version remembered. Nothing lost, ever.</span>
-      <span class="paths-proof-line">Migraines: mitigated.</span>
+    <!-- MAIE Cinematic Proof Slider — Outcomes. Same "real, accessible
+         content" intent .paths-proof always had, now rotating through six
+         statements instead of three static lines (engine: cinematic-
+         slider.js). aria-live="off" deliberately: a region that force-
+         announces new content every ~4s forever would be disruptive, not
+         helpful, to screen-reader visitors who can't pause it. role="group"
+         + aria-label names the set; aria-hidden toggling on each [data-line]
+         (in cinematic-slider.js) still means a visitor who tabs/navigates
+         into it only ever encounters the one currently-active statement,
+         not all six at once. -->
+    <div class="cinematic-slider" id="paths-cinematic" data-cinematic-slider role="group" aria-label="What MAIE makes possible" aria-live="off">
+      <span class="cinematic-slider-line" data-line>46 hours freed. Every production cycle.</span>
+      <span class="cinematic-slider-line" data-line>Every version remembered. Nothing lost. Ever.</span>
+      <span class="cinematic-slider-line" data-line>Your media. Your intelligence. One connected system.</span>
+      <span class="cinematic-slider-line" data-line>From scattered assets to shared intelligence.</span>
+      <span class="cinematic-slider-line" data-line>Your knowledge compounds. Your capabilities grow.</span>
+      <span class="cinematic-slider-line" data-line>The work moves faster. The story goes further.</span>
     </div>
     <div class="path-choice">
       <a class="path-link path-link--primary" href="https://waitlist.joinmaie.com">
@@ -496,6 +539,7 @@
   })();
 </script>
 <script src="reveal.js"></script>
+<script src="cinematic-slider.js"></script>
 <script src="nav-theme.js"></script>
 <script src="nav-menu.js"></script>
 <script src="nav-float.js"></script>
