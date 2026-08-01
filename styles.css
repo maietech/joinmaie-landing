@@ -492,28 +492,43 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
    threshold, exactly the "has this content actually scrolled into view"
    signal these lines need. Per-line transition-delay staggers the
    arrival, same "concrete, not a text dump" intent as before. */
-.paths-proof {
-  display: flex; flex-direction: column; gap: 8px; align-items: center;
-  margin: 0 0 36px;
-}
-.paths-proof-line {
-  font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--brand-light-text);
+/* Cinematic Statement Slider — shared engine (cinematic-slider.js), two
+   instances on the page (#paths-cinematic below, #primitives-cinematic
+   further down). One statement at a time, crossfade + slight rise,
+   stable reserved height (set inline by JS from the tallest statement so
+   rotating through different lengths never shifts surrounding layout).
+   Reveals with the same [data-reveal]/.is-revealed signal .paths-proof
+   used, where the instance sits inside a [data-reveal] section. */
+.cinematic-slider {
+  position: relative; width: 100%; max-width: 640px; margin: 0 auto 36px;
   opacity: 0; transform: translateY(6px);
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
-#paths.is-revealed .paths-proof-line { opacity: 1; transform: translateY(0); }
-.paths-proof-line:nth-child(1) { transition-delay: 0.05s; }
-.paths-proof-line:nth-child(2) { transition-delay: 0.3s; }
-.paths-proof-line:nth-child(3) { transition-delay: 0.55s; }
-/* [data-reveal]'s own reduced-motion override (above) already forces
-   #paths itself to opacity:1/transition:none immediately, independent of
-   .is-revealed — these lines need the same immediate, non-staggered
-   treatment, or they'd stay invisible forever (base opacity:0) waiting on
-   a class-driven transition that reduced motion elsewhere assumes never
-   matters. */
+[data-reveal].is-revealed .cinematic-slider,
+.cinematic-slider.is-revealed { opacity: 1; transform: translateY(0); }
+.cinematic-slider-line {
+  position: absolute; left: 50%; top: 0; width: 100%;
+  transform: translateX(-50%) translateY(8px);
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity var(--cinematic-transition, 900ms) ease,
+              transform var(--cinematic-transition, 900ms) ease,
+              filter var(--cinematic-transition, 900ms) ease;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--brand-light-text);
+  text-align: center; line-height: 1.6;
+}
+.cinematic-slider-line.is-active {
+  opacity: 1; transform: translateX(-50%) translateY(0); filter: blur(0);
+}
+.cinematic-slider.is-static .cinematic-slider-line { display: none; transition: none; filter: none; }
+.cinematic-slider.is-static .cinematic-slider-line.is-active { display: block; opacity: 1; transform: translateX(-50%); }
 @media (prefers-reduced-motion: reduce) {
-  .paths-proof-line { opacity: 1; transform: none; transition: none; }
+  .cinematic-slider { opacity: 1; transform: none; transition: none; }
+  .cinematic-slider-line { transition: none; }
+}
+@media (max-width: 640px) {
+  .cinematic-slider-line { font-size: 12px; line-height: 1.7; }
 }
 /* Demoted out of the closing headline (see maie-narrative-audit.md §11 A) —
    the dev-status disclosure is honest but shouldn't puncture the register
@@ -1124,7 +1139,8 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    spot (absolute within this container) — only one is ever above ~0
    opacity at a time (scene-universe.js), so they hand off rather than
    stack. Real content, not decorative — no opacity:0 floor here either,
-   same reasoning as .paths-proof. */
+   same reasoning the .cinematic-slider instances further down use
+   (real content, not aria-hidden decoration). */
 .universe-proof {
   position: absolute; left: 50%; top: 13%; transform: translateX(-50%);
   text-align: center; white-space: nowrap;
