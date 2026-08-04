@@ -141,6 +141,27 @@ a { color: inherit; }
 }
 .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-1); }
 .nav-brand svg { width: 30px; height: auto; }
+
+/* ── Nav-brand signal mark: "awaken" on load, then a quiet idle pulse
+   (maie-logo-motion.js). Default state below is drawn-hidden via CSS
+   (not left to JS to hide after paint), so there's nothing to flash
+   before the animation runs — the same before-JS-runs concern as any
+   other reveal-on-load effect on this page. If JS never runs, the mark
+   simply never appears; .nav-brand-word (plain text) still does, so
+   the nav is never unusable, just missing a decorative icon — an
+   accepted trade-off, same one this page already makes for its
+   fully-JS-dependent scroll narrative. */
+.brand-signal-path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.brand-signal-dot, .brand-signal-ring { opacity: 0; transform-origin: center; }
+.nav-brand-mark.brand-signal-settled .brand-signal-path { stroke-dashoffset: 0; }
+.nav-brand-mark.brand-signal-settled .brand-signal-dot { opacity: 1; }
+.nav-brand-mark.brand-signal-settled .brand-signal-ring { opacity: 0.4; }
+.brand-signal-pulse-trace { stroke: var(--accent); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .brand-signal-path { stroke-dasharray: none; stroke-dashoffset: 0; }
+  .brand-signal-dot { opacity: 1; }
+  .brand-signal-ring { opacity: 0.4; }
+}
 /* .nav-brand-word carries .signal-link (index.html) — the same sweep
    already used by .nav-link/.nav-cta — rather than its own dead
    `transition: color` (there was never a color change to transition:
