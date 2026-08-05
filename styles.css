@@ -710,6 +710,22 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
 .guide-pixie-name { font-weight: 600; color: var(--accent-text, var(--accent)); font-style: normal; }
 .guide-pixie-text { font-size: 13.5px; font-style: italic; color: var(--text-2); }
 
+/* ── Guide Pixie Scaling ─────────────────────────────────────────── */
+#guide-pixie-slot {
+  /* <span> elements are inline by default; inline-block allows the transform */
+  display: inline-block; 
+  
+  transform-origin: center center; 
+  
+  /* Matches the 0.35s duration used for the .guide-body expansion */
+  transition: transform 0.35s ease; 
+}
+
+/* Target the exact state class already in use by the MAIE UI */
+.guide-panel.is-expanded #guide-pixie-slot {
+  transform: scale(1.4); 
+}
+
 /* Invisible placeholder, same footprint as the docked avatar (see
    .guide-pixie-avatar below) — reserves space in the flex row so
    guide-pixie-text shifts right to make room. The real canvas is
