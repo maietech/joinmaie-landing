@@ -156,12 +156,16 @@
   // renders at cssW/H = size * 2.5, so size is derived from that, not passed
   // as a raw pixel value.
   var CORNER_TOP = -30, CORNER_RIGHT = 10, CORNER_SIZE = 80;
-  // Docked (expanded-panel) Pixie is rendered 40% larger than its
+  // Docked (expanded-panel) Pixie is rendered 80% larger than its
   // guide-pixie-slot footprint. The slot itself keeps reserving the
   // original (unscaled) space in the flex row — see reposition() below,
   // which grows the canvas symmetrically around the slot's own center
   // rather than resizing the slot, so guide-pixie-text never shifts.
-  var DOCKED_SCALE = 1.4;
+  // Capped at 2x: the canvas's native raster is rendered once at init
+  // from CORNER_SIZE (80px), so any docked size above that upscales the
+  // existing bitmap and goes soft/blurry. 1.8x of the ~40px slot lands
+  // at ~72px — comfortably under that ceiling, so it stays crisp.
+  var DOCKED_SCALE = 1.8;
   var pixieSlot = body.querySelector('#guide-pixie-slot');
   var pixieHandle = window.initPixieCompanion(pixieAvatar, {
     size: CORNER_SIZE / 2.5, mode: 'ambient', phase: 'idle',
