@@ -109,10 +109,19 @@
   // position shifts with each scene's headline/blurb length. Parented
   // directly to the panel (not into .guide-body) so it's never clipped
   // by that element's overflow:hidden while relocating.
+  // pixieWrap is the element reposition() actually places/sizes and
+  // animates (see .guide-pixie-avatar-wrap in styles.css) — its
+  // overflow:hidden is what crops the canvas's own baked-in blank margin
+  // (see ZOOM below). pixieAvatar itself is rendered oversized and
+  // centered inside it, so what's visible is a tighter crop on the same
+  // content rather than a shrunk/padded version of it.
+  var pixieWrap = document.createElement('div');
+  pixieWrap.className = 'guide-pixie-avatar-wrap';
+  pixieWrap.setAttribute('aria-hidden', 'true');
   var pixieAvatar = document.createElement('canvas');
   pixieAvatar.className = 'guide-pixie-avatar';
-  pixieAvatar.setAttribute('aria-hidden', 'true');
-  panel.appendChild(pixieAvatar);
+  pixieWrap.appendChild(pixieAvatar);
+  panel.appendChild(pixieWrap);
 
   var body = document.createElement('div');
   body.className = 'guide-body';
@@ -156,19 +165,31 @@
   // renders at cssW/H = size * 2.5, so size is derived from that, not passed
   // as a raw pixel value.
   var CORNER_TOP = -30, CORNER_RIGHT = 10, CORNER_SIZE = 80;
-  // Docked (expanded-panel) Pixie is rendered 80% larger than its
-  // guide-pixie-slot footprint. The slot itself keeps reserving the
-  // original (unscaled) space in the flex row — see reposition() below,
-  // which grows the canvas symmetrically around the slot's own center
-  // rather than resizing the slot, so guide-pixie-text never shifts.
-  // Capped at 2x: the canvas's native raster is rendered once at init
-  // from CORNER_SIZE (80px), so any docked size above that upscales the
-  // existing bitmap and goes soft/blurry. 1.8x of the ~40px slot lands
-  // at ~72px — comfortably under that ceiling, so it stays crisp.
-  var DOCKED_SCALE = 1.8;
+  // Docked (expanded-panel) Pixie is rendered ~130% larger than its
+  // guide-pixie-slot footprint (was 1.8x; bumped ~30% further). The slot
+  // itself keeps reserving the original (unscaled) space in the flex row
+  // — see reposition() below, which grows the wrap symmetrically around
+  // the slot's own center rather than resizing the slot, so
+  // guide-pixie-text never shifts.
+  var DOCKED_SCALE = 2.34;
+  // ZOOM crops the canvas's own baked-in blank margin: the engine draws
+  // its glow/particle field inside a fixed logical frame with a lot of
+  // headroom around the visible core (intentional, so the "wake stretch"
+  // effect has room to overshoot without clipping) — at badge scale that
+  // headroom reads as plain empty space. pixieWrap's overflow:hidden
+  // trims it by rendering the canvas ZOOM x larger than the visible box
+  // and centering it, showing only the middle (denser) portion.
+  var ZOOM = 1.4;
+  // Native raster resolution (the `size` option below, which maps to a
+  // size*2.5 px canvas bitmap) has to comfortably cover the largest
+  // on-screen size this canvas is ever stretched to post-ZOOM, or the
+  // crop upscales a too-small bitmap and goes soft. Largest case is
+  // docked: ~40px slot * DOCKED_SCALE * ZOOM =~ 131px; 140 leaves
+  // headroom above that (and above the corner badge's 80 * ZOOM = 112px).
+  var RASTER_PX = 140;
   var pixieSlot = body.querySelector('#guide-pixie-slot');
   var pixieHandle = window.initPixieCompanion(pixieAvatar, {
-    size: CORNER_SIZE / 2.5, mode: 'ambient', phase: 'idle',
+    size: RASTER_PX / 2.5, mode: 'ambient', phase: 'idle',
     archetype: 'archivist', temperament: 'idle',
     theme: window.getPixieThemeColors(),
   });
@@ -197,6 +218,10 @@
   // auto` doesn't tween. The docked target is read from guide-pixie-slot's
   // live rect rather than hardcoded, since guide-pixie-row's position varies
   // with each scene's headline/blurb length.
+  //
+  // target below is the VISIBLE box (what pixieWrap animates to/from).
+  // The canvas inside it is always sized to target * ZOOM and centered,
+  // so the crop stays consistent whether docked or at rest in the corner.
   function reposition(animate) {
     var panelRect = panel.getBoundingClientRect();
     var target;
@@ -218,14 +243,23 @@
         width: CORNER_SIZE, height: CORNER_SIZE,
       };
     }
-    if (!animate) pixieAvatar.style.transition = 'none';
-    pixieAvatar.style.left = target.left + 'px';
-    pixieAvatar.style.top = target.top + 'px';
-    pixieAvatar.style.width = target.width + 'px';
-    pixieAvatar.style.height = target.height + 'px';
+    if (!animate) pixieWrap.style.transition = 'none';
+    pixieWrap.style.left = target.left + 'px';
+    pixieWrap.style.top = target.top + 'px';
+    pixieWrap.style.width = target.width + 'px';
+    pixieWrap.style.height = target.height + 'px';
+
+    // Canvas is always ZOOM x the wrap's own size, centered — no
+    // transition needed here since it just tracks the wrap 1:1 every frame.
+    var zoomW = target.width * ZOOM, zoomH = target.height * ZOOM;
+    pixieAvatar.style.width = zoomW + 'px';
+    pixieAvatar.style.height = zoomH + 'px';
+    pixieAvatar.style.left = -(zoomW - target.width) / 2 + 'px';
+    pixieAvatar.style.top = -(zoomH - target.height) / 2 + 'px';
+
     if (!animate) {
-      void pixieAvatar.offsetWidth; // force layout so the jump above lands before transitions come back on
-      pixieAvatar.style.transition = '';
+      void pixieWrap.offsetWidth; // force layout so the jump above lands before transitions come back on
+      pixieWrap.style.transition = '';
     }
   }
   reposition(false); // land at the resting corner spot with no animation on load

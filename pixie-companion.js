@@ -52,6 +52,15 @@
   // it's the more saturated, higher-contrast end of the brand ramp in
   // light mode specifically (light mode's --primary-dark is #5C1F18 vs.
   // --primary-light's #A52A2A).
+  // boost was 1.6 — bumped to 2.4 after the low-alpha glow/particle/ring
+  // layers still read as barely-there against a white/near-white panel
+  // (light mode's --surface is solid #FFFFFF, not the near-black stage
+  // these alphas were tuned for). isLight is also surfaced on the
+  // returned object now so the innermost core-hotspot gradient (below)
+  // can swap away from its pale cream/white stops, which were the
+  // biggest single visibility problem: that hotspot is the one layer
+  // NOT multiplied by boost (its alphas are already near-opaque), and
+  // pale cream on white is close to invisible regardless of alpha.
   window.getPixieThemeColors = function () {
     var s = getComputedStyle(document.documentElement);
     var isLight = document.documentElement.getAttribute('data-theme') === 'light';
@@ -60,7 +69,8 @@
     return {
       coreColor: core || (isLight ? '#5C1F18' : '#C24E4E'),
       accentColor: accent || '#FFD166',
-      boost: isLight ? 1.6 : 1,
+      boost: isLight ? 2.4 : 1,
+      isLight: isLight,
     };
   };
 
@@ -206,6 +216,7 @@
       var aG = theme ? parseInt(theme.accentColor.slice(3, 5), 16) : 93;
       var aB = theme ? parseInt(theme.accentColor.slice(5, 7), 16) : 154;
       var boost = (theme && theme.boost) || 1;
+      var isLight = !!(theme && theme.isLight);
       var baseHue = Math.round(Math.atan2(cG - 128, cR - 128) * (180 / Math.PI) + 180);
 
       if (mouse.active) {
@@ -273,10 +284,22 @@
       var gazeX = mouse.active ? nx + (mouse.x - nx) * attentionStrength * 0.15 : nx;
       var gazeY = mouse.active ? ny + (mouse.y - ny) * attentionStrength * 0.15 : ny;
 
+      // Dark mode: pale cream-to-white hotspot, bright against a near-black
+      // stage. Light mode reuses the exact same structure but with a
+      // saturated warm coral/ember hotspot instead — pale cream on a white
+      // panel background reads as almost nothing no matter the alpha, so
+      // this is a color swap for contrast, not an opacity one (this layer's
+      // alphas were already near-opaque and unaffected by `boost` above).
       var coreGrad = ctx.createRadialGradient(gazeX, gazeY, 0, nx, ny, coreSz);
-      coreGrad.addColorStop(0, 'rgba(255,230,200,' + (0.9 + reactivity * 0.1) + ')');
-      coreGrad.addColorStop(0.3, 'rgba(255,180,120,' + (0.6 + reactivity * 0.2) + ')');
-      coreGrad.addColorStop(0.7, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.3 + reactivity * 0.15) + ')');
+      if (isLight) {
+        coreGrad.addColorStop(0, 'rgba(226,86,50,' + (0.95 + reactivity * 0.05) + ')');
+        coreGrad.addColorStop(0.3, 'rgba(196,60,40,' + (0.75 + reactivity * 0.2) + ')');
+        coreGrad.addColorStop(0.7, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.55 + reactivity * 0.15) + ')');
+      } else {
+        coreGrad.addColorStop(0, 'rgba(255,230,200,' + (0.9 + reactivity * 0.1) + ')');
+        coreGrad.addColorStop(0.3, 'rgba(255,180,120,' + (0.6 + reactivity * 0.2) + ')');
+        coreGrad.addColorStop(0.7, 'rgba(' + cR + ',' + cG + ',' + cB + ',' + (0.3 + reactivity * 0.15) + ')');
+      }
       coreGrad.addColorStop(1, 'rgba(' + cR + ',' + cG + ',' + cB + ',0)');
       ctx.fillStyle = coreGrad; buildCorePath(ctx, shape, nx, ny, coreSz); ctx.fill();
 
