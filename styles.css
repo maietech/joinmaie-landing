@@ -726,12 +726,19 @@ html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
    properties, not any positioning values, since a corner-anchored resting
    spot and a slot-anchored docked one can't both be expressed as static
    CSS without fighting the JS that measures and sets them per scene. */
-.guide-pixie-avatar {
+.guide-pixie-avatar-wrap {
   position: absolute; z-index: 2;
+  overflow: hidden; border-radius: 50%;
   transition: left 0.4s cubic-bezier(0.3, 0.8, 0.3, 1), top 0.4s cubic-bezier(0.3, 0.8, 0.3, 1),
               width 0.4s cubic-bezier(0.3, 0.8, 0.3, 1), height 0.4s cubic-bezier(0.3, 0.8, 0.3, 1);
   pointer-events: none;
 }
+/* The canvas itself is always oversized relative to the wrap above (see
+   ZOOM in guide.js) and centered via its own left/top offset, so the
+   wrap's overflow:hidden crops its baked-in blank margin. Position is set
+   directly by guide.js on every reposition() call, not animated on its
+   own — it just tracks the wrap 1:1, so no transition here. */
+.guide-pixie-avatar { position: absolute; display: block; }
 
 .guide-reduced-motion, .guide-reduced-motion * { transition: none !important; }
 
