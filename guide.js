@@ -156,6 +156,12 @@
   // renders at cssW/H = size * 2.5, so size is derived from that, not passed
   // as a raw pixel value.
   var CORNER_TOP = -30, CORNER_RIGHT = 10, CORNER_SIZE = 80;
+  // Docked (expanded-panel) Pixie is rendered 40% larger than its
+  // guide-pixie-slot footprint. The slot itself keeps reserving the
+  // original (unscaled) space in the flex row — see reposition() below,
+  // which grows the canvas symmetrically around the slot's own center
+  // rather than resizing the slot, so guide-pixie-text never shifts.
+  var DOCKED_SCALE = 1.4;
   var pixieSlot = body.querySelector('#guide-pixie-slot');
   var pixieHandle = window.initPixieCompanion(pixieAvatar, {
     size: CORNER_SIZE / 2.5, mode: 'ambient', phase: 'idle',
@@ -192,9 +198,15 @@
     var target;
     if (panel.classList.contains('is-expanded')) {
       var slotRect = pixieSlot.getBoundingClientRect();
+      var dockedW = slotRect.width * DOCKED_SCALE, dockedH = slotRect.height * DOCKED_SCALE;
       target = {
-        left: slotRect.left - panelRect.left, top: slotRect.top - panelRect.top,
-        width: slotRect.width, height: slotRect.height,
+        // Centered over the slot's own center so the extra size grows
+        // outward evenly, instead of pushing into guide-pixie-text — the
+        // slot's reserved footprint (and the text's position) stays
+        // exactly as if the avatar were still slot-sized.
+        left: slotRect.left - panelRect.left - (dockedW - slotRect.width) / 2,
+        top: slotRect.top - panelRect.top - (dockedH - slotRect.height) / 2,
+        width: dockedW, height: dockedH,
       };
     } else {
       target = {
