@@ -102,7 +102,13 @@
   // from the Atmospheric Evolution brief — it gets its own budget (signal,
   // see LEVEL_BUDGET below) distinct from the dot/curve types' particulate
   // budget, without needing a second particle array. ──
-  var COUNT = 26;
+  // ── Foam — what were "the Current"'s primary particles are now
+  // secondary: fewer (18, was 26) and their visibility (see render(), the
+  // speedMag term) now ties to the LOCAL SPEED of the density field
+  // beneath them, not just their own depth/pulse state — "particles merely
+  // reveal the invisible motion" rather than being the star themselves.
+  // type 0 still doubles as the "evolving signal fragments" layer. ──
+  var COUNT = 18;
   var particles = [];
   for (var i = 0; i < COUNT; i++) {
     particles.push({
@@ -138,16 +144,48 @@
     });
   }
 
-  // ── Volumetric haze — a handful of very large, very soft gradients
-  // drifting slowly (a much slower time-sample of the same flow field than
-  // particles/ribbons use) to give the page a sense of depth/air rather
-  // than a flat backdrop. Positions are rough viewport-fraction anchors,
-  // not tied to any specific DOM element. ──
-  var HAZE = [
-    { xFrac: 0.25, yFrac: 0.30, r: 0.55, tint: false, seed: rand() * 100 },
-    { xFrac: 0.75, yFrac: 0.60, r: 0.50, tint: true,  seed: rand() * 100 },
-    { xFrac: 0.45, yFrac: 0.85, r: 0.45, tint: false, seed: rand() * 100 },
-  ];
+  // ── Density field — the atmosphere's primary visible layer, per the
+  // "Living Morphological Ocean" revision: previously the star was the
+  // particle field (haze sat behind it as backdrop). Now a small number of
+  // large, soft cells are true FLUID PARTICLES — advected through flow()
+  // (position integrated by velocity over time, not resampled fresh each
+  // frame) and drawn additively ('lighter' composite, see drawFieldCell)
+  // so overlapping cells visually brighten and merge where they cross —
+  // the classic cheap Canvas-2D approximation of metaball blending. This
+  // is what actually produces "structures stretch, merge, dissolve,
+  // reform" — genuine SDF/isocontour blending would need a shader; this
+  // gets emotionally close without one. Deliberately few (6) and large:
+  // a slow-moving medium, not a second particle system.
+  var FIELD_COUNT = 6;
+  var fieldCells = [];
+  for (var fc = 0; fc < FIELD_COUNT; fc++) {
+    fieldCells.push({
+      x: rand(), y: rand(),               // fraction-space position, advected in stepField()
+      r: 0.30 + rand() * 0.28,             // radius as a fraction of min(vw, vh)
+      speed: 0.4 + rand() * 0.5,
+      tint: rand() < 0.35,
+      seed: rand() * 1000,
+    });
+  }
+  // Advances fieldCells through flow() by true integration, called once per
+  // render() frame before drawing. Kept as its own function (not inlined)
+  // since it's the one piece of state that persists frame-to-frame beyond
+  // the deterministic clock — every other layer's position is a pure
+  // function of (seed, clock), but advection needs a running position.
+  function stepField(dt) {
+    for (var i = 0; i < fieldCells.length; i++) {
+      var c = fieldCells[i];
+      var f = flow(c.x * vw, c.y * vh, clock + c.seed);
+      c.x += (f.vx * c.speed * dt * 40) / vw;
+      c.y += (f.vy * c.speed * dt * 40) / vh;
+      // Wrap across a slightly padded domain so drift never runs a cell
+      // permanently off-screen — at this size/softness the wrap seam is
+      // imperceptible (a large blurred gradient re-entering off-screen,
+      // not a hard edge crossing the visible frame).
+      if (c.x < -0.15) c.x += 1.3; if (c.x > 1.15) c.x -= 1.3;
+      if (c.y < -0.15) c.y += 1.3; if (c.y > 1.15) c.y -= 1.3;
+    }
+  }
 
   // Background orbs (styles.css's .bg-orb-1/2/3) breathe off this same
   // field — see render()'s orb-breathe block below — so the large anchored
@@ -213,10 +251,10 @@
   // below. Numbers are a starting point per the Atmospheric Evolution
   // strategy doc, §6 — expect a visual tuning pass once this is live.
   var LEVEL_BUDGET = {
-    0: { haze: 0.6, ribbon: 0.25, particulate: 0.55, signal: 0.4 },  // Cinematic
-    1: { haze: 1.0, ribbon: 1.0,  particulate: 1.0,  signal: 1.0 },  // Reflection — full atmosphere
-    2: { haze: 0.8, ribbon: 0.6,  particulate: 0.8,  signal: 0.6 },  // Editorial / Exploration
-    3: { haze: 0.3, ribbon: 0.15, particulate: 0.35, signal: 0.2 },  // Hero — minimal baseline; the pulse below is the reveal
+    0: { field: 0.6, ribbon: 0.25, particulate: 0.55, signal: 0.4 },  // Cinematic
+    1: { field: 1.0, ribbon: 1.0,  particulate: 1.0,  signal: 1.0 },  // Reflection — full atmosphere
+    2: { field: 0.8, ribbon: 0.6,  particulate: 0.8,  signal: 0.6 },  // Editorial / Exploration
+    3: { field: 0.3, ribbon: 0.15, particulate: 0.35, signal: 0.2 },  // Hero — minimal baseline; the pulse below is the reveal
   };
   var currentLevel = 0, targetLevel = 0;
   var densityEls = Array.prototype.slice.call(document.querySelectorAll('[data-atmo-density]'));
@@ -462,37 +500,53 @@
   // `stretch` is ribbonStretch from render() (the scroll-velocity nudge),
   // applied to the ribbon's own length so faster scrolling visibly
   // elongates it before it settles back to baseline.
+  //
+  // Drawn as a 2-pass "streakline bundle" (a slightly offset, thinner,
+  // fainter second trace) rather than a single line — a cheap way to read
+  // as a flow-visualization streakline rather than a drawn stroke, without
+  // doubling the ribbon count (and its seeded state) in the array above.
   var RIBBON_SEGS = 8;
   function drawRibbon(r, alpha, color, stretch) {
     var band = vh + 300;
     var headY = (((r.baseY * band) + clock * r.speed * r.depth) % band) - 150;
     var headX = r.xFrac * vw;
     var length = r.length * stretch;
-    ctx.beginPath();
-    for (var s = 0; s <= RIBBON_SEGS; s++) {
-      var ty = headY - (s / RIBBON_SEGS) * length;
-      var f = flow(headX, ty, clock + r.phase * 3);
-      var tx = headX + f.vx * 40 * r.depth;
-      if (s === 0) ctx.moveTo(tx, ty); else ctx.lineTo(tx, ty);
+    for (var pass = 0; pass < 2; pass++) {
+      var passOffset = pass === 0 ? 0 : 5;
+      ctx.beginPath();
+      for (var s = 0; s <= RIBBON_SEGS; s++) {
+        var ty = headY - (s / RIBBON_SEGS) * length;
+        var f = flow(headX + passOffset, ty, clock + r.phase * 3);
+        var tx = headX + passOffset + f.vx * 40 * r.depth;
+        if (s === 0) ctx.moveTo(tx, ty); else ctx.lineTo(tx, ty);
+      }
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = pass === 0 ? alpha : alpha * 0.35;
+      ctx.lineWidth = (pass === 0 ? 2.2 : 1.2) * r.depth;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.stroke();
     }
-    ctx.strokeStyle = color; ctx.globalAlpha = alpha;
-    ctx.lineWidth = 2.2 * r.depth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.stroke();
   }
 
-  // Haze: large soft radial washes, drifting on a much slower time-sample
-  // of the same field than particles/ribbons use (clock * 0.15, vs. clock
-  // directly) — the point is imperceptibly slow movement, not a visible
-  // second layer of motion competing with the particulate/ribbon layers.
-  function drawHaze(h, budget, color) {
-    var baseX = h.xFrac * vw, baseY = h.yFrac * vh;
-    var f = flow(baseX, baseY, clock * 0.15 + h.seed);
-    var x = baseX + f.vx * vw * 0.04, y = baseY + f.vy * vh * 0.04;
-    var radius = Math.min(vw, vh) * h.r;
-    var g = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    g.addColorStop(0, color); g.addColorStop(1, 'transparent');
-    ctx.fillStyle = g; ctx.globalAlpha = budget * 0.05;
-    ctx.fillRect(0, 0, vw, vh);
+  // Field cell: drawn with an additive composite operation by the caller
+  // (see render()) so overlapping cells brighten/merge rather than simply
+  // layering — the actual "merge, split, recombine" behavior the fluid
+  // model asks for comes from this blend mode plus stepField()'s
+  // advection, not from any explicit merge logic. stretchY anisotropically
+  // elongates the cell along the vertical (scroll) axis — reuses the same
+  // scroll signal as ribbonStretch, so field structures visibly elongate
+  // downstream under fast scrolling too, same as ribbons.
+  function drawFieldCell(c, budget, color, stretchY) {
+    var x = c.x * vw, y = c.y * vh;
+    var r = Math.min(vw, vh) * c.r;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, stretchY);
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, color); g.addColorStop(0.55, color); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.globalAlpha = budget * 0.09;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
 
   function lerpBudget(lo, hi, frac, key) {
@@ -513,10 +567,15 @@
     // scale it for a different visual purpose) without a second formula.
     var ribbonStretch = 1 + (scrollBoost - 1) * 4;
 
+    // stretchY: same scroll signal as ribbonStretch, scaled down (field
+    // cells are large — a 4x anisotropic stretch like ribbons get would
+    // look distorted, not "elongated downstream") — capped modestly.
+    var stretchY = 1 + (scrollBoost - 1) * 1.2;
+
     currentLevel += (targetLevel - currentLevel) * Math.min(1, dt * 2.2); // smoothed level transition
     var lo = Math.max(0, Math.floor(currentLevel)), hi = Math.min(3, Math.ceil(currentLevel));
     var frac = currentLevel - lo;
-    var hazeBudget = lerpBudget(lo, hi, frac, 'haze');
+    var fieldBudget = lerpBudget(lo, hi, frac, 'field');
     var ribbonBudget = lerpBudget(lo, hi, frac, 'ribbon');
     var particulateBudget = lerpBudget(lo, hi, frac, 'particulate');
     var signalBudget = lerpBudget(lo, hi, frac, 'signal');
@@ -529,15 +588,24 @@
     var colors = cachedColors;
     ctx.clearRect(0, 0, vw, vh);
 
-    // Haze — drawn first, furthest back, beneath ribbons and particles.
-    if (hazeBudget > 0.01) {
-      for (var hz = 0; hz < HAZE.length; hz++) {
-        drawHaze(HAZE[hz], hazeBudget, HAZE[hz].tint ? colors.accent : colors.fg);
+    stepField(dt);
+
+    // Density field — drawn first, furthest back, with an ADDITIVE blend
+    // ('lighter') so overlapping cells brighten and visually merge rather
+    // than simply stacking — this is the layer the "Living Morphological
+    // Ocean" revision makes primary; everything below (ribbons, foam) now
+    // reads as riding on top of it rather than being the atmosphere itself.
+    if (fieldBudget > 0.01) {
+      ctx.globalCompositeOperation = 'lighter';
+      for (var fcI = 0; fcI < fieldCells.length; fcI++) {
+        var cell = fieldCells[fcI];
+        drawFieldCell(cell, fieldBudget, cell.tint ? colors.accent : colors.fg, stretchY);
       }
+      ctx.globalCompositeOperation = 'source-over';
     }
 
-    // Ribbons — the "continuous current" layer, beneath the particulate
-    // field so individual particles still read as distinct foreground motes.
+    // Ribbons — current-lines riding through the field, beneath the foam
+    // layer so individual foam motes still read as distinct foreground.
     if (ribbonBudget > 0.01) {
       for (var rb = 0; rb < ribbons.length; rb++) {
         var r = ribbons[rb];
@@ -602,7 +670,13 @@
       // own budget on top of the shared particulate one; dots/curves stay
       // on particulate alone.
       var layerBudget = p.type === 0 ? signalBudget : 1;
-      var alpha = budgetOpacity * layerBudget * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3) * (1 + openingPulse * 0.6);
+      // Foam: local speed of the SAME field sample (|vx| + |vy|) modulates
+      // visibility — foam brightens where the invisible current is moving
+      // faster beneath it, dims where it's calm, per "particles merely
+      // reveal the invisible motion" rather than existing independently of
+      // it. Clamped so it nudges rather than fully hides/exposes.
+      var speedMag = Math.min(1.4, Math.abs(f.vx) + Math.abs(f.vy));
+      var alpha = budgetOpacity * layerBudget * (0.25 + speedMag * 0.4) * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3) * (1 + openingPulse * 0.6);
       var color = (p.tint || heroPulse > 0.5) ? colors.accent : colors.fg;
       var size = p.size * (0.7 + p.depth * 0.5);
       if (p.type === 1) drawDot(x, y, size, alpha, color);
