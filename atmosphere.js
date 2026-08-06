@@ -246,12 +246,27 @@
       c.x += ((f.vx + slowF.vx * 0.5) * c.speed * dt * 40) / vw;
       c.y += ((f.vy + slowF.vy * 0.5) * c.speed * dt * 40) / vh;
       c.pulse = Math.max(0, c.pulse - dt * 0.4);
-      // Wrap across a slightly padded domain so drift never runs a cell
-      // permanently off-screen — at this size/softness the wrap seam is
-      // imperceptible (a large blurred gradient re-entering off-screen,
-      // not a hard edge crossing the visible frame).
-      if (c.x < -0.15) c.x += 1.3; if (c.x > 1.15) c.x -= 1.3;
-      if (c.y < -0.15) c.y += 1.3; if (c.y > 1.15) c.y -= 1.3;
+      // Wrap only once the cell is FULLY off-screen — padding is now
+      // per-cell and radius-aware (was a flat 0.15, while c.r ranges
+      // 0.30-0.58 of min(vw,vh)), which was the actual bug: cells were
+      // teleporting to the opposite edge while still clearly on-screen —
+      // "halfway outside the viewport." Worse, flow()/currentFlow() aren't
+      // spatially periodic, so the velocity sample on the far side of a
+      // wrap is essentially unrelated to what the cell was just
+      // experiencing — a sudden, uncorrelated direction change right as
+      // it reappeared, which is what read as rapid shift/oscillation.
+      // Worst in corners because that's where the x-wrap and y-wrap
+      // conditions were both triggering close together. Padding by the
+      // cell's own on-screen radius (x1.3 for a safety margin covering
+      // drawFieldCell's anisotropic scroll-stretch) guarantees the wrap —
+      // and the velocity discontinuity that comes with it — only ever
+      // happens while the shape has zero visible alpha.
+      var padX = (c.r * Math.min(vw, vh) * 1.3) / vw + 0.05;
+      var padY = (c.r * Math.min(vw, vh) * 1.3) / vh + 0.05;
+      if (c.x < -padX) c.x += 1 + padX * 2;
+      if (c.x > 1 + padX) c.x -= 1 + padX * 2;
+      if (c.y < -padY) c.y += 1 + padY * 2;
+      if (c.y > 1 + padY) c.y -= 1 + padY * 2;
     }
   }
 
