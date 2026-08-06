@@ -1331,8 +1331,18 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
 .hand-frame { position: absolute; inset: 0; }
 .hand-photo {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-  opacity: 0; will-change: opacity, transform;
+  opacity: 0;
 }
+/* GPU-layer promotion scoped to only the photo(s) actually visible right
+   now (scene-human-hand.js toggles this), not a blanket will-change on
+   .hand-photo above. Confirmed live via CDP LayerTree: the blanket rule
+   promoted all 7 of these full-viewport (1280x800) <img>s to their own
+   simultaneous composited layer for the scene's entire duration, even
+   though at most 1-2 are ever visible at once — ~4MB of GPU texture
+   residency each, ~29MB total, for photos sitting at opacity 0 the rest
+   of the time. Same visual result either way (will-change is a rendering
+   hint, not a visual property); only the promotion footprint changes. */
+.hand-photo.is-live { will-change: opacity, transform; }
 /* Same warmth fix as the background above, same mechanism (color-mix
    toward --brand instead of flat black) — the scrim's legibility job
    (thesis/caption text over a photograph) is unchanged, only its hue is.
@@ -1392,8 +1402,13 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
    directly" approach scene-human-hand.js uses for .hand-photo. */
 .lifecycle-frame-bg {
   position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; opacity: 0; z-index: 0; will-change: opacity, transform;
+  object-fit: cover; opacity: 0; z-index: 0;
 }
+/* Scoped promotion, same reasoning as .hand-photo.is-live above — only the
+   frame(s) with nonzero weight get their own composited layer, not all 8
+   simultaneously. Smaller footprint per layer than .hand-photo (these are
+   ~320x420 card-sized, not full-viewport) but the same pattern. */
+.lifecycle-frame-bg.is-live { will-change: opacity, transform; }
 /* Scrim fades in lockstep with the photo above (same weight, set inline by
    JS) — at weight 0 there's no photo and this is invisible too, so the
    card's default theme-token look (light or dark) is untouched. Only once

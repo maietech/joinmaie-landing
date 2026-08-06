@@ -43,6 +43,15 @@
     });
   }
 
+  // Last-written values for the write-skips below — each caches the input
+  // to an expensive multi-chip ring()/filter write, not the write itself,
+  // since these three stages (macro word, categories, atoms) are each
+  // pinned at a fixed clamped value (localP's own clamp01) for roughly
+  // three-quarters of the scroll range outside their own ~26-28%-wide
+  // active window — same shape as scene-lifecycle.js's/scene-human-hand.js's
+  // fix, applied here to CSS transforms instead of photographs.
+  var lastMacroLocal = -1, lastCatLocal = -1, lastAtomSpread = -1, lastRingW = -1;
+
   function render(progress) {
     var wMacro = window.storyStageWeight(progress, 0.00, 0.22, 0.00, 0.04);
     var wCats  = window.storyStageWeight(progress, 0.20, 0.46);
@@ -54,26 +63,51 @@
     // next stage rather than popping.
     var macroLocal = localP(progress, 0.00, 0.22);
     word.style.opacity = wMacro;
-    word.style.transform = 'translate(-50%,-50%) scale(' + (1 + macroLocal * 9).toFixed(2) + ')';
-    word.style.filter = 'blur(' + (macroLocal * 3).toFixed(1) + 'px)';
+    if (Math.abs(macroLocal - lastMacroLocal) > 0.001) {
+      lastMacroLocal = macroLocal;
+      word.style.transform = 'translate(-50%,-50%) scale(' + (1 + macroLocal * 9).toFixed(2) + ')';
+      word.style.filter = 'blur(' + (macroLocal * 3).toFixed(1) + 'px)';
+    }
 
     // 2. Categories — domain clusters spread outward from center.
     var w = section.clientWidth || 900;
+    if (w !== lastRingW) {
+      // ring()'s radius scales with w — a resize-only tick (progress, and
+      // so catLocal/atomLocal, unchanged) must still be allowed through
+      // below, or the chips would sit at a stale pre-resize radius.
+      lastRingW = w;
+      lastCatLocal = -1;
+      lastAtomSpread = -1;
+    }
     var catLocal = localP(progress, 0.20, 0.46);
     catCluster.style.opacity = wCats;
-    ring(catChips, catLocal, Math.min(w * 0.30, 280));
+    if (Math.abs(catLocal - lastCatLocal) > 0.001) {
+      lastCatLocal = catLocal;
+      ring(catChips, catLocal, Math.min(w * 0.30, 280));
+    }
 
     // 3. Atoms — media primitives spread wider, further from center.
     var atomLocal = localP(progress, 0.46, 0.74);
     atomCluster.style.opacity = wAtoms;
-    ring(atomChips, atomLocal, Math.min(w * 0.40, 380));
 
     // 4. Re-clustering — atoms pull back inward as the project container
     // takes over, so the ending reads as consolidation, not a plain cut.
     var projLocal = localP(progress, 0.74, 1.00);
     if (projLocal > 0) {
-      ring(atomChips, Math.max(0, atomLocal - projLocal * 0.95), Math.min(w * 0.40, 380));
+      // Once re-clustering has begun, this stage's own ring() call (above)
+      // would be immediately superseded by the one below — previously both
+      // ran every tick in this ~26%-of-scroll window, the first call's
+      // writes always instantly overwritten. Only the recluster spread is
+      // computed/written here now.
+      var reclusterSpread = Math.max(0, atomLocal - projLocal * 0.95);
+      if (Math.abs(reclusterSpread - lastAtomSpread) > 0.001) {
+        lastAtomSpread = reclusterSpread;
+        ring(atomChips, reclusterSpread, Math.min(w * 0.40, 380));
+      }
       atomCluster.style.opacity = Math.max(0, wAtoms - projLocal * 0.85);
+    } else if (Math.abs(atomLocal - lastAtomSpread) > 0.001) {
+      lastAtomSpread = atomLocal;
+      ring(atomChips, atomLocal, Math.min(w * 0.40, 380));
     }
     project.style.opacity = wProj;
     project.style.transform = 'translate(-50%,-50%) scale(' + (0.4 + projLocal * 0.7).toFixed(2) + ')';
