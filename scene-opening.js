@@ -379,7 +379,13 @@
   // work) or the idle clock `t`'s own advancement (must keep incrementing
   // every native frame regardless, or the breathing-pulse/data-blink
   // timing would visibly slow down during active scrolling).
-  var lastRenderedFrame = null;
+  // -1, not null: under prefers-reduced-motion, story-scroll.js's
+  // initScrollScene calls onProgress once synchronously before reveal.js's
+  // tick() ever runs, so window.__scrollTickFrameTime is still null at that
+  // point — starting this at null too would make that first call's guard
+  // (null !== null) false and silently skip draw(). Same bug, same fix,
+  // as scene-chaos-signal.js's identical copy of this idiom.
+  var lastRenderedFrame = -1;
   var lastProgress = 0, isReduced = false;
   window.initScrollScene(section, function (progress, staticFrame) {
     // If the visitor has already scrolled meaningfully into the section

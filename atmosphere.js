@@ -277,6 +277,7 @@
   // parallax is untouched; this only modulates opacity/scale slightly).
   var orbEls = Array.prototype.slice.call(document.querySelectorAll('.bg-orb'));
   var orbSeeds = orbEls.map(function () { return rand() * 100; });
+  var orbLastWrite = -1; // seconds, see throttle note at the write site below
 
   // Transient "echo" particles — spawned by scene scripts when their own
   // elements dissolve (Component 2, Narrative Echoes). Short-lived, drift
@@ -424,11 +425,50 @@
     'scene-agent':        { fadeIn: 0.08,  fadeOut: 0.08 },
   };
   var TAPER = 46; // max % of the panel eroded from the bottom edge at the extreme of a fade
+
+  // Mirrors styles.css's [data-atmo-density] → --atmo-veil rules (:632-635).
+  // Needed as a JS-side table (not read via getComputedStyle) because the
+  // crossfade below needs to *blend* two scenes' veil amounts across the
+  // transition window, not just read one settled value. Keep in sync with
+  // styles.css if those numbers change. This is deliberately a narrower,
+  // local mechanism than the canvas's own currentLevel/LEVEL_BUDGET lerp
+  // above — that drives the World Layer canvas's particle budget from
+  // whichever section is nearest per the IntersectionObserver; this drives
+  // a completely different, CSS-only property (a .scene-sticky panel's own
+  // background opacity) and only during the narrow window a panel is
+  // already known to be transitioning, so folding the two together would
+  // add coupling between unrelated systems for no measured benefit.
+  var VEIL_BY_DENSITY = { 0: 55, 1: 40, 2: 60, 3: 88 };
+  function veilOf(el) {
+    var d = el && el.getAttribute && el.getAttribute('data-atmo-density');
+    return d != null && VEIL_BY_DENSITY[d] != null ? VEIL_BY_DENSITY[d] : null;
+  }
+  // Walks past non-scene siblings (e.g. the zero-height .atmo-beacon marker
+  // divs index.html drops between sections) to find the nearest actual
+  // [data-atmo-density] section in the given direction — a direct
+  // previousElementSibling/nextElementSibling read would land on the
+  // beacon instead, which has no density and would silently disable the
+  // blend (confirmed live before shipping this: scene-chaos-signal's
+  // previousElementSibling is the beacon before it, not scene-human-hand).
+  function neighborVeil(el, dir) {
+    var cur = dir < 0 ? el.previousElementSibling : el.nextElementSibling;
+    while (cur) {
+      if (cur.hasAttribute && cur.hasAttribute('data-atmo-density')) return veilOf(cur);
+      cur = dir < 0 ? cur.previousElementSibling : cur.nextElementSibling;
+    }
+    return null;
+  }
+
   var originalInitScrollScene = window.initScrollScene;
   if (originalInitScrollScene && !reducedMotion) {
     window.initScrollScene = function (sectionEl, onProgress) {
       var cfg = CROSSFADE[sectionEl.id];
       var sticky = cfg ? sectionEl.querySelector('.scene-sticky') : null;
+      // Resolved once at registration, not per tick: the neighbor a scene
+      // crossfades with never changes while the page is open.
+      var ownVeil = sticky ? veilOf(sectionEl) : null;
+      var prevVeil = (sticky && cfg.fadeIn > 0) ? neighborVeil(sectionEl, -1) : null;
+      var nextVeil = (sticky && cfg.fadeOut > 0) ? neighborVeil(sectionEl, 1) : null;
       return originalInitScrollScene(sectionEl, function (progress, isStatic) {
         onProgress(progress, isStatic);
         if (!sticky || isStatic) return;
@@ -439,6 +479,7 @@
           if (sticky.classList.contains('scene-crossfading')) {
             sticky.classList.remove('scene-crossfading');
             sticky.style.maskImage = ''; sticky.style.webkitMaskImage = ''; sticky.style.opacity = '';
+            sticky.style.removeProperty('--atmo-veil');
           }
           return;
         }
@@ -458,6 +499,19 @@
         // for browsers without mask-image support — the mask is doing the
         // real work where it's available, this never goes below 0.88.
         sticky.style.opacity = (0.88 + 0.12 * Math.min(inW, outW)).toFixed(3);
+        // Blend --atmo-veil toward the neighbor scene's own veil across the
+        // same window the mask erodes across, so the panel's *reveal
+        // amount* glides between the two scenes instead of snapping the
+        // instant the mask finishes uncovering it. Most adjacent pairs
+        // differ by only 0-5 percentage points (imperceptible either way);
+        // scene-human-hand (40%) → scene-chaos-signal (55%) is the one
+        // real outlier (15pp) this fixes.
+        if (ownVeil != null) {
+          var veil = ownVeil;
+          if (inW < 1 && prevVeil != null) veil = prevVeil + (ownVeil - prevVeil) * inW;
+          else if (outW < 1 && nextVeil != null) veil = ownVeil + (nextVeil - ownVeil) * (1 - outW);
+          sticky.style.setProperty('--atmo-veil', veil.toFixed(1) + '%');
+        }
       });
     };
   }
@@ -485,6 +539,15 @@
   function beaconRead() {
     return beacons.map(function (b) { return b.getBoundingClientRect(); });
   }
+  // Last-written intensity per beacon — see the write-skip below. Unlike
+  // the scene-sticky crossfades, this runs through registerScrollBatch, so
+  // it fires on every scroll tick anywhere on the whole ~25000px page, not
+  // just within one scene's own range — each beacon's intensity is clamped
+  // to exactly 0 outside a roughly 1.6-viewport-height band around its own
+  // fixed document position (APPROACH_RANGE + DISSOLVE_RANGE), so for the
+  // large majority of total scroll distance every beacon was rewriting the
+  // same "0.000" every tick regardless of where the visitor actually is.
+  var lastIntensity = beacons.map(function () { return -1; });
   function beaconWrite(rects) {
     if (reducedMotion) return;
     rects.forEach(function (rect, i) {
@@ -498,6 +561,8 @@
         intensity = Math.max(0, 1 - (-centerOffset) / (DISSOLVE_RANGE * vhPx));
       }
       intensity = Math.max(0, Math.min(1, intensity));
+      if (Math.abs(intensity - lastIntensity[i]) <= 0.001) return;
+      lastIntensity[i] = intensity;
       b.style.setProperty('--beacon-intensity', intensity.toFixed(3));
       if (b === pathsArrivalBeacon && pathsSection) {
         pathsSection.style.setProperty('--paths-signal-progress', intensity.toFixed(3));
@@ -541,16 +606,12 @@
   // open, since this canvas (unlike every scene-scoped one) is never paused
   // per-section. Cached once here, refreshed only on the theme toggle's own
   // maie:themechange event — same idea scene-chaos-signal.js's textRgb
-  // cache already uses elsewhere in this codebase. NOTE: that cache's own
-  // refresh listener is registered via window.addEventListener, but
-  // theme.js dispatches the event via document.dispatchEvent(...) with no
-  // `bubbles: true` — confirmed live (not assumed) that a window-level
-  // listener never actually receives it, so that pre-existing cache likely
-  // never refreshes on toggle. Left as-is here (out of scope for this
-  // change — flagged separately, not fixed in place); this cache instead
-  // uses document.addEventListener, matching guide.js/scene-agent.js/
-  // index.html's inline script, which is the convention that actually
-  // receives the event.
+  // cache already uses elsewhere in this codebase, via document.addEventListener,
+  // matching guide.js/scene-agent.js/index.html's inline script — the
+  // convention that actually receives theme.js's document.dispatchEvent(...)
+  // (no bubbles:true, so a window-level listener would miss it; every
+  // listener in the codebase, including scene-chaos-signal.js's own, now
+  // correctly uses document.addEventListener).
   var cachedColors = colorTokens();
   document.addEventListener('maie:themechange', function () {
     cachedColors = colorTokens();
@@ -842,7 +903,18 @@
     // they visibly pulse in sync with the same current without moving in
     // lockstep with the canvas particles. Skipped entirely under
     // reduced-motion (CSS's own var(--orb-breathe, 1) fallback holds).
-    if (!reducedMotion && orbEls.length) {
+    // Throttled to ~10Hz rather than every native frame: the breathing
+    // sine here has a ~52s period (2*PI / 0.12), so consecutive 60fps
+    // frames differ by a fraction of a degree of phase — imperceptible.
+    // This canvas's render() loop runs continuously for the entire time
+    // the tab is visible (gated only by page visibility, not scroll
+    // position or scene — see pageVisibilityObserver below), so writing
+    // this style 60x/sec was a real always-on cost across 3 elements that
+    // each already carry filter: blur(120px) + mix-blend-mode compositing.
+    // Sampling at ~10Hz instead cuts that write/recalc cost by ~83% with
+    // the same visible result.
+    if (!reducedMotion && orbEls.length && clock - orbLastWrite >= 0.1) {
+      orbLastWrite = clock;
       for (var oi = 0; oi < orbEls.length; oi++) {
         var of = flow(orbSeeds[oi] * 10, orbSeeds[oi] * 7, clock * 0.12);
         var breathe = 1 + 0.14 * Math.sin(clock * 0.12 + of.vx + orbSeeds[oi]);

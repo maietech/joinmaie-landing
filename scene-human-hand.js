@@ -57,6 +57,9 @@
     };
   });
 
+  // Last-written weight per photo — see the write-skip in render() below.
+  var lastW = photos.map(function () { return -1; }); // -1 so the first render always writes
+
   function render(progress) {
     // Fully faded out (weight 0) by progress 0.045 — before photo[0]'s own
     // fade-in ramp begins at PHOTO_START - FADE = 0.05 (see STAGES above).
@@ -77,12 +80,28 @@
     photos.forEach(function (el, i) {
       var s = STAGES[i];
       var w = window.storyStageWeight(progress, s.start, s.end, FADE, s.fadeOut);
-      el.style.opacity = w.toFixed(3);
-      // A very subtle, slow zoom tied directly to the same crossfade
-      // weight already being computed — no separate animation/class
-      // system, consistent with how every other scroll-driven visual on
-      // this page is a pure function of progress.
-      el.style.transform = 'scale(' + (1 + w * 0.035).toFixed(3) + ')';
+      // storyStageWeight returns exactly 0 outside [start-FADE, end+fadeOut]
+      // (story-scroll.js's own early-return) — with 7 non-overlapping stage
+      // windows spread across the scroll range, at most 1-2 of these 7 real
+      // photographs ever have nonzero weight at once. The other 5-6 were
+      // still getting two redundant writes (opacity + transform: scale)
+      // every tick for the scene's entire range — same shape, same fix, as
+      // scene-lifecycle.js's render() (see that file for the fuller note).
+      if (Math.abs(w - lastW[i]) > 0.001) {
+        lastW[i] = w;
+        el.style.opacity = w.toFixed(3);
+        // A very subtle, slow zoom tied directly to the same crossfade
+        // weight already being computed — no separate animation/class
+        // system, consistent with how every other scroll-driven visual on
+        // this page is a pure function of progress.
+        el.style.transform = 'scale(' + (1 + w * 0.035).toFixed(3) + ')';
+      }
+      // GPU-layer promotion (styles.css's .hand-photo.is-live) only for
+      // whichever photo(s) currently have any visibility at all — see that
+      // rule's own comment. classList.toggle is already a browser-native
+      // no-op when the state hasn't changed, so this doesn't need its own
+      // last-value guard the way the style writes above do.
+      el.classList.toggle('is-live', w > 0);
       if (w > topWeight) { topWeight = w; topIndex = i; }
     });
 

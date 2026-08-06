@@ -17,6 +17,13 @@
   var signalLine = document.getElementById('frame-signal-line');
   var dots = Array.prototype.slice.call(section.querySelectorAll('.frame-signal-dot'));
   var waveEl = fractures[2] ? fractures[2].querySelector('.frame-wave') : null;
+  // Precomputed once, not re-queried inside the per-tick loop below.
+  var tags = fractures.map(function (el) { return el ? el.querySelector('.frame-tag') : null; });
+  // Last-written weight per fracture — see the write-skip below. Each of
+  // the 4 fractures has its own non-overlapping window (windows, below);
+  // storyStageWeight is exactly 0 outside it, so at most 1 of the 4 ever
+  // has nonzero weight at a time — same shape as scene-lifecycle.js's fix.
+  var lastW = fractures.map(function () { return -1; });
 
   var MAX_HEIGHT = 46; // px, fully-open fracture bar
 
@@ -57,9 +64,10 @@
       if (!el) return;
       var win = windows[i];
       var w = window.storyStageWeight(progress, win.start, win.end, 0.04, 0);
+      if (Math.abs(w - lastW[i]) <= 0.001) return;
+      lastW[i] = w;
       el.style.height = (2 + w * MAX_HEIGHT) + 'px';
-      var tag = el.querySelector('.frame-tag');
-      if (tag) tag.style.opacity = w;
+      if (tags[i]) tags[i].style.opacity = w;
       if (waveEl && el === fractures[2]) waveEl.style.opacity = w;
       if (dots[i]) dots[i].style.opacity = w;
     });

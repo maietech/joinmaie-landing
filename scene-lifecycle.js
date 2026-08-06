@@ -55,6 +55,8 @@
   var bgs = frames.map(function (f) { return f.querySelector('.lifecycle-frame-bg'); });
   var scrims = frames.map(function (f) { return f.querySelector('.lifecycle-frame-scrim'); });
   var windowEl = track.parentElement;
+  // Last-written weight per frame — see the write-skip in render() below.
+  var lastW = frames.map(function () { return -1; }); // -1 so the very first render always writes
 
   // frames[0].getBoundingClientRect() and windowEl.clientWidth are both
   // layout-forcing reads that were happening on every single frame here —
@@ -98,8 +100,25 @@
       // linearly with scroll.
       var w = Math.max(0, 1 - Math.abs(i - idxFloat));
       w = w * w * (3 - 2 * w);
-      bgs[i].style.opacity = (w * 0.6).toFixed(3);
-      scrims[i].style.opacity = w.toFixed(3);
+      // render() runs unconditionally on every scroll tick across this
+      // scene's entire ~480vh range, but at most 2-3 of these 8 frames ever
+      // have nonzero weight at once (w is exactly 0 once a frame is more
+      // than one stage-index away from idxFloat) — every other frame was
+      // still getting two redundant "opacity: 0.000" writes every tick.
+      // Measured as a real rendering cost (real photographs, rewritten
+      // ~16x/tick regardless of whether anything visually changed) — skip
+      // the write when the weight hasn't moved, same write-only-on-change
+      // idiom story-scroll.js's lastReported and atmosphere.js's
+      // cachedColors already use elsewhere in this codebase.
+      if (Math.abs(w - lastW[i]) > 0.001) {
+        lastW[i] = w;
+        bgs[i].style.opacity = (w * 0.6).toFixed(3);
+        scrims[i].style.opacity = w.toFixed(3);
+      }
+      // GPU-layer promotion (styles.css's .lifecycle-frame-bg.is-live) only
+      // for whichever frame(s) currently have any visibility at all — same
+      // reasoning and same fix as scene-human-hand.js's .hand-photo.is-live.
+      bgs[i].classList.toggle('is-live', w > 0);
     });
     dots.forEach(function (d, i) { d.classList.toggle('is-active', i === activeIdx); });
 
