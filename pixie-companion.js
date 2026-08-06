@@ -171,6 +171,12 @@
     var velocity    = { x: 0, y: 0 };
     var mouse       = { x: 0, y: 0, active: false };
     var frame       = 0;
+    // One-time per-instance offset (not per-frame randomness — an identity
+    // constant, same style as maie-logo-motion.js's idle() jitter), used
+    // below to decorrelate this instance's ambient drift from the other
+    // live Pixie instances on the page, since all of them sample the same
+    // shared flow field.
+    var instanceSeed = Math.random() * 1000;
 
     var density   = prefs.particleDensity || 'normal';
     var baseCount = archetype === 'oracle' ? 52 : archetype === 'forgekeeper' ? 24 : 40;
@@ -226,8 +232,26 @@
         if (dist > 0.1) { targetPos.x = cx + (dx / dist) * maxD * infl; targetPos.y = cy + (dy / dist) * maxD * infl; }
       } else {
         var drift = phase === 'executing' ? 6 : 3;
-        targetPos.x = cx + Math.sin(t * 0.5) * drift;
-        targetPos.y = cy + Math.cos(t * 0.7) * drift;
+        // Ambient drift now samples the World Layer's shared flow field
+        // (atmosphere.js) instead of an independent sin/cos pair — Pixie is
+        // the one element visitors already anthropomorphize, so having it
+        // visibly suspended in the same "air" as the particles/ribbons does
+        // more emotional work than any other single change in this pass.
+        // Local (cx, cy) + instanceSeed (not real screen position) is
+        // sampled deliberately — a live getBoundingClientRect() here would
+        // add a per-frame layout read to a hot path this codebase is
+        // specifically sensitive to; the seed offset alone is enough to
+        // pull a decorrelated patch of the same field per instance.
+        // Falls back to the original independent drift if atmosphere.js
+        // hasn't run yet for any reason (e.g. its own canvas is missing).
+        if (window.MaieAtmosphere && window.MaieAtmosphere.flow) {
+          var af = window.MaieAtmosphere.flow(cx + instanceSeed, cy + instanceSeed * 1.3, t);
+          targetPos.x = cx + af.vx * drift;
+          targetPos.y = cy + af.vy * drift;
+        } else {
+          targetPos.x = cx + Math.sin(t * 0.5) * drift;
+          targetPos.y = cy + Math.cos(t * 0.7) * drift;
+        }
       }
       var spring = ARCHETYPE_SPRING[archetype] || ARCHETYPE_SPRING.archivist;
       var stiffness = spring.stiffness * (mode === 'active' ? 1.3 : 1.0);

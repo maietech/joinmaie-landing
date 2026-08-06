@@ -106,10 +106,24 @@
       }
     }
     function schedule() {
+      // Jitter source: a coarse, slow time-sample of the World Layer's
+      // shared flow field (atmosphere.js) when available, instead of
+      // Math.random() — lowest-priority item in the Atmospheric Evolution
+      // plan (§7): purely a timing coincidence, no visual coupling, so the
+      // logo's irregular pulse timing still feels causally connected to
+      // the same current everything else samples. Falls back to the
+      // original RNG if atmosphere.js hasn't run (e.g. its canvas is
+      // missing) — this must never block the idle pulse from scheduling.
+      var jitter;
+      if (window.MaieAtmosphere && window.MaieAtmosphere.flow) {
+        jitter = Math.abs(window.MaieAtmosphere.flow(37, 71, Date.now() / 1000).vx) * 450;
+      } else {
+        jitter = Math.random() * 900;
+      }
       timer = window.setTimeout(function () {
         if (!document.hidden) fire();
         schedule();
-      }, interval + Math.random() * 900);
+      }, interval + jitter);
     }
     schedule();
     return function stop() { window.clearTimeout(timer); };

@@ -58,6 +58,32 @@
   }
   var rand = mulberry32(1337);
 
+  // ── The Flow Field — the one shared current every moving system in this
+  // file (and, via window.MaieAtmosphere.flow, pixie-companion.js and
+  // maie-logo-motion.js) samples for its own ambient drift, instead of each
+  // rolling an independent sine/random term. Two domain-warped octaves —
+  // cheap (a handful of sin/cos per sample, no per-frame allocation), fully
+  // deterministic (phase seeds drawn from the same mulberry32 stream as
+  // every particle above), and spatially coherent (nearby points return
+  // similar vectors, which is what makes it read as "current" rather than
+  // "wobble"). Each consumer passes its own seed offset into the (x, y, t)
+  // triple so results stay decorrelated across systems without ever
+  // touching a shared clock phase directly — same field, unsynced look, per
+  // the brief's "influenced by the same physics without becoming
+  // synchronized in an obvious way."
+  var FLOW_SEED_A = rand() * 1000, FLOW_SEED_B = rand() * 1000;
+  function flow(x, y, t) {
+    var nx = x * 0.0018, ny = y * 0.0022;
+    var warpX = Math.sin(ny * 1.7 + t * 0.06 + FLOW_SEED_A) * 1.3;
+    var warpY = Math.cos(nx * 1.5 + t * 0.05 + FLOW_SEED_B) * 1.3;
+    return {
+      vx: Math.sin(nx + warpX + t * 0.08) + Math.sin(ny * 0.6 - t * 0.05 + FLOW_SEED_B) * 0.6,
+      vy: Math.cos(ny + warpY - t * 0.07) + Math.cos(nx * 0.5 + t * 0.04 + FLOW_SEED_A) * 0.6,
+    };
+  }
+  window.MaieAtmosphere = window.MaieAtmosphere || {};
+  window.MaieAtmosphere.flow = flow;
+
   var vw = 0, vh = 0, dpr = window.devicePixelRatio || 1;
   function resize() {
     vw = window.innerWidth; vh = window.innerHeight;
@@ -70,7 +96,12 @@
   // curve, or dot. y(t) is position within an extended loop band so the
   // wrap at the top/bottom never happens on-screen abruptly. Everything
   // here is translate/opacity-equivalent (canvas draw calls, not layout-
-  // affecting DOM writes) per the brief's Technical Guidelines. ──
+  // affecting DOM writes) per the brief's Technical Guidelines.
+  //
+  // type 0 (the majority) doubles as the "evolving signal fragments" layer
+  // from the Atmospheric Evolution brief — it gets its own budget (signal,
+  // see LEVEL_BUDGET below) distinct from the dot/curve types' particulate
+  // budget, without needing a second particle array. ──
   var COUNT = 26;
   var particles = [];
   for (var i = 0; i < COUNT; i++) {
@@ -86,6 +117,45 @@
       tint: rand() < 0.18,                // occasional accent-tinted fragment (logo-language, not literal logo)
     });
   }
+
+  // ── Plasma ribbons — translucent flowing strokes, each traced backward
+  // from a moving head through several samples of the SAME flow field
+  // driving the particles above, so what reads as "isolated dots drifting"
+  // gains a "continuous current carrying them downstream" companion layer.
+  // Deliberately few (5) and faint — a background medium, not a second
+  // particle system competing for attention. ──
+  var RIBBON_COUNT = 5;
+  var ribbons = [];
+  for (var ri = 0; ri < RIBBON_COUNT; ri++) {
+    ribbons.push({
+      xFrac: rand(),
+      depth: 0.4 + rand() * 0.5,
+      speed: 4 + rand() * 6,
+      baseY: rand(),
+      length: 140 + rand() * 90,
+      phase: rand() * Math.PI * 2,
+      tint: rand() < 0.3,
+    });
+  }
+
+  // ── Volumetric haze — a handful of very large, very soft gradients
+  // drifting slowly (a much slower time-sample of the same flow field than
+  // particles/ribbons use) to give the page a sense of depth/air rather
+  // than a flat backdrop. Positions are rough viewport-fraction anchors,
+  // not tied to any specific DOM element. ──
+  var HAZE = [
+    { xFrac: 0.25, yFrac: 0.30, r: 0.55, tint: false, seed: rand() * 100 },
+    { xFrac: 0.75, yFrac: 0.60, r: 0.50, tint: true,  seed: rand() * 100 },
+    { xFrac: 0.45, yFrac: 0.85, r: 0.45, tint: false, seed: rand() * 100 },
+  ];
+
+  // Background orbs (styles.css's .bg-orb-1/2/3) breathe off this same
+  // field — see render()'s orb-breathe block below — so the large anchored
+  // background shapes feel like part of the same current without moving in
+  // lockstep with the canvas particles (their existing scroll-linked
+  // parallax is untouched; this only modulates opacity/scale slightly).
+  var orbEls = Array.prototype.slice.call(document.querySelectorAll('.bg-orb'));
+  var orbSeeds = orbEls.map(function () { return rand() * 100; });
 
   // Transient "echo" particles — spawned by scene scripts when their own
   // elements dissolve (Component 2, Narrative Echoes). Short-lived, drift
@@ -133,11 +203,20 @@
   // Editorial/Exploration=Medium, Cinematic=Low, Hero=Minimal-baseline
   // (Hero's real payoff is the one-time alignment pulse below, not its
   // idle budget). ──
+  // Level budgets, per data-atmo-density (0-3), one fraction per depth
+  // layer instead of one shared {opacity, particleShare} pair — lets a
+  // dense-narrative (Cinematic) scene mute ribbons/signal hard while
+  // keeping haze almost untouched ("depth without competing for
+  // attention"), rather than one dial that shows or hides everything
+  // together. Fractions are relative to each layer's own Reflection-level
+  // (1.0) reference; absolute opacities are derived from these in render()
+  // below. Numbers are a starting point per the Atmospheric Evolution
+  // strategy doc, §6 — expect a visual tuning pass once this is live.
   var LEVEL_BUDGET = {
-    0: { opacity: 0.075, particleShare: 0.55 },  // Cinematic — low, but genuinely visible in gutters/margins, not compounded away
-    1: { opacity: 0.12,  particleShare: 1.00 },  // Reflection — high
-    2: { opacity: 0.09,  particleShare: 0.80 },  // Editorial / Exploration — medium
-    3: { opacity: 0.03,  particleShare: 0.35 },  // Hero — minimal baseline; the pulse below is the reveal
+    0: { haze: 0.6, ribbon: 0.25, particulate: 0.55, signal: 0.4 },  // Cinematic
+    1: { haze: 1.0, ribbon: 1.0,  particulate: 1.0,  signal: 1.0 },  // Reflection — full atmosphere
+    2: { haze: 0.8, ribbon: 0.6,  particulate: 0.8,  signal: 0.6 },  // Editorial / Exploration
+    3: { haze: 0.3, ribbon: 0.15, particulate: 0.35, signal: 0.2 },  // Hero — minimal baseline; the pulse below is the reveal
   };
   var currentLevel = 0, targetLevel = 0;
   var densityEls = Array.prototype.slice.call(document.querySelectorAll('[data-atmo-density]'));
@@ -317,7 +396,13 @@
   // ── Scroll-velocity nudge — 10-15% faster while actively scrolling,
   // decaying back to baseline. A lightweight passive listener (a single
   // number update, no reads/writes of layout) rather than routing through
-  // the read/write batch, since it doesn't touch the DOM at all. ──
+  // the read/write batch, since it doesn't touch the DOM at all.
+  //
+  // Ribbons reuse this exact same signal for their own elongation (see
+  // ribbonStretch in render()) rather than tracking scroll velocity a
+  // second way — same reasoning as pixie-companion.js's wakeStretch:
+  // reuse one already-tuned decay curve instead of inventing a second
+  // one, per the brief's "unify existing motion systems." ──
   var scrollBoost = 1;
   window.addEventListener('scroll', function () { scrollBoost = 1.13; }, { passive: true });
 
@@ -371,6 +456,49 @@
     ctx.stroke();
   }
 
+  // Ribbon: traced backward from a moving head through several samples of
+  // the shared flow() field — the field itself supplies the sinuous shape
+  // (laminar drift + gentle eddies), not an independent per-ribbon formula.
+  // `stretch` is ribbonStretch from render() (the scroll-velocity nudge),
+  // applied to the ribbon's own length so faster scrolling visibly
+  // elongates it before it settles back to baseline.
+  var RIBBON_SEGS = 8;
+  function drawRibbon(r, alpha, color, stretch) {
+    var band = vh + 300;
+    var headY = (((r.baseY * band) + clock * r.speed * r.depth) % band) - 150;
+    var headX = r.xFrac * vw;
+    var length = r.length * stretch;
+    ctx.beginPath();
+    for (var s = 0; s <= RIBBON_SEGS; s++) {
+      var ty = headY - (s / RIBBON_SEGS) * length;
+      var f = flow(headX, ty, clock + r.phase * 3);
+      var tx = headX + f.vx * 40 * r.depth;
+      if (s === 0) ctx.moveTo(tx, ty); else ctx.lineTo(tx, ty);
+    }
+    ctx.strokeStyle = color; ctx.globalAlpha = alpha;
+    ctx.lineWidth = 2.2 * r.depth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  // Haze: large soft radial washes, drifting on a much slower time-sample
+  // of the same field than particles/ribbons use (clock * 0.15, vs. clock
+  // directly) — the point is imperceptibly slow movement, not a visible
+  // second layer of motion competing with the particulate/ribbon layers.
+  function drawHaze(h, budget, color) {
+    var baseX = h.xFrac * vw, baseY = h.yFrac * vh;
+    var f = flow(baseX, baseY, clock * 0.15 + h.seed);
+    var x = baseX + f.vx * vw * 0.04, y = baseY + f.vy * vh * 0.04;
+    var radius = Math.min(vw, vh) * h.r;
+    var g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    g.addColorStop(0, color); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.globalAlpha = budget * 0.05;
+    ctx.fillRect(0, 0, vw, vh);
+  }
+
+  function lerpBudget(lo, hi, frac, key) {
+    return LEVEL_BUDGET[lo][key] + (LEVEL_BUDGET[hi][key] - LEVEL_BUDGET[lo][key]) * frac;
+  }
+
   function render(tNow) {
     if (lastT === null) lastT = tNow;
     var dt = Math.min(0.05, (tNow - lastT) / 1000);
@@ -378,16 +506,45 @@
 
     scrollBoost += (1 - scrollBoost) * Math.min(1, dt * 1.8); // decay back to 1
     clock += dt * scrollBoost;
+    // Ribbon elongation reuses scrollBoost's own decay curve rather than a
+    // second velocity tracker — amplified (x4) so its max ~13% scroll
+    // nudge becomes a much more visible ~50% ribbon stretch, matching
+    // pixie-companion.js's wakeStretch in spirit (reuse a tuned decay,
+    // scale it for a different visual purpose) without a second formula.
+    var ribbonStretch = 1 + (scrollBoost - 1) * 4;
 
     currentLevel += (targetLevel - currentLevel) * Math.min(1, dt * 2.2); // smoothed level transition
     var lo = Math.max(0, Math.floor(currentLevel)), hi = Math.min(3, Math.ceil(currentLevel));
     var frac = currentLevel - lo;
-    var budgetOpacity = LEVEL_BUDGET[lo].opacity + (LEVEL_BUDGET[hi].opacity - LEVEL_BUDGET[lo].opacity) * frac;
-    var particleShare = LEVEL_BUDGET[lo].particleShare + (LEVEL_BUDGET[hi].particleShare - LEVEL_BUDGET[lo].particleShare) * frac;
-    var activeCount = Math.round(COUNT * particleShare);
+    var hazeBudget = lerpBudget(lo, hi, frac, 'haze');
+    var ribbonBudget = lerpBudget(lo, hi, frac, 'ribbon');
+    var particulateBudget = lerpBudget(lo, hi, frac, 'particulate');
+    var signalBudget = lerpBudget(lo, hi, frac, 'signal');
+    // 0.12 is the old Reflection-level absolute opacity — kept as the
+    // reference point the new fractional budgets scale against, so this
+    // reads about as bright as the previous single-budget system did.
+    var budgetOpacity = 0.12 * particulateBudget;
+    var activeCount = Math.round(COUNT * particulateBudget);
 
     var colors = cachedColors;
     ctx.clearRect(0, 0, vw, vh);
+
+    // Haze — drawn first, furthest back, beneath ribbons and particles.
+    if (hazeBudget > 0.01) {
+      for (var hz = 0; hz < HAZE.length; hz++) {
+        drawHaze(HAZE[hz], hazeBudget, HAZE[hz].tint ? colors.accent : colors.fg);
+      }
+    }
+
+    // Ribbons — the "continuous current" layer, beneath the particulate
+    // field so individual particles still read as distinct foreground motes.
+    if (ribbonBudget > 0.01) {
+      for (var rb = 0; rb < ribbons.length; rb++) {
+        var r = ribbons[rb];
+        var rAlpha = ribbonBudget * (0.05 + r.depth * 0.05);
+        drawRibbon(r, rAlpha, r.tint ? colors.accent : colors.fg, ribbonStretch);
+      }
+    }
 
     // Hero pulse (Level 3, reserved — #paths): for ~2.4s after the hero
     // section first enters view, fragments briefly pull toward alignment
@@ -415,18 +572,37 @@
     for (var i = 0; i < activeCount; i++) {
       var p = particles[i];
       var y = (((p.baseY * band) + clock * p.speed * p.depth) % band) - 110;
-      var wob = Math.sin(clock * 0.6 + p.phase) * p.wobbleAmp * p.depth;
-      var x = p.xFrac * vw + wob;
+      var baseX = p.xFrac * vw;
+      // Wobble now samples the shared flow field at the particle's own
+      // position (with a per-particle time offset via p.phase so particles
+      // sharing the same field don't move in lockstep) instead of an
+      // independent per-particle sine term — this alone is what turns
+      // "isolated objects drifting" into "carried by one current." A small
+      // vertical nudge from the same sample (f.vy) adds gentle eddying on
+      // top of the primary downstream drift, which stays the loop-band
+      // mechanism above (unchanged, since that's what already guarantees
+      // no visible wrap/repeat).
+      var f = flow(baseX, y, clock + p.phase * 3);
+      var wob = f.vx * p.wobbleAmp * p.depth;
+      var x = baseX + wob;
+      y += f.vy * p.depth * 6;
       if (heroPulse > 0) {
         // Pull x toward a shared sine curve across the viewport width —
         // "waveform fragments align" — then release as heroPulse fades.
+        // Release now lands back on the flow-driven x above (not an
+        // independent sine), so the moment reads as "the current
+        // reabsorbing the alignment" rather than a mode-switch.
         var alignedX = vw * 0.5 + Math.sin((y / vh) * Math.PI * 2 + 1.2) * vw * 0.28;
         x = x + (alignedX - x) * heroPulse * 0.7;
       }
       if (openingPulse > 0) {
         x = x + (vw * 0.5 - x) * openingPulse * 0.4;
       }
-      var alpha = budgetOpacity * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3) * (1 + openingPulse * 0.6);
+      // type 0 (fragments, the majority) is the "signal" layer — gets its
+      // own budget on top of the shared particulate one; dots/curves stay
+      // on particulate alone.
+      var layerBudget = p.type === 0 ? signalBudget : 1;
+      var alpha = budgetOpacity * layerBudget * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3) * (1 + openingPulse * 0.6);
       var color = (p.tint || heroPulse > 0.5) ? colors.accent : colors.fg;
       var size = p.size * (0.7 + p.depth * 0.5);
       if (p.type === 1) drawDot(x, y, size, alpha, color);
@@ -448,6 +624,20 @@
         kept.push(ec);
       }
       echoes = kept;
+    }
+
+    // Orb breathing — background .bg-orb-1/2/3 (styles.css) pick up a
+    // --orb-breathe custom property here, sourced from the same flow
+    // field at a slow global rate with a per-orb spatial phase offset, so
+    // they visibly pulse in sync with the same current without moving in
+    // lockstep with the canvas particles. Skipped entirely under
+    // reduced-motion (CSS's own var(--orb-breathe, 1) fallback holds).
+    if (!reducedMotion && orbEls.length) {
+      for (var oi = 0; oi < orbEls.length; oi++) {
+        var of = flow(orbSeeds[oi] * 10, orbSeeds[oi] * 7, clock * 0.12);
+        var breathe = 1 + 0.14 * Math.sin(clock * 0.12 + of.vx + orbSeeds[oi]);
+        orbEls[oi].style.setProperty('--orb-breathe', breathe.toFixed(3));
+      }
     }
 
     ctx.globalAlpha = 1;

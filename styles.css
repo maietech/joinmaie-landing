@@ -567,9 +567,15 @@ footer { text-align: center; padding: 40px 20px; font-family: 'JetBrains Mono', 
 }
 .bg-orb {
   position: absolute; border-radius: 50%; filter: blur(120px);
-  opacity: 0.22; mix-blend-mode: screen;
+  /* --orb-breathe is written per-frame by atmosphere.js's render() loop
+     (one Flow Field sample per orb, slow global rate + per-orb phase
+     offset) — same shared current driving the canvas particles/ribbons,
+     without moving in lockstep with them. Defaults to 1 (no change) so
+     orbs render correctly before the first frame, and stay static under
+     prefers-reduced-motion (that block below never sets the property). */
+  opacity: calc(0.22 * var(--orb-breathe, 1)); mix-blend-mode: screen;
 }
-html[data-theme="light"] .bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
+html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); mix-blend-mode: multiply; }
 .bg-orb-1 {
   width: 560px; height: 560px; top: -12%; left: 15%; background: var(--brand);
   transform: translateY(calc(var(--scroll-y, 0) * -0.12px));
