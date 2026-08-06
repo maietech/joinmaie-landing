@@ -76,13 +76,68 @@
     var nx = x * 0.0018, ny = y * 0.0022;
     var warpX = Math.sin(ny * 1.7 + t * 0.06 + FLOW_SEED_A) * 1.3;
     var warpY = Math.cos(nx * 1.5 + t * 0.05 + FLOW_SEED_B) * 1.3;
+    // Slowly-rotating bias: the field's overall "prevailing wind" direction
+    // itself drifts (a near-static vector that takes many minutes to
+    // complete one rotation) — deliberately not periodic at any timescale
+    // a visitor would sit through, so the exact same configuration never
+    // visibly recurs, per "remove loops / avoid obvious repetition."
+    var driftBias = t * 0.0004;
     return {
-      vx: Math.sin(nx + warpX + t * 0.08) + Math.sin(ny * 0.6 - t * 0.05 + FLOW_SEED_B) * 0.6,
-      vy: Math.cos(ny + warpY - t * 0.07) + Math.cos(nx * 0.5 + t * 0.04 + FLOW_SEED_A) * 0.6,
+      vx: Math.sin(nx + warpX + t * 0.08) + Math.sin(ny * 0.6 - t * 0.05 + FLOW_SEED_B) * 0.6 + Math.cos(driftBias) * 0.15,
+      vy: Math.cos(ny + warpY - t * 0.07) + Math.cos(nx * 0.5 + t * 0.04 + FLOW_SEED_A) * 0.6 + Math.sin(driftBias) * 0.15,
     };
   }
   window.MaieAtmosphere = window.MaieAtmosphere || {};
   window.MaieAtmosphere.flow = flow;
+
+  // ── Coherence — a second, independently-seeded, higher-frequency field
+  // (flowChaos) that currentFlow() blends in when coherence is low. This
+  // is what lets the atmosphere react to NARRATIVE rather than only
+  // scroll: low coherence reads as competing/fragmented sub-currents (a
+  // "Chaos" beat), high coherence suppresses it back to flow()'s single
+  // clean direction (a "Signal"/resolution beat) — "the visitor
+  // experiences the story in the physics," without the visitor ever being
+  // told that's what's happening.
+  //
+  // Deliberately scoped to THIS file's own layers only (field cells,
+  // ribbons, foam — see currentFlow() call sites below). pixie-companion.js
+  // and maie-logo-motion.js intentionally keep sampling flow() directly,
+  // unblended — coherence is the atmosphere's own narrative instrument,
+  // not something that should make the pixie's personality flicker with it.
+  //
+  // Defaults are keyed off the existing data-atmo-density levels (reused
+  // rather than adding a second parallel section-tagging system, since
+  // those levels already roughly track narrative beats) and exposed
+  // publicly via setCoherence() so a scene script COULD drive it directly
+  // from its own progress later — not wired to any scene in this pass.
+  var CHAOS_SEED_A = rand() * 1000, CHAOS_SEED_B = rand() * 1000;
+  function flowChaos(x, y, t) {
+    var nx = x * 0.005, ny = y * 0.006;
+    return {
+      vx: Math.sin(nx * 2.3 + t * 0.22 + CHAOS_SEED_A) + Math.cos(ny * 1.8 - t * 0.17 + CHAOS_SEED_B) * 0.8,
+      vy: Math.cos(ny * 2.1 - t * 0.19 + CHAOS_SEED_B) + Math.sin(nx * 1.6 + t * 0.15 + CHAOS_SEED_A) * 0.8,
+    };
+  }
+  var COHERENCE_BY_LEVEL = { 0: 0.45, 1: 0.85, 2: 0.65, 3: 0.55 }; // Cinematic, Reflection, Editorial, Hero
+  var coherence = 0.7, coherenceOverride = null, coherenceOverrideUntil = 0;
+  window.MaieAtmosphere.setCoherence = function (value, holdMs) {
+    coherenceOverride = Math.max(0, Math.min(1, value));
+    coherenceOverrideUntil = Date.now() + (holdMs || 4000);
+  };
+  function currentFlow(x, y, t) {
+    var base = flow(x, y, t);
+    if (coherence >= 0.999) return base;
+    var chaos = flowChaos(x, y, t);
+    var mix = 1 - coherence;
+    return { vx: base.vx + chaos.vx * mix * 0.7, vy: base.vy + chaos.vy * mix * 0.7 };
+  }
+
+  // ── Breathing — an almost-imperceptible ~70s-period pulse applied as one
+  // shared multiplier across every layer's opacity together below (not each
+  // layer independently, which would read as separate flicker rather than
+  // one slow "compression / expansion / relaxation"). BREATHE_SEED gives it
+  // a page-load-independent phase without being non-deterministic.
+  var BREATHE_SEED = rand() * Math.PI * 2;
 
   var vw = 0, vh = 0, dpr = window.devicePixelRatio || 1;
   function resize() {
@@ -124,7 +179,7 @@
     });
   }
 
-  // ── Plasma ribbons — translucent flowing strokes, each traced backward
+  // ── Ribbons — translucent flowing strokes, each traced backward
   // from a moving head through several samples of the SAME flow field
   // driving the particles above, so what reads as "isolated dots drifting"
   // gains a "continuous current carrying them downstream" companion layer.
@@ -144,18 +199,18 @@
     });
   }
 
-  // ── Density field — the atmosphere's primary visible layer, per the
+  // ── The density field — the atmosphere's primary visible layer, per the
   // "Living Morphological Ocean" revision: previously the star was the
   // particle field (haze sat behind it as backdrop). Now a small number of
-  // large, soft cells are true FLUID PARTICLES — advected through flow()
-  // (position integrated by velocity over time, not resampled fresh each
-  // frame) and drawn additively ('lighter' composite, see drawFieldCell)
-  // so overlapping cells visually brighten and merge where they cross —
-  // the classic cheap Canvas-2D approximation of metaball blending. This
-  // is what actually produces "structures stretch, merge, dissolve,
-  // reform" — genuine SDF/isocontour blending would need a shader; this
-  // gets emotionally close without one. Deliberately few (6) and large:
-  // a slow-moving medium, not a second particle system.
+  // large, soft cells are true FLUID PARTICLES — advected through
+  // currentFlow() (position integrated by velocity over time, not
+  // resampled fresh each frame) and drawn additively ('lighter' composite,
+  // see drawFieldCell) so overlapping cells visually brighten and merge
+  // where they cross — the classic cheap Canvas-2D approximation of
+  // metaball blending. This is what actually produces "structures stretch,
+  // merge, dissolve, reform" — genuine SDF/isocontour blending would need
+  // a shader; this gets emotionally close without one. Deliberately few
+  // (6) and large: a slow-moving medium, not a second particle system.
   var FIELD_COUNT = 6;
   var fieldCells = [];
   for (var fc = 0; fc < FIELD_COUNT; fc++) {
@@ -165,19 +220,32 @@
       speed: 0.4 + rand() * 0.5,
       tint: rand() < 0.35,
       seed: rand() * 1000,
+      pulse: 0,                            // brief radius boost on echo absorption — see the echoes loop below
     });
   }
-  // Advances fieldCells through flow() by true integration, called once per
-  // render() frame before drawing. Kept as its own function (not inlined)
-  // since it's the one piece of state that persists frame-to-frame beyond
-  // the deterministic clock — every other layer's position is a pure
-  // function of (seed, clock), but advection needs a running position.
+  // Advances fieldCells through the field by true integration, called once
+  // per render() frame before drawing. Position is never reset — this is
+  // the file's one piece of genuine "memory": nothing about a cell's
+  // location is recomputed from scratch each frame, it accumulates, so a
+  // structure that formed a minute ago is still the same structure now,
+  // just carried further along.
+  //
+  // Two samples are blended: currentFlow() at the cell's own position/rate
+  // (the fast, local signal — same one ribbons/foam read) PLUS a much
+  // slower, much larger-scale sample of the base field (slowF — sampled at
+  // 0.3x spatial scale and 0.05x clock rate) layered underneath at low
+  // weight. That second term is what gives "pressure zones drifting over
+  // minutes" — a bias so slow it's not perceptible as motion on its own,
+  // only as the field's structures very gradually migrating over a long
+  // visit, distinct from the faster motion carrying them moment-to-moment.
   function stepField(dt) {
     for (var i = 0; i < fieldCells.length; i++) {
       var c = fieldCells[i];
-      var f = flow(c.x * vw, c.y * vh, clock + c.seed);
-      c.x += (f.vx * c.speed * dt * 40) / vw;
-      c.y += (f.vy * c.speed * dt * 40) / vh;
+      var f = currentFlow(c.x * vw, c.y * vh, clock + c.seed);
+      var slowF = flow(c.x * vw * 0.3, c.y * vh * 0.3, clock * 0.05 + c.seed * 3);
+      c.x += ((f.vx + slowF.vx * 0.5) * c.speed * dt * 40) / vw;
+      c.y += ((f.vy + slowF.vy * 0.5) * c.speed * dt * 40) / vh;
+      c.pulse = Math.max(0, c.pulse - dt * 0.4);
       // Wrap across a slightly padded domain so drift never runs a cell
       // permanently off-screen — at this size/softness the wrap seam is
       // imperceptible (a large blurred gradient re-entering off-screen,
@@ -495,11 +563,13 @@
   }
 
   // Ribbon: traced backward from a moving head through several samples of
-  // the shared flow() field — the field itself supplies the sinuous shape
-  // (laminar drift + gentle eddies), not an independent per-ribbon formula.
-  // `stretch` is ribbonStretch from render() (the scroll-velocity nudge),
-  // applied to the ribbon's own length so faster scrolling visibly
-  // elongates it before it settles back to baseline.
+  // currentFlow() — the coherence-blended field, so ribbons visibly
+  // fragment/compete during low-coherence (Chaos-beat) sections and
+  // straighten into clean laminar traces as coherence rises, not an
+  // independent per-ribbon formula. `stretch` is ribbonStretch from
+  // render() (the scroll-velocity nudge), applied to the ribbon's own
+  // length so faster scrolling visibly elongates it before it settles
+  // back to baseline.
   //
   // Drawn as a 2-pass "streakline bundle" (a slightly offset, thinner,
   // fainter second trace) rather than a single line — a cheap way to read
@@ -516,7 +586,7 @@
       ctx.beginPath();
       for (var s = 0; s <= RIBBON_SEGS; s++) {
         var ty = headY - (s / RIBBON_SEGS) * length;
-        var f = flow(headX + passOffset, ty, clock + r.phase * 3);
+        var f = currentFlow(headX + passOffset, ty, clock + r.phase * 3);
         var tx = headX + passOffset + f.vx * 40 * r.depth;
         if (s === 0) ctx.moveTo(tx, ty); else ctx.lineTo(tx, ty);
       }
@@ -536,15 +606,24 @@
   // elongates the cell along the vertical (scroll) axis — reuses the same
   // scroll signal as ribbonStretch, so field structures visibly elongate
   // downstream under fast scrolling too, same as ribbons.
+  //
+  // shimmer is a small, fast (distinct-frequency-from-everything-else)
+  // alpha wobble — a cheap, honest approximation of "soft illumination
+  // slowly migrating," not literal caustics (that's raymarched-shader
+  // territory, out of scope here — see the chat response for why).
+  // c.pulse (0 normally) briefly bumps radius+alpha when an echo is
+  // absorbed into this cell — see the echoes loop in render() below; the
+  // "energy transforms rather than disappearing" gesture.
   function drawFieldCell(c, budget, color, stretchY) {
     var x = c.x * vw, y = c.y * vh;
-    var r = Math.min(vw, vh) * c.r;
+    var shimmer = 0.85 + 0.15 * Math.sin(clock * 1.7 + c.seed * 2);
+    var r = Math.min(vw, vh) * c.r * (1 + c.pulse * 0.15);
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(1, stretchY);
     var g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
     g.addColorStop(0, color); g.addColorStop(0.55, color); g.addColorStop(1, 'transparent');
-    ctx.fillStyle = g; ctx.globalAlpha = budget * 0.09;
+    ctx.fillStyle = g; ctx.globalAlpha = budget * 0.09 * shimmer * (1 + c.pulse * 0.4);
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
@@ -579,10 +658,26 @@
     var ribbonBudget = lerpBudget(lo, hi, frac, 'ribbon');
     var particulateBudget = lerpBudget(lo, hi, frac, 'particulate');
     var signalBudget = lerpBudget(lo, hi, frac, 'signal');
+
+    // Coherence settles toward its target more slowly than the level lerp
+    // above (dt*0.6 vs dt*2.2) — deliberately: the density budget should
+    // respond promptly to a scene change, but the field's own "agreement
+    // with itself" should feel like it's catching up a beat later, the way
+    // weather reorganizes rather than switches. An active setCoherence()
+    // override (see above) takes priority until it expires.
+    if (coherenceOverride !== null && Date.now() >= coherenceOverrideUntil) coherenceOverride = null;
+    var coherenceTarget = coherenceOverride !== null ? coherenceOverride
+      : (COHERENCE_BY_LEVEL[lo] + (COHERENCE_BY_LEVEL[hi] - COHERENCE_BY_LEVEL[lo]) * frac);
+    coherence += (coherenceTarget - coherence) * Math.min(1, dt * 0.6);
+
+    // Breathing — one shared multiplier, applied to every layer's opacity
+    // together below.
+    var breathe = 1 + 0.07 * Math.sin(clock * 0.0898 + BREATHE_SEED);
+
     // 0.12 is the old Reflection-level absolute opacity — kept as the
     // reference point the new fractional budgets scale against, so this
     // reads about as bright as the previous single-budget system did.
-    var budgetOpacity = 0.12 * particulateBudget;
+    var budgetOpacity = 0.12 * particulateBudget * breathe;
     var activeCount = Math.round(COUNT * particulateBudget);
 
     var colors = cachedColors;
@@ -599,7 +694,7 @@
       ctx.globalCompositeOperation = 'lighter';
       for (var fcI = 0; fcI < fieldCells.length; fcI++) {
         var cell = fieldCells[fcI];
-        drawFieldCell(cell, fieldBudget, cell.tint ? colors.accent : colors.fg, stretchY);
+        drawFieldCell(cell, fieldBudget * breathe, cell.tint ? colors.accent : colors.fg, stretchY);
       }
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -641,17 +736,26 @@
       var p = particles[i];
       var y = (((p.baseY * band) + clock * p.speed * p.depth) % band) - 110;
       var baseX = p.xFrac * vw;
-      // Wobble now samples the shared flow field at the particle's own
-      // position (with a per-particle time offset via p.phase so particles
-      // sharing the same field don't move in lockstep) instead of an
-      // independent per-particle sine term — this alone is what turns
-      // "isolated objects drifting" into "carried by one current." A small
-      // vertical nudge from the same sample (f.vy) adds gentle eddying on
-      // top of the primary downstream drift, which stays the loop-band
-      // mechanism above (unchanged, since that's what already guarantees
-      // no visible wrap/repeat).
-      var f = flow(baseX, y, clock + p.phase * 3);
-      var wob = f.vx * p.wobbleAmp * p.depth;
+      // Wobble samples currentFlow() (the coherence-blended field) at the
+      // particle's own position (with a per-particle time offset via
+      // p.phase so particles sharing the same field don't move in
+      // lockstep) instead of an independent per-particle sine term — this
+      // alone is what turns "isolated objects drifting" into "carried by
+      // one current," and it's why foam visibly gets more scattered/
+      // competing during low-coherence beats along with the ribbons above.
+      // A small vertical nudge from the same sample (f.vy) adds gentle
+      // eddying on top of the primary downstream drift, which stays the
+      // loop-band mechanism above (unchanged, since that's what already
+      // guarantees no visible wrap/repeat).
+      var f = currentFlow(baseX, y, clock + p.phase * 3);
+      // micro: a small, fast, distinct-frequency wobble layered on top —
+      // the "microscopic shimmering diffusion" scale, a third tier below
+      // the field cells' (very slow/huge) and the primary wobble's
+      // (moderate) scales. Foam-only; ribbons/field cells stay at their
+      // own two scales so the hierarchy reads as three distinct sizes of
+      // motion, not one noisier one.
+      var micro = Math.sin(clock * 3.1 + p.phase * 5 + baseX * 0.05) * 0.6 * p.depth;
+      var wob = f.vx * p.wobbleAmp * p.depth + micro;
       var x = baseX + wob;
       y += f.vy * p.depth * 6;
       if (heroPulse > 0) {
@@ -691,7 +795,24 @@
         var ec = echoes[j];
         var ageMs = (clock - ec.born) * 1000; // clock is a seconds-scale virtual clock; life is stored in ms
         var t = Math.max(0, Math.min(1, ageMs / ec.life));
-        if (t >= 1) continue;
+        if (t >= 1) {
+          // Conservation gesture: rather than simply vanishing, the echo's
+          // "energy" gives the nearest density-field cell a brief radius/
+          // alpha pulse (see c.pulse in drawFieldCell/stepField) — so the
+          // moment reads as transforming into the ambient field rather
+          // than disappearing. This is a gesture, not literal mass
+          // conservation (a full accounting system is a bigger undertaking
+          // than this pass takes on) — but it's an honest one: something
+          // observable actually happens at the handoff.
+          var nearest = null, nearestD = Infinity;
+          for (var nf = 0; nf < fieldCells.length; nf++) {
+            var dxN = fieldCells[nf].x * vw - ec.x, dyN = fieldCells[nf].y * vh - ec.y;
+            var dd = dxN * dxN + dyN * dyN;
+            if (dd < nearestD) { nearestD = dd; nearest = fieldCells[nf]; }
+          }
+          if (nearest) nearest.pulse = 1;
+          continue;
+        }
         var ea = (1 - t) * budgetOpacity * 2.2;
         var ey = ec.y + t * 60; // gentle downward settle into the Current
         drawDot(ec.x, ey, ec.size, ea, ec.tint ? colors.accent : colors.fg);
