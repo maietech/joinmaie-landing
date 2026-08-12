@@ -260,14 +260,23 @@ and what's still open (§13).
 
 ## 13. Current Known Technical Debt
 
-- **`scene-chaos-signal.js:220`'s `maie:themechange` listener never
-  fires.** `theme.js` dispatches via `document.dispatchEvent(...)` with no
-  `bubbles: true`; this one listener is registered on `window` instead of
-  `document` (every other listener for this event in the codebase — 4 of
-  5 — correctly uses `document`). Live-confirmed, not assumed: the
-  scene's `textRgb` cache (noise-chip shrink-animation color) is set once
-  at init and never actually refreshes on a real theme toggle, contrary to
-  its own comment. Open — see the follow-up ticket in §12.
+- ~~`scene-chaos-signal.js:220`'s `maie:themechange` listener never
+  fires...~~ **Resolved — stale as of 2026-08-12.** Direct inspection of
+  current source (a codebase-intelligence-briefing pass, not this specific
+  ticket being revisited) shows the listener now reads
+  `document.addEventListener('maie:themechange', ...)`, matching every
+  other listener for this event in the codebase (`guide.js`,
+  `scene-agent.js`, the `companion-intro` inline script in `index.html`,
+  and `atmosphere.js`'s own `cachedColors` refresh listener) — the file's
+  own header comment documents the fix, citing this same follow-up ticket
+  by name. `textRgb` now genuinely refreshes on a real theme toggle. The
+  follow-up ticket referenced below (§12,
+  `JOINMAIE_LANDING_THEMECHANGE_LISTENER_MISMATCH_FOLLOWUP_7-28.md`, in the
+  sibling `MAIE_Framework_2.0` repo) still says "Status: Open" as of this
+  writing — that file was not updated in this pass since it lives outside
+  this repo; treat its "Open" status as stale too, not as contradicting
+  this entry. See `WEBSITE_CODEBASE_INTELLIGENCE_BRIEF.md` §11 for the
+  fuller writeup of this specific stale-doc finding.
 - **Guide-panel Pixie's ~2.9x over-resolution while docked.** Its canvas
   renders at a fixed 80px-native backing store but displays at 28px when
   docked beside the "Pixie" label — a deliberate simplification (avoids a

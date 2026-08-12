@@ -41,7 +41,307 @@
 
   var canvas = document.getElementById('atmo-canvas');
   if (!canvas) return;
-  var ctx = canvas.getContext('2d');
+
+  // ── WebGL2 World Layer renderer ──────────────────────────────────────
+  // The validated shader from the prototype (domain-warped FBM field,
+  // aurora spectral ramp, coherence/coagulation-driven color concentration
+  // — see the Prototype Findings record). Two additions beyond the
+  // prototype, both required to fit the EXISTING production architecture
+  // rather than change it:
+  //   uIntensity  — multiplies the field's visible presence by this
+  //                 scene's own LEVEL_BUDGET 'field' share, so the
+  //                 existing per-scene performance/attention budget
+  //                 (Cinematic low / Reflection full / Editorial medium /
+  //                 Hero minimal) still applies under the new renderer,
+  //                 exactly as it already did for the Canvas 2D particles.
+  //   uBreatheSeed — the shader's own breathing term now reads this
+  //                 file's existing BREATHE_SEED instead of a hardcoded
+  //                 phase constant, so the "handcrafted per page-load"
+  //                 determinism already established for every other
+  //                 breathing/pulsing effect in this file extends to the
+  //                 new renderer too, rather than introducing a second,
+  //                 unrelated phase.
+  // Template literals are used here specifically for GLSL readability
+  // (a multi-line text blob) — the only place in this file's otherwise
+  // ES5 string style; WebGL2 support already implies a browser new enough
+  // for this to carry zero compatibility cost.
+  var FS_FIELD = `#version 300 es
+precision highp float;
+out vec4 fragColor;
+
+uniform vec2 uResolution;
+uniform float uTime;
+uniform float uCoherence;
+uniform float uCoagulate;
+uniform float uVelocity;
+uniform float uIntensity;
+uniform float uBreatheSeed;
+uniform vec3 uBg;
+uniform vec3 uBrand;
+uniform vec3 uBrandLight;
+uniform vec3 uAccent;
+
+float hash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  float a = hash(i), b = hash(i + vec2(1.0, 0.0)), c = hash(i + vec2(0.0, 1.0)), d = hash(i + vec2(1.0, 1.0));
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+mat2 rot2(float a) { float s = sin(a), c = cos(a); return mat2(c, -s, s, c); }
+
+float fbm(vec2 p) {
+  float v = 0.0, amp = 0.5;
+  mat2 m = rot2(0.61);
+  for (int i = 0; i < 5; i++) {
+    v += amp * noise(p);
+    p = m * p * 2.03;
+    amp *= 0.5;
+  }
+  return v;
+}
+
+vec3 auroraRamp(float t, vec3 crimson, vec3 gold, vec3 pale, vec3 coolNeutral) {
+  t = fract(t);
+  if (t < 0.42)      return mix(crimson, gold, smoothstep(0.0, 0.42, t));
+  else if (t < 0.55) return mix(gold, pale, smoothstep(0.42, 0.55, t));
+  else if (t < 0.60) return pale;
+  else if (t < 0.84) return mix(pale, coolNeutral, smoothstep(0.60, 0.84, t));
+  else               return mix(coolNeutral, crimson, smoothstep(0.84, 1.0, t));
+}
+
+void main() {
+  vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
+
+  float drift = uTime * 0.0035;
+  vec2 p = rot2(drift) * uv;
+
+  float stretch = 1.0 + uVelocity * 2.6;
+  vec2 pv = vec2(p.x, p.y / stretch);
+
+  float bandAngle = 0.22 + sin(uTime * 0.011) * 0.12;
+  vec2 bandDir = vec2(sin(bandAngle), cos(bandAngle));
+  vec2 bandNormal = vec2(bandDir.y, -bandDir.x);
+  vec2 advect = bandDir * uTime * 0.05;
+  vec2 pa = pv - advect;
+
+  float bandOffset = dot(uv, bandNormal);
+  float band = 1.0 - smoothstep(0.0, 0.62, abs(bandOffset));
+
+  float tFar = uTime * 0.016;
+  float tNear = uTime * 0.05 + uVelocity * 0.5;
+
+  float turb = mix(1.7, 0.35, uCoherence);
+
+  vec2 far0 = pa * 0.6 + vec2(0.0, tFar);
+  vec2 qFar = vec2(fbm(far0), fbm(far0 + vec2(5.2, 1.3)));
+  float fFar = fbm(far0 + turb * 0.5 * qFar);
+
+  vec2 near0 = pa * 1.7 + vec2(1.7, tNear);
+  vec2 qNear = vec2(fbm(near0 + vec2(2.1, 7.4)), fbm(near0 + vec2(8.3, 2.8)));
+  vec2 rNear = vec2(fbm(near0 + turb * qNear + vec2(4.0, 9.0)), fbm(near0 + turb * qNear + vec2(2.0, 6.0)));
+  float fNear = fbm(near0 + turb * rNear * 1.25);
+
+  vec2 attractor = vec2(0.0, -0.02);
+  vec2 toAttractor = attractor - pa;
+  float coagPull = uCoagulate * 0.55;
+  vec2 pNearC = near0 - toAttractor * coagPull;
+  float fCoag = fbm(pNearC * 1.5 + rNear * turb * (1.0 - uCoagulate * 0.6));
+  fNear = mix(fNear, fCoag, uCoagulate);
+
+  float density = fFar * 0.4 + fNear * 0.85;
+  density *= mix(1.0, 1.35, uCoagulate);
+  density *= mix(0.22, 1.0, band);
+
+  float shaped = clamp((density - 0.38) / 0.30, 0.0, 1.0);
+  shaped = pow(shaped, 1.1);
+
+  float breathe = 1.0 + 0.09 * sin(uTime * 0.085 + uBreatheSeed);
+  float auroraSwell = 0.62 + 0.4 * sin(uTime * 0.042 + 1.7);
+  float envelope = max(breathe * auroraSwell, 0.42);
+  shaped *= envelope;
+  shaped *= uIntensity;
+
+  vec2 specVec = vec2(
+    fbm(near0 * 0.8 + turb * qNear + vec2(11.3, 2.7)),
+    fbm(near0 * 0.8 + turb * qNear + vec2(3.1, 17.9))
+  );
+  float spectralRaw = atan(specVec.y - 0.5, specVec.x - 0.5) / 6.283185 + 0.5;
+
+  float convergeTarget = 0.58;
+  float spectralConverge = clamp(uCoagulate * 1.1 + uCoherence * 0.3, 0.0, 1.0);
+  float spectralPos = mix(spectralRaw, convergeTarget, spectralConverge);
+
+  vec3 pale = mix(uAccent, vec3(1.0), 0.55);
+  float coolLum = dot(uBrandLight, vec3(0.299, 0.587, 0.114));
+  vec3 coolNeutral = mix(uBrandLight, vec3(coolLum), 0.62);
+
+  vec3 fullSpectrum = auroraRamp(spectralPos, uBrand, uAccent, pale, coolNeutral);
+
+  float varietyWeight = clamp(pow(shaped, 2.6) * 1.6 + uCoagulate * 0.35, 0.0, 1.0);
+  vec3 tint = mix(uBrand, fullSpectrum, varietyWeight);
+
+  // Absorption-like rolloff — bright cores saturate into deep color
+  // instead of clipping flat white. Applied to the EMISSIVE glow only,
+  // not to uBg + glow together: the prototype's original formula, (uBg +
+  // glow) / (1 + (uBg + glow) * 0.5), was only ever validated against
+  // dark theme's near-black uBg (~0.035), where tonemapping it alongside
+  // the glow is nearly a no-op. Production's light theme has a bright uBg
+  // (~0.97, #FAF8F6) — running that same bright value through the
+  // identical curve compresses it down to ~0.65, a visibly muted gray
+  // instead of the intended near-white page background, confirmed by
+  // direct calculation and a live light-theme screenshot before this fix,
+  // not assumed. Tonemapping only the glow term leaves uBg exactly as
+  // authored in both themes, and is numerically almost identical to the
+  // prototype's original formula in dark theme (where the difference this
+  // fix makes is negligible) — so the validated dark-theme look is
+  // preserved while the light-theme defect is corrected, not two
+  // different behaviors.
+  vec3 glow = tint * shaped * 1.15;
+  glow = glow / (1.0 + glow * 0.5);
+  vec3 col = uBg + glow;
+
+  float sp = noise(pa * 44.0 + uTime * 0.32);
+  float sparkle = smoothstep(0.975, 0.997, sp) * mix(0.15, 1.0, band) * (0.35 + shaped);
+  col += uAccent * sparkle * 0.8;
+
+  float vig = smoothstep(1.15, 0.15, length(uv));
+  col *= mix(0.45, 1.0, vig);
+
+  fragColor = vec4(col, 1.0);
+}`;
+
+  var VS_FULLSCREEN = `#version 300 es
+void main() {
+  vec2 pos = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
+  gl_Position = vec4(pos * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+  var FS_POST = `#version 300 es
+precision highp float;
+out vec4 fragColor;
+uniform sampler2D uTex;
+uniform vec2 uCanvasRes;
+uniform vec2 uTexRes;
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / uCanvasRes;
+  vec3 sharp = texture(uTex, uv).rgb;
+  vec2 texel = 1.0 / uTexRes;
+  vec3 blur = vec3(0.0);
+  float wsum = 0.0;
+  for (int x = -2; x <= 2; x++) {
+    for (int y = -2; y <= 2; y++) {
+      float w = 1.0 / (1.0 + float(x * x + y * y));
+      blur += texture(uTex, uv + vec2(float(x), float(y)) * texel * 2.2).rgb * w;
+      wsum += w;
+    }
+  }
+  blur /= wsum;
+  fragColor = vec4(sharp + blur * 0.6, 1.0);
+}`;
+
+  var WEBGL_RES_SCALE = 0.55; // matches the prototype's validated default — see Prototype Findings §5
+
+  function tryInitWebGL() {
+    try {
+      var gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+      if (!gl) return null;
+
+      function compile(src, type) {
+        var sh = gl.createShader(type);
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh) || 'shader compile failed');
+        return sh;
+      }
+      function link(vsSrc, fsSrc) {
+        var vs = compile(vsSrc, gl.VERTEX_SHADER), fs = compile(fsSrc, gl.FRAGMENT_SHADER);
+        var prog = gl.createProgram();
+        gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog) || 'program link failed');
+        return prog;
+      }
+      function uniformsOf(prog, names) {
+        var u = {};
+        names.forEach(function (n) { u[n] = gl.getUniformLocation(prog, n); });
+        return u;
+      }
+
+      var fieldProg = link(VS_FULLSCREEN, FS_FIELD);
+      var postProg = link(VS_FULLSCREEN, FS_POST);
+      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent']);
+      var postU = uniformsOf(postProg, ['uTex', 'uCanvasRes', 'uTexRes']);
+
+      var vao = gl.createVertexArray();
+      var fbo = gl.createFramebuffer();
+      var fboTex = gl.createTexture();
+      var fboW = 2, fboH = 2;
+
+      function setupFboTexture(w, h) {
+        fboW = Math.max(2, w); fboH = Math.max(2, h);
+        gl.bindTexture(gl.TEXTURE_2D, fboTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, fboW, fboH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fboTex, 0);
+        var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        if (status !== gl.FRAMEBUFFER_COMPLETE) throw new Error('incomplete framebuffer: ' + status);
+      }
+
+      return { gl: gl, fieldProg: fieldProg, postProg: postProg, fieldU: fieldU, postU: postU, vao: vao, fbo: fbo, fboTex: fboTex, fboW: fboW, fboH: fboH, setupFboTexture: setupFboTexture };
+    } catch (e) {
+      // Any failure here (no WebGL2, shader compile error, driver quirk) —
+      // fall back to Canvas 2D. Never let a rendering-enhancement attempt
+      // leave the page without an atmosphere at all.
+      return null;
+    }
+  }
+
+  // Parses a '#RRGGBB' token value (styles.css's tokens are all authored as
+  // hex, both themes) into a 0..1 float triple for gl.uniform3fv. Falls
+  // back gracefully (mid-gray) if a token is ever missing/malformed rather
+  // than feeding NaN into a shader uniform.
+  function hexToVec3(hex, fallback) {
+    hex = (hex || '').trim().replace('#', '');
+    if (hex.length !== 6) hex = fallback;
+    var n = parseInt(hex, 16);
+    if (isNaN(n)) return [0.5, 0.5, 0.5];
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  }
+
+
+  // ── Renderer selection — WebGL2 primary, Canvas 2D fallback ─────────
+  // Per MAIE_Framework_2.0/findings-and-fixes/
+  // JOINMAIE_LANDING_ATMOSPHERIC_MASTERPIECE_DISCOVERY_AND_DECISION_8-12.md
+  // and the prototype findings that followed it: the World Layer's PAINTER
+  // is being upgraded from Canvas 2D primitives to a WebGL2 domain-warped
+  // field shader. Everything else in this file — the flow field, the
+  // coherence model, the adaptive per-scene density budget, beacons,
+  // echoes, the crossfade/veil mechanism, the scroll-batch integration —
+  // is UNCHANGED and shared by both renderers; only the actual pixel
+  // painting differs.
+  //
+  // A <canvas> can only ever bind ONE context type for its lifetime — the
+  // very first getContext() call decides it permanently. WebGL2 is
+  // therefore attempted FIRST; `ctx` (2D) is only ever created if that
+  // attempt fails, so the fallback is a real fallback, not a second
+  // context fighting the first for the same element. `glState` stays null
+  // if WebGL2 is unavailable OR if shader compilation fails for any
+  // reason (e.g. a driver bug) — wrapped in try/catch so a failure here
+  // can never leave the page without an atmosphere at all.
+  var ctx = null;
+  var glState = tryInitWebGL();
+  if (!glState) ctx = canvas.getContext('2d');
 
   // ── Deterministic seeding (mulberry32) — used only at init, to lay out
   // each particle's *identity* (starting position/depth/phase). No random
@@ -144,7 +444,11 @@
     vw = window.innerWidth; vh = window.innerHeight;
     canvas.width = vw * dpr; canvas.height = vh * dpr;
     canvas.style.width = vw + 'px'; canvas.style.height = vh + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (glState) {
+      var fboDpr = Math.min(dpr, 2);
+      glState.setupFboTexture(Math.round(vw * fboDpr * WEBGL_RES_SCALE), Math.round(vh * fboDpr * WEBGL_RES_SCALE));
+    }
   }
 
   // ── The Current — 26 particles, each a small waveform fragment, soft
@@ -599,7 +903,19 @@
     var s = getComputedStyle(document.documentElement);
     var fg = (s.getPropertyValue('--text-2') || '').trim() || 'rgba(232,230,227,0.6)';
     var accent = (s.getPropertyValue('--accent') || '').trim() || '#FFD166';
-    return { fg: fg, accent: accent };
+    // bg/brand/brandLight are new reads, needed only by the WebGL field
+    // shader (the Canvas 2D fallback never used them — its fg/accent
+    // above are untouched, same values, same fallback strings as before).
+    var bg = (s.getPropertyValue('--bg') || '').trim() || '#09090B';
+    var brand = (s.getPropertyValue('--brand') || '').trim() || '#A52A2A';
+    var brandLight = (s.getPropertyValue('--brand-light') || '').trim() || '#C24E4E';
+    return {
+      fg: fg, accent: accent,
+      bgVec3: hexToVec3(bg, '09090B'),
+      brandVec3: hexToVec3(brand, 'A52A2A'),
+      brandLightVec3: hexToVec3(brandLight, 'C24E4E'),
+      accentVec3: hexToVec3(accent, 'FFD166'),
+    };
   }
   // Previously called unconditionally inside render() every single frame —
   // a real, always-on getComputedStyle cost for the entire time the tab is
@@ -708,13 +1024,63 @@
     return LEVEL_BUDGET[lo][key] + (LEVEL_BUDGET[hi][key] - LEVEL_BUDGET[lo][key]) * frac;
   }
 
+  // Shared by both renderers — advances the file's atmospheric state
+  // (clock, scroll-driven boost, adaptive per-scene level, coherence)
+  // exactly as this math already worked before the WebGL renderer existed.
+  // Extracted verbatim (same formulas, same order of operations) rather
+  // than rewritten, specifically so the Canvas 2D fallback's behavior is
+  // unchanged byte-for-byte — only WHERE this code lives changed, not
+  // what it computes. Returns lo/hi/frac since both renderers need them
+  // (the WebGL path for its single 'field' budget, Canvas 2D for all four).
+  function updateAtmosphericState(dt) {
+    scrollBoost += (1 - scrollBoost) * Math.min(1, dt * 1.8); // decay back to 1
+    clock += dt * scrollBoost;
+
+    currentLevel += (targetLevel - currentLevel) * Math.min(1, dt * 2.2); // smoothed level transition
+    var lo = Math.max(0, Math.floor(currentLevel)), hi = Math.min(3, Math.ceil(currentLevel));
+    var frac = currentLevel - lo;
+
+    // Coherence settles toward its target more slowly than the level lerp
+    // above (dt*0.6 vs dt*2.2) — deliberately: the density budget should
+    // respond promptly to a scene change, but the field's own "agreement
+    // with itself" should feel like it's catching up a beat later, the way
+    // weather reorganizes rather than switches. An active setCoherence()
+    // override (see above) takes priority until it expires.
+    if (coherenceOverride !== null && Date.now() >= coherenceOverrideUntil) coherenceOverride = null;
+    var coherenceTarget = coherenceOverride !== null ? coherenceOverride
+      : (COHERENCE_BY_LEVEL[lo] + (COHERENCE_BY_LEVEL[hi] - COHERENCE_BY_LEVEL[lo]) * frac);
+    coherence += (coherenceTarget - coherence) * Math.min(1, dt * 0.6);
+
+    return { lo: lo, hi: hi, frac: frac };
+  }
+
+  // Orb breathing (styles.css's .bg-orb-1/2/3) — shared by both renderers;
+  // unrelated to which one paints the canvas. Same formula as before,
+  // just callable from either render loop instead of only inlined in the
+  // Canvas 2D one. Inner variable renamed breathe -> breatheOrb (was
+  // shadowing render()'s own `breathe` in the original inline version,
+  // harmlessly since the outer value was already consumed by that point,
+  // but the rename removes the shadow now that this is a standalone
+  // function with its own scope worth being unambiguous in).
+  function updateOrbBreathing() {
+    if (!reducedMotion && orbEls.length && clock - orbLastWrite >= 0.1) {
+      orbLastWrite = clock;
+      for (var oi = 0; oi < orbEls.length; oi++) {
+        var of = flow(orbSeeds[oi] * 10, orbSeeds[oi] * 7, clock * 0.12);
+        var breatheOrb = 1 + 0.14 * Math.sin(clock * 0.12 + of.vx + orbSeeds[oi]);
+        orbEls[oi].style.setProperty('--orb-breathe', breatheOrb.toFixed(3));
+      }
+    }
+  }
+
   function render(tNow) {
     if (lastT === null) lastT = tNow;
     var dt = Math.min(0.05, (tNow - lastT) / 1000);
     lastT = tNow;
 
-    scrollBoost += (1 - scrollBoost) * Math.min(1, dt * 1.8); // decay back to 1
-    clock += dt * scrollBoost;
+    var lvl = updateAtmosphericState(dt);
+    var lo = lvl.lo, hi = lvl.hi, frac = lvl.frac;
+
     // Ribbon elongation reuses scrollBoost's own decay curve rather than a
     // second velocity tracker — amplified (x4) so its max ~13% scroll
     // nudge becomes a much more visible ~50% ribbon stretch, matching
@@ -727,24 +1093,10 @@
     // look distorted, not "elongated downstream") — capped modestly.
     var stretchY = 1 + (scrollBoost - 1) * 1.2;
 
-    currentLevel += (targetLevel - currentLevel) * Math.min(1, dt * 2.2); // smoothed level transition
-    var lo = Math.max(0, Math.floor(currentLevel)), hi = Math.min(3, Math.ceil(currentLevel));
-    var frac = currentLevel - lo;
     var fieldBudget = lerpBudget(lo, hi, frac, 'field');
     var ribbonBudget = lerpBudget(lo, hi, frac, 'ribbon');
     var particulateBudget = lerpBudget(lo, hi, frac, 'particulate');
     var signalBudget = lerpBudget(lo, hi, frac, 'signal');
-
-    // Coherence settles toward its target more slowly than the level lerp
-    // above (dt*0.6 vs dt*2.2) — deliberately: the density budget should
-    // respond promptly to a scene change, but the field's own "agreement
-    // with itself" should feel like it's catching up a beat later, the way
-    // weather reorganizes rather than switches. An active setCoherence()
-    // override (see above) takes priority until it expires.
-    if (coherenceOverride !== null && Date.now() >= coherenceOverrideUntil) coherenceOverride = null;
-    var coherenceTarget = coherenceOverride !== null ? coherenceOverride
-      : (COHERENCE_BY_LEVEL[lo] + (COHERENCE_BY_LEVEL[hi] - COHERENCE_BY_LEVEL[lo]) * frac);
-    coherence += (coherenceTarget - coherence) * Math.min(1, dt * 0.6);
 
     // Breathing — one shared multiplier, applied to every layer's opacity
     // together below.
@@ -897,60 +1249,154 @@
       echoes = kept;
     }
 
-    // Orb breathing — background .bg-orb-1/2/3 (styles.css) pick up a
-    // --orb-breathe custom property here, sourced from the same flow
-    // field at a slow global rate with a per-orb spatial phase offset, so
-    // they visibly pulse in sync with the same current without moving in
-    // lockstep with the canvas particles. Skipped entirely under
-    // reduced-motion (CSS's own var(--orb-breathe, 1) fallback holds).
-    // Throttled to ~10Hz rather than every native frame: the breathing
-    // sine here has a ~52s period (2*PI / 0.12), so consecutive 60fps
-    // frames differ by a fraction of a degree of phase — imperceptible.
-    // This canvas's render() loop runs continuously for the entire time
-    // the tab is visible (gated only by page visibility, not scroll
-    // position or scene — see pageVisibilityObserver below), so writing
-    // this style 60x/sec was a real always-on cost across 3 elements that
-    // each already carry filter: blur(120px) + mix-blend-mode compositing.
-    // Sampling at ~10Hz instead cuts that write/recalc cost by ~83% with
-    // the same visible result.
-    if (!reducedMotion && orbEls.length && clock - orbLastWrite >= 0.1) {
-      orbLastWrite = clock;
-      for (var oi = 0; oi < orbEls.length; oi++) {
-        var of = flow(orbSeeds[oi] * 10, orbSeeds[oi] * 7, clock * 0.12);
-        var breathe = 1 + 0.14 * Math.sin(clock * 0.12 + of.vx + orbSeeds[oi]);
-        orbEls[oi].style.setProperty('--orb-breathe', breathe.toFixed(3));
-      }
-    }
+    // Orb breathing — background .bg-orb-1/2/3 (styles.css). Throttled to
+    // ~10Hz internally (see updateOrbBreathing()); shared with the WebGL
+    // render path below, unchanged in behavior from before.
+    updateOrbBreathing();
 
     ctx.globalAlpha = 1;
     rafId = requestAnimationFrame(render);
   }
 
+  // ── WebGL render path ────────────────────────────────────────────────
+  // Mirrors render()'s own structure (dt -> updateAtmosphericState ->
+  // draw -> schedule next frame) but paints via the two-pass GPU field
+  // instead of Canvas 2D primitives. Only created/scheduled when
+  // tryInitWebGL() succeeded (see the top of this file) — never runs
+  // alongside the Canvas 2D path, only instead of it.
+  function renderWebGL(tNow) {
+    if (lastT === null) lastT = tNow;
+    var dt = Math.min(0.05, (tNow - lastT) / 1000);
+    lastT = tNow;
+
+    var lvl = updateAtmosphericState(dt);
+    var fieldBudget = lerpBudget(lvl.lo, lvl.hi, lvl.frac, 'field');
+
+    // uVelocity — derived from the EXISTING scrollBoost signal (the same
+    // single `scroll` listener already registered above; no new listener
+    // added). scrollBoost ranges ~1.0 (rest) to ~1.13 (freshly kicked by a
+    // scroll event), decaying back down — normalized into the 0..1 range
+    // the field shader's own stretch formula expects (validated in the
+    // prototype against a 0..1 signal of the same decaying-kick shape).
+    var uVelocity = Math.min(1, Math.max(0, (scrollBoost - 1.0) / 0.13));
+
+    // uCoagulate — deliberately NOT a second narrative lever. Production
+    // exposes exactly one atmospheric narrative pathway (setCoherence()),
+    // per the integration brief's own "cleanest reusable pathway"
+    // instruction — coagulation is what happens when coherence rises
+    // toward its top end via an explicit, narratively-driven override
+    // (scene-chaos-signal.js's Chaos -> Signal call, see that file),
+    // not something any scene's default per-level coherence should ever
+    // reach on its own. COHERENCE_BY_LEVEL's own max default is 0.85
+    // (Reflection) — the 0.88 floor here keeps every default-level scene
+    // at uCoagulate = 0 and only activates it for a deliberate, high
+    // narrative override.
+    var uCoagulate = smoothstepJS(0.88, 1.0, coherence);
+
+    // heroPulse/openingPulse — the EXISTING one-shot "world acknowledges
+    // this moment" triggers (unchanged timers/windows from the Canvas 2D
+    // path above), repurposed as a brief coagulate/intensity nudge instead
+    // of literally aligning discrete particles (which no longer exist in
+    // this renderer) — preserves the feature's intent without rebuilding
+    // its old mechanic. See the Production Integration record for why
+    // this is judged in-scope (a cheap, existing-signal reuse) rather than
+    // new feature surface.
+    var heroPulse = 0;
+    if (heroPulseStart !== null) {
+      var sinceHero = clock - heroPulseStart;
+      if (sinceHero >= 0 && sinceHero < 2.4) heroPulse = Math.sin((sinceHero / 2.4) * Math.PI);
+    }
+    var openingPulse = 0;
+    if (openingPulseStart !== null) {
+      var sinceOpening = clock - openingPulseStart;
+      if (sinceOpening >= 0 && sinceOpening < 1.6) openingPulse = Math.sin((sinceOpening / 1.6) * Math.PI);
+    }
+    uCoagulate = Math.min(1, uCoagulate + Math.max(heroPulse, openingPulse * 0.6) * 0.35);
+
+    var colors = cachedColors;
+    var g = glState;
+
+    // Pass 1 — field, into the low-res FBO. Resolution-scale is the
+    // primary, prototype-validated cost lever — see Prototype Findings §5.
+    // FBO sizing itself is owned entirely by resize() (called on init and
+    // on every window 'resize' event, DPR-capped there); nothing here
+    // re-derives or re-checks that size per frame.
+    g.gl.bindFramebuffer(g.gl.FRAMEBUFFER, g.fbo);
+    g.gl.viewport(0, 0, g.fboW, g.fboH);
+    g.gl.useProgram(g.fieldProg);
+    g.gl.bindVertexArray(g.vao);
+    g.gl.uniform2f(g.fieldU.uResolution, g.fboW, g.fboH);
+    g.gl.uniform1f(g.fieldU.uTime, clock);
+    g.gl.uniform1f(g.fieldU.uCoherence, coherence);
+    g.gl.uniform1f(g.fieldU.uCoagulate, uCoagulate);
+    g.gl.uniform1f(g.fieldU.uVelocity, uVelocity);
+    g.gl.uniform1f(g.fieldU.uIntensity, fieldBudget);
+    g.gl.uniform1f(g.fieldU.uBreatheSeed, BREATHE_SEED);
+    g.gl.uniform3fv(g.fieldU.uBg, colors.bgVec3);
+    g.gl.uniform3fv(g.fieldU.uBrand, colors.brandVec3);
+    g.gl.uniform3fv(g.fieldU.uBrandLight, colors.brandLightVec3);
+    g.gl.uniform3fv(g.fieldU.uAccent, colors.accentVec3);
+    g.gl.drawArrays(g.gl.TRIANGLES, 0, 3);
+
+    // Pass 2 — composite (bilinear upscale + cheap blur/bloom) to the
+    // visible canvas at its full backing-store resolution.
+    g.gl.bindFramebuffer(g.gl.FRAMEBUFFER, null);
+    g.gl.viewport(0, 0, canvas.width, canvas.height);
+    g.gl.useProgram(g.postProg);
+    g.gl.bindVertexArray(g.vao);
+    g.gl.activeTexture(g.gl.TEXTURE0);
+    g.gl.bindTexture(g.gl.TEXTURE_2D, g.fboTex);
+    g.gl.uniform1i(g.postU.uTex, 0);
+    g.gl.uniform2f(g.postU.uCanvasRes, canvas.width, canvas.height);
+    g.gl.uniform2f(g.postU.uTexRes, g.fboW, g.fboH);
+    g.gl.drawArrays(g.gl.TRIANGLES, 0, 3);
+
+    updateOrbBreathing();
+
+    rafId = requestAnimationFrame(renderWebGL);
+  }
+
+  // Plain JS smoothstep — used only for the uCoagulate derivation above;
+  // GLSL has this as a built-in, JS does not.
+  function smoothstepJS(edge0, edge1, x) {
+    var t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  }
+
   resize();
   window.addEventListener('resize', resize);
+
+  // activeRender picks whichever renderer actually initialized — the rest
+  // of this file's lifecycle management (reduced-motion, page-visibility
+  // pause/resume, tab-visibility pause/resume) is completely renderer-
+  // agnostic and unchanged from before; it just schedules/cancels whichever
+  // function this points to. render (Canvas 2D) and renderWebGL both
+  // self-schedule their own next frame by name internally, so this
+  // indirection is only needed at the handful of EXTERNAL call sites below.
+  var activeRender = glState ? renderWebGL : render;
 
   if (reducedMotion) {
     // One static, settled frame — no continuous drift, per prefers-reduced-motion.
     lastT = 0; clock = 0;
-    render(0);
-    if (rafId) cancelAnimationFrame(rafId); // render() above schedules a next frame; cancel it immediately
+    activeRender(0);
+    if (rafId) cancelAnimationFrame(rafId); // activeRender() above schedules a next frame; cancel it immediately
   } else if (typeof IntersectionObserver !== 'undefined') {
     // Pause the loop entirely when the canvas (i.e. the whole page) isn't
     // visible — same convention as pixie-companion.js/scene-opening.js.
     var pageVisibilityObserver = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting && rafId === null) rafId = requestAnimationFrame(render);
+        if (entry.isIntersecting && rafId === null) rafId = requestAnimationFrame(activeRender);
         else if (!entry.isIntersecting && rafId !== null) { cancelAnimationFrame(rafId); rafId = null; lastT = null; }
       });
     }, { threshold: 0 });
     pageVisibilityObserver.observe(document.body);
-    rafId = requestAnimationFrame(render);
+    rafId = requestAnimationFrame(activeRender);
   } else {
-    rafId = requestAnimationFrame(render);
+    rafId = requestAnimationFrame(activeRender);
   }
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden && rafId !== null) { cancelAnimationFrame(rafId); rafId = null; lastT = null; }
-    else if (!document.hidden && !reducedMotion && rafId === null) rafId = requestAnimationFrame(render);
+    else if (!document.hidden && !reducedMotion && rafId === null) rafId = requestAnimationFrame(activeRender);
   });
 })();
