@@ -584,7 +584,19 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
   position: relative; margin: 0; overflow: hidden; border-radius: 16px;
   border: 1px solid var(--border); background: var(--surface-2);
 }
-.showcase-figure img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Automated crossfade (showcase-slider.js) — 5 stacked frames per
+   figure, only .is-active at opacity:1. Plain opacity, no scale/blur:
+   per the brief's own Motion Direction, restrained crossfades over
+   attention-grabbing transitions. */
+.showcase-frame {
+  position: absolute; inset: 0; display: block; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0;
+  transition: opacity var(--showcase-transition, 1400ms) ease;
+}
+.showcase-frame.is-active { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .showcase-frame { transition: none; }
+}
 .showcase-figure--lead { grid-column: 1; grid-row: 1 / span 2; aspect-ratio: 4 / 5; }
 .showcase-figure--tall { grid-column: 2; grid-row: 1; aspect-ratio: 5 / 4; }
 .showcase-figure--wide { grid-column: 2; grid-row: 2; aspect-ratio: 5 / 4; }
@@ -799,11 +811,21 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
 .guide-region + .guide-region { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 
 .guide-arc-row { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+/* Now a <button> (was a plain <span>) — arm/confirm navigation, see
+   guide.js. Reset to the same inline, borderless look the span had;
+   the two-step arm/confirm behavior is carried entirely by JS relabeling
+   the button's own text ("Impulse" -> "Impulse → Go"), not by a new
+   visual language, so a click target is the only thing this reset adds. */
 .guide-arc-stage {
+  font: inherit; background: none; border: none; cursor: pointer;
   font-size: 11px; color: var(--text-2-small); padding: 3px 0; position: relative;
 }
 .guide-arc-stage:not(:last-child)::after { content: '\2192'; margin-left: 10px; color: var(--border); }
 .guide-arc-stage.is-current { color: var(--accent-text, var(--accent)); font-weight: 600; }
+/* Armed = "one more click on this exact stage jumps there." Brand-red
+   rather than the accent-gold .is-current already uses, so an armed
+   stage never reads as "this is where the story currently is." */
+.guide-arc-stage.is-armed { color: var(--brand-light); font-weight: 600; }
 
 .guide-why-text { font-size: 13.5px; line-height: 1.5; color: var(--text-1); }
 

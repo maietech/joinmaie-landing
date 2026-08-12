@@ -157,13 +157,55 @@
     '</div>';
   panel.appendChild(body);
 
+  // ── Arc row: orientation first, navigation only on deliberate confirm ──
+  // Per CLAUDE.md §9, the Guide must never become a secondary nav system.
+  // A single click here doesn't jump anywhere — it only arms that stage
+  // (relabels it "<Arc> → Go", same real-text idiom the rest of this
+  // file uses, not a CSS-only cue) and a second, separate click on the
+  // *same* stage confirms the jump. Anything else — clicking a different
+  // stage, clicking outside the row, Escape, or collapsing the panel —
+  // disarms it. That two-step shape is what keeps this "point at where
+  // you are, then choose to go" rather than a click-anywhere menu.
   var arcRow = body.querySelector('#guide-arc-row');
+  var armedStage = null;
+  function disarmStage() {
+    if (!armedStage) return;
+    armedStage.classList.remove('is-armed');
+    armedStage.textContent = CONTENT[armedStage.dataset.section].arc;
+    armedStage = null;
+  }
   ARC.forEach(function (id) {
-    var stage = document.createElement('span');
+    var stage = document.createElement('button');
+    stage.type = 'button';
     stage.className = 'guide-arc-stage';
     stage.dataset.section = id;
     stage.textContent = CONTENT[id].arc;
+    stage.tabIndex = -1; // kept in sync with is-expanded/is-resolved below, same reasoning as guide-skip-link
+    stage.addEventListener('click', function (e) {
+      e.stopPropagation(); // don't let the document click-away listener immediately disarm what this click just armed
+      if (armedStage === stage) {
+        disarmStage();
+        var target = document.getElementById(id);
+        if (target) target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+        return;
+      }
+      disarmStage();
+      stage.classList.add('is-armed');
+      stage.textContent = CONTENT[id].arc + ' → Go';
+      armedStage = stage;
+    });
     arcRow.appendChild(stage);
+  });
+  var arcStages = Array.prototype.slice.call(arcRow.children);
+  function setArcTabbable(tabbable) {
+    arcStages.forEach(function (s) { s.tabIndex = tabbable ? 0 : -1; });
+  }
+  // Click-away and Escape both disarm — same idiom nav-menu.js already
+  // uses for its own disclosure panel, so an armed-but-unconfirmed stage
+  // never lingers as a loaded gun once attention moves elsewhere.
+  document.addEventListener('click', function () { disarmStage(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && armedStage) disarmStage();
   });
 
   document.body.appendChild(panel);
@@ -293,6 +335,8 @@
     panel.classList.toggle('is-expanded', expanded);
     toggle.setAttribute('aria-expanded', String(expanded));
     skipLink.tabIndex = expanded ? 0 : -1;
+    setArcTabbable(expanded && !panel.classList.contains('is-resolved'));
+    if (!expanded) disarmStage(); // collapsing clips guide-body — nothing should stay armed under it
     reposition(true);
     if (pixieHandle) {
       if (expanded) { if (pixieHandle.resume) pixieHandle.resume(); }
@@ -354,7 +398,9 @@
     // explicitly here rather than trusting the ancestor attribute alone.
     toggle.tabIndex = resolved ? -1 : 0;
     skipLink.tabIndex = resolved ? -1 : (panel.classList.contains('is-expanded') ? 0 : -1);
+    setArcTabbable(!resolved && panel.classList.contains('is-expanded'));
     if (resolved) {
+      disarmStage(); // resolving hides the whole panel — nothing should stay armed underneath
       if (pixieHandle && pixieHandle.pause) pixieHandle.pause();
     } else if (pixieHandle) {
       if (panel.classList.contains('is-expanded')) { if (pixieHandle.resume) pixieHandle.resume(); }
@@ -365,6 +411,11 @@
   document.addEventListener('maie:scenechange', function (e) {
     applyContent(e.detail.section.id);
     setResolved(e.detail.section.id === 'paths');
+    // Covers plain scrolling while a stage sits armed (no click involved,
+    // so neither the click-away nor Escape handler above would catch it)
+    // — the section already changed, so an armed "→ Go" label pointing
+    // at wherever the visitor scrolled from would just be stale.
+    disarmStage();
   });
   // Prime initial content immediately (scroll position at load, usually
   // scene-opening) rather than waiting for the first observer callback.
