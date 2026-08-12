@@ -442,6 +442,38 @@
     var convLocal = Math.max(0, Math.min(1, convLocalRaw));
     var eased = ease(convLocal);
 
+    // WORLD LAYER NARRATIVE INTEGRATION — first real production caller of
+    // window.MaieAtmosphere.setCoherence(). Per
+    // MAIE_Framework_2.0/findings-and-fixes/
+    // JOINMAIE_LANDING_ATMOSPHERIC_MASTERPIECE_DISCOVERY_AND_DECISION_8-12.md
+    // §8: "narrative state -> atmospheric state -> flow/coherence/spectral
+    // behavior -> GPU World Layer" — the one reusable pathway, not a
+    // scene-specific atmospheric effect bolted on separately. The target is
+    // a single continuous function of this scene's own already-computed
+    // progress — no new state, no second timeline. Chaos deepens
+    // coherence's dip below its own Cinematic-level default (0.45) as
+    // chaosLocal rises toward the crescendo; convergence lifts it back up
+    // past that default toward ~0.98 — the high end atmosphere.js's own
+    // uCoagulate derivation (renderWebGL) treats as "resolved," which is
+    // what visibly pulls the World Layer's spectral position toward its
+    // pale, converged core exactly as the scene's own signal resolves.
+    // Continuous across the chaos/convergence handoff by construction:
+    // both formulas agree at chaosLocal=1 / convLocalRaw=0
+    // (0.45-0.22=0.23, and 0.23+0=0.23). Holds near 0.98 through the
+    // resolved-hold plateau for free, since `eased` itself already stays
+    // pinned at 1 there (the HOLD_FRACTION remap above).
+    if (window.MaieAtmosphere && window.MaieAtmosphere.setCoherence) {
+      var targetCoherence = convLocalRaw > 0
+        ? (0.23 + eased * 0.75)
+        : (0.45 - chaosLocal * 0.22);
+      // Refreshed every tick this scene is active (scroll-driven or its
+      // own idle loop) — holdMs is only a safety window for when ticks
+      // stop (e.g. scrolling away), letting the override expire gracefully
+      // back to whichever scene is nearest, rather than needing an
+      // explicit "clear on scroll-away" call.
+      window.MaieAtmosphere.setCoherence(targetCoherence, 1500);
+    }
+
     // Narrative Polish pass: drives styles.css's .signal-ember-ring (a
     // pure-CSS breathing halo, same idiom as #paths' own
     // paths-ring-breathe) and gates the periodic MaieAtmosphere.echo()

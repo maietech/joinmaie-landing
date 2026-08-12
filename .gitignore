@@ -11,4 +11,11 @@ maie-git-workflow.md
 DESIGN-DEV-GUIDE.md
 maie-narrative-audit.md
 chaos-to-signal-merge-direction.md
+WEBSITE_CODEBASE_INTELLIGENCE_BRIEF.md
 *diff*
+
+# Disposable research prototypes — never meant to ship. This is a
+# zero-build site (everything at repo root serves as-is on Cloudflare
+# Pages), so a stray prototype file must not become a public URL. See
+# MAIE_Framework_2.0/findings-and-fixes/JOINMAIE_LANDING_ATMOSPHERIC_MASTERPIECE_DISCOVERY_AND_DECISION_8-12.md.
+prototype-*.html
