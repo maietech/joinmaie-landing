@@ -489,29 +489,58 @@
     <!-- ── Media Showcase — the destination's own editorial composition,
          not a continuation of the scroll-scene engine above (no
          story-scroll.js, no scene-sticky, no new IntersectionObserver).
-         Photography reused from this repo's own media/ library —
-         documentary/editorial stock already vetted for the Human Hand
-         scene (scene-human-hand.js), covering production, post,
-         and community rather than portraits/nature/product shots.
-         All four images sit inside this same #paths section (not a
-         sibling [data-atmo-density] section) specifically so the World
-         Layer/Guide's "current section" signal stays "paths" for the
+         Each figure below cycles through 5 photos on an automated timer
+         (showcase-slider.js) — no controls, no user input, purely
+         atmospheric motion. Layout/positions are unchanged from the
+         original static version; only the media within each box now
+         rotates. Photography reused from this repo's own media/
+         library — documentary/editorial stock already vetted for the
+         Human Hand scene (scene-human-hand.js), covering production,
+         post, and community rather than portraits/nature/product shots
+         — grouped by theme per figure: production/camera (lead),
+         collaborative creative work (tall), editing/color-grading
+         (wide), close production-detail crops (strip). Every image
+         keeps real, photo-specific alt text; showcase-slider.js toggles
+         aria-hidden so only the one currently-visible frame is exposed
+         to assistive tech at a time — same convention cinematic-
+         slider.js already uses for its rotating statements, same
+         reasoning (no aria-live: a region re-announcing a new photo
+         every few seconds would be disruptive, not helpful). All
+         figures sit inside this same #paths section (not a sibling
+         [data-atmo-density] section) specifically so the World Layer/
+         Guide's "current section" signal stays "paths" for the
          visitor's entire time here — see guide.js's setResolved(). -->
     <div class="showcase-grid">
       <figure class="showcase-figure showcase-figure--lead">
-        <img src="media/made-by-director-chenchi-2159627038-36181988.jpg" alt="A camera operator adjusts a cinema camera mounted on a tripod." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-director-chenchi-2159627038-36181988.jpg" alt="A camera operator adjusts a cinema camera mounted on a tripod." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-mostafa_meraji-photographer-4882729_1920.jpg" alt="A photographer silhouetted against the dusk sky, framing a shot on a tripod-mounted camera." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-ron-lach-9809834.jpg" alt="A clapperboard, a vintage camcorder, and a marked-up script laid out before a shoot." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-ron-lach-9810387.jpg" alt="Two crew members review a script together beside a vintage camcorder on a tripod." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-orlandoallo-8770513.jpg" alt="A musician edits footage and audio at a home studio desk surrounded by speakers and instruments." loading="lazy">
         <figcaption>Every production starts with someone behind the frame.</figcaption>
       </figure>
       <figure class="showcase-figure showcase-figure--tall">
-        <img src="media/made-by-cord-allman-852631891-29216191.jpg" alt="A crowd gathers around several painters working live at a community art event." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-cord-allman-852631891-29216191.jpg" alt="A crowd gathers around several painters working live at a community art event." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-karola-g2-6224.jpg" alt="Several people collaborate around a table, cutting and arranging photographs onto a mood board." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-ottawagraphics-artist-4622221_1920.jpg" alt="A sculptor carves detail into a large clay relief in a cluttered studio workshop." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-micahways-10499056.jpg" alt="A small team gathers around a whiteboard, sketching out a shared plan together." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-brett-sayles-2479958.jpg" alt="A videographer operates a gimbal-stabilized camera among a crowd of photographers at a street event." loading="lazy">
         <figcaption>Creative work has always been communal.</figcaption>
       </figure>
       <figure class="showcase-figure showcase-figure--wide">
-        <img src="media/made-by-mart-production-7679465.jpg" alt="An editor works over their shoulder, cutting footage together in Premiere Pro." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-mart-production-7679465.jpg" alt="An editor works over their shoulder, cutting footage together in Premiere Pro." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-ron-lach-8100055.jpg" alt="A colorist reviews color wheels and a waveform scope on a dedicated grading display." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-ron-lach-8100061.jpg" alt="A colorist studies handwritten notes beside a color-grading monitor and reference scopes." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-alphaen-15601232.jpg" alt="An overhead view of a multi-monitor editing desk, mid-edit, with a tablet and keyboard in reach." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-ron-lach-8102676.jpg" alt="An editor reviews a color-graded frame and waveform scopes side by side at a two-monitor desk." loading="lazy">
         <figcaption>The edit is where the story actually gets made.</figcaption>
       </figure>
       <figure class="showcase-figure showcase-figure--strip">
-        <img src="media/made-by-jack-redgate-333633-3069868.jpg" alt="A close, abstract view of a color-coded video editing timeline." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-jack-redgate-333633-3069868.jpg" alt="A close, abstract view of a color-coded video editing timeline." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-fukajaz-31718971.jpg" alt="A close view of a video-editing timeline with a sunset silhouette shot framed above it." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-george-milton-7015066.jpg" alt="A hand arranges printed storyboard layouts across a table." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-ekaterina-bolovtsova-5393588.jpg" alt="A designer reviews sketches pinned to a corkboard easel in a studio." loading="lazy">
+        <img class="showcase-frame" data-frame src="media/made-by-ron-lach-8102691.jpg" alt="Two editors examine color-correction scopes together on a studio monitor." loading="lazy">
       </figure>
     </div>
 
@@ -612,6 +641,7 @@
 </script>
 <script src="reveal.js"></script>
 <script src="cinematic-slider.js"></script>
+<script src="showcase-slider.js"></script>
 <script src="nav-theme.js"></script>
 <script src="nav-menu.js"></script>
 <script src="nav-float.js"></script>
