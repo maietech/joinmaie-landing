@@ -551,6 +551,91 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 @media (max-width: 640px) {
   .cinematic-slider-line { font-size: 12px; line-height: 1.7; }
 }
+/* Skip-the-Story, from inside the destination itself — quiet, mono,
+   same register as .path-note below rather than a second CTA.
+   Selector scoped as `.final-cta .paths-jump` (not bare `.paths-jump`)
+   specifically to out-specificity the existing `.final-cta p` rule
+   above (0,1,1) — a bare single class here (0,1,0) would otherwise lose
+   its own margin to that rule, same trap .mma-line/.mma-desc avoid
+   below. */
+.final-cta .paths-jump { margin: 0 0 44px; }
+.paths-jump a {
+  font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.04em;
+  color: var(--text-2-small); text-decoration: none; border-bottom: 1px solid var(--border);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.paths-jump a:hover { color: var(--brand-light-text); border-color: var(--brand-light-text); }
+
+/* ── Media Showcase — an editorial grid, not a carousel (per the brief:
+   "do not build a carousel simply because there are many images"). Every
+   figure declares its own aspect-ratio so the grid reserves its full
+   footprint before any image has loaded — no layout shift/collapse on a
+   slow connection, same requirement the Human Hand scene's fixed
+   .hand-frame already meets for its own photography. Photography reused
+   from this repo's own media/ library (see the HTML comment above this
+   block for the sourcing rationale) rather than anything copied in from
+   the staged review library — no volume of new binary assets added to
+   the repo for this. */
+.showcase-grid {
+  display: grid; grid-template-columns: 1.35fr 1fr; grid-auto-rows: min-content;
+  gap: 16px; max-width: 900px; margin: 8px auto 64px; text-align: left;
+}
+.showcase-figure {
+  position: relative; margin: 0; overflow: hidden; border-radius: 16px;
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.showcase-figure img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.showcase-figure--lead { grid-column: 1; grid-row: 1 / span 2; aspect-ratio: 4 / 5; }
+.showcase-figure--tall { grid-column: 2; grid-row: 1; aspect-ratio: 5 / 4; }
+.showcase-figure--wide { grid-column: 2; grid-row: 2; aspect-ratio: 5 / 4; }
+.showcase-figure--strip { grid-column: 1 / -1; grid-row: 3; aspect-ratio: 21 / 6; }
+/* Same white-on-scrim convention as .hand-caption (Section 4) — text sits
+   on a photograph, not a theme surface, so it stays fixed white with a
+   dark gradient underneath rather than following the light/dark tokens. */
+.showcase-figure figcaption {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 18px 13px;
+  background: linear-gradient(to top, rgba(9,9,11,0.85), transparent);
+  color: #fff; font-size: 13px; line-height: 1.4; font-weight: 500;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+@media (max-width: 720px) {
+  .showcase-grid { grid-template-columns: 1fr; }
+  .showcase-figure--lead, .showcase-figure--tall, .showcase-figure--wide, .showcase-figure--strip {
+    grid-column: 1; grid-row: auto;
+  }
+  .showcase-figure--lead { aspect-ratio: 4 / 3; }
+  .showcase-figure--strip { aspect-ratio: 16 / 9; }
+}
+
+/* ── Midwest Media Alliance relationship — restrained, one screen's
+   worth of content, no governance language (see business-docs/CLAUDE.md
+   for why: MAIE and MMA are legally distinct, connected by mission
+   partnership, not "MAIE is MMA's tool" — the old footer line this
+   replaces had that backwards). */
+.mma-relationship {
+  display: flex; align-items: center; gap: 32px; max-width: 720px;
+  margin: 0 auto 64px; padding: 32px; text-align: left;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border: 1px solid var(--border); border-radius: 20px;
+}
+.mma-mark { width: 72px; height: 72px; flex: none; }
+.mma-relationship-text { flex: 1; }
+/* Scoped to `.mma-relationship-text .mma-line`/`.mma-desc` (0,2,0), not
+   the bare class alone (0,1,0) — both are <p> tags nested inside
+   .final-cta, so a bare class would lose color/font-size/margin-bottom
+   to the page's existing `.final-cta p` rule (0,1,1), same trap
+   .paths-jump avoids above. */
+.mma-relationship-text .mma-line { font-size: 15.5px; line-height: 1.55; margin: 0 0 8px; color: var(--text-1); }
+.mma-line strong { font-weight: 700; }
+.mma-relationship-text .mma-desc { font-size: 14px; line-height: 1.6; color: var(--text-2-small); margin: 12px 0 16px; max-width: 56ch; }
+.mma-link { font-size: 14px; font-weight: 600; color: var(--brand-light); text-decoration: none; }
+.mma-link:hover { text-decoration: underline; }
+@media (max-width: 560px) {
+  .mma-relationship { flex-direction: column; text-align: center; padding: 28px 22px; }
+  .mma-relationship-text { text-align: center; }
+  .mma-desc { margin-left: auto; margin-right: auto; }
+}
+
 /* Demoted out of the closing headline (see maie-narrative-audit.md §11 A) —
    the dev-status disclosure is honest but shouldn't puncture the register
    of the page's most crystallized line. Small, quiet, after the choice. */
@@ -670,7 +755,17 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
   border: 1px solid var(--border);
   border-radius: 22px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-  transition: bottom 0.3s ease;
+  /* --guide-resolve-duration is set per is-expanded state further down
+     (with the rest of the Guide Resolution rules) — kept here so this
+     stays the one place the panel's full transition list is declared,
+     rather than a second shorthand overriding this one later in the
+     file. */
+  --guide-resolve-duration: 0.45s;
+  transition: bottom 0.3s ease,
+    opacity var(--guide-resolve-duration) cubic-bezier(0.16, 0.84, 0.2, 1),
+    transform var(--guide-resolve-duration) cubic-bezier(0.16, 0.84, 0.2, 1),
+    background-color 0.55s ease, border-color 0.55s ease,
+    box-shadow 0.55s ease, backdrop-filter 0.55s ease;
 }
 .guide-toggle {
   display: flex; align-items: center; gap: 10px; width: 100%;
@@ -746,12 +841,73 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
    own — it just tracks the wrap 1:1, so no transition here. */
 .guide-pixie-avatar { position: absolute; display: block; }
 
+.guide-skip { font-size: 12px; color: var(--text-2-small); }
+.guide-skip-link { color: var(--accent-text, var(--accent)); text-decoration: none; font-weight: 600; }
+.guide-skip-link:hover { text-decoration: underline; }
+
 .guide-reduced-motion, .guide-reduced-motion * { transition: none !important; }
 
 @media (max-width: 640px) {
   .guide-panel { bottom: 10px; }
   .guide-toggle-headline { display: none; }
 }
+
+/* ── Guide Resolution — the panel completing its purpose at #paths ───
+   Driven by guide.js's setResolved(), itself driven by the same
+   maie:scenechange signal applyContent() already uses (no second
+   observer, no scroll-position guessing). Reversible in both directions
+   through the same declared transition, so scrolling back up to
+   scene-agent restores the panel exactly — same duration/easing either
+   way, per component (see --guide-resolve-duration below).
+   Expanded vs collapsed read as related but different: expanded
+   "resolves outward" (larger movement, brand-red glow, longer hold);
+   collapsed just withdraws quietly (short fade, small settle). Reduced
+   motion needs no separate handling here — .guide-reduced-motion's
+   existing `transition: none !important` (above) already makes both
+   variants below an instant cut, matching every other reduced-motion
+   path in this component. */
+.guide-panel.is-expanded { --guide-resolve-duration: 0.85s; }
+.guide-panel.is-resolved {
+  pointer-events: none;
+  opacity: 0;
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: blur(0px);
+}
+/* Content empties a beat before the shell finishes dissolving — "the
+   guide has completed its purpose" reads more clearly than the whole
+   thing fading as one flat block. */
+.guide-panel.is-resolved .guide-toggle-arc,
+.guide-panel.is-resolved .guide-toggle-headline { opacity: 0; transition: opacity 0.3s ease; }
+.guide-panel.is-resolved .guide-body { opacity: 0; transition: opacity 0.35s ease; }
+
+.guide-panel.is-expanded.is-resolved {
+  transform: translateX(-50%) translateY(-22px) scale(1.05);
+}
+.guide-panel.is-resolved:not(.is-expanded) {
+  transform: translateX(-50%) translateY(14px) scale(0.98);
+}
+
+/* Signal-inspired continuity (per the brief: "the page's signal motif can
+   act as the connective tissue") — a soft brand-accent bloom that plays
+   once as the panel resolves, the same warm gold #paths' own signal ring
+   breathes with, so the Guide's exit rhymes with the destination's own
+   arrival motif instead of introducing an unrelated effect. animation
+   (not transition), so it always plays forward once and never reverses
+   awkwardly if the visitor scrolls back and forth quickly. */
+.guide-panel::after {
+  content: ''; position: absolute; inset: -22%; z-index: -1; border-radius: inherit;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%);
+  opacity: 0; pointer-events: none;
+}
+.guide-panel.is-resolved::after { animation: guide-resolve-bloom 0.9s ease-out; }
+@keyframes guide-resolve-bloom {
+  0% { opacity: 0; }
+  35% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+.guide-reduced-motion::after { display: none; }
 
 /* ── Companion Intro — two columns, companion on the right ───────── */
 .intro-inner { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
@@ -778,9 +934,15 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
    "a single elegant primary CTA" closing spirit than a card pair, while
    Section 12 (which would properly own a single-CTA close) doesn't
    exist yet. */
-.path-choice { display: flex; align-items: center; justify-content: center; gap: 28px; flex-wrap: wrap; max-width: 700px; margin: 0 auto; }
+/* Widened from 700px/2 links to fit the 4-link set (§5 of the brief:
+   pitch deck + Midwest Media Alliance added alongside the original
+   waitlist/portal pair) without crowding. Divider-hide threshold moved
+   from 600px to 900px to match — below that width the 4 links wrap onto
+   multiple lines, where a divider stranded at the end of a row reads as
+   a floating mark rather than a separator. */
+.path-choice { display: flex; align-items: center; justify-content: center; gap: 28px; flex-wrap: wrap; max-width: 920px; margin: 0 auto; }
 .path-divider { width: 1px; height: 44px; background: var(--border); }
-@media (max-width: 600px) { .path-divider { display: none; } }
+@media (max-width: 900px) { .path-divider { display: none; } }
 .path-link { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; text-align: left; }
 .path-link-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--brand-light-text); text-transform: uppercase; }
 .path-link-title {
