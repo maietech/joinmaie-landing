@@ -61,6 +61,12 @@
     <div class="nav-secondary" id="nav-secondary">
       <a class="nav-link signal-link" href="#trust">Trust</a>
       <a class="nav-link signal-link" href="https://portal.joinmaie.com/pitch/">Pitch Deck</a>
+      <!-- Skip-the-Story: a subtle, always-available jump straight to the
+           destination section, for visitors who already know what MAIE
+           is and don't want the narrative. Plain in-page anchor, same
+           .nav-link treatment as Trust/Pitch Deck — inherits the
+           existing <640px disclosure behavior (nav-menu.js) for free. -->
+      <a class="nav-link signal-link" href="#paths">The Destination</a>
     </div>
     <button id="nav-more-toggle" class="nav-more-toggle" aria-label="More links" aria-expanded="false" aria-controls="nav-secondary">⋯</button>
     <button id="theme-toggle" aria-label="Switch to light mode">🌓<span class="nav-theme-label"> Theme</span></button>
@@ -443,6 +449,15 @@
     <div class="section-tag" style="text-align:center;">The Destination</div>
     <h2>Media, connected. Intelligence, shared. Creation, amplified.</h2>
     <p>Choose where your story goes next.</p>
+    <!-- #paths-cta (the existing .path-choice block, further down) already
+         holds every practical link a visitor could want. This is the
+         Skip-the-Story affordance from inside the destination itself
+         (nav-links and guide.js's own guide-skip-link cover "before you
+         arrive" — see there) — for a visitor who lands here, sees the
+         new media-rich content beginning below, and just wants the
+         links. Quiet, not a second CTA: same muted mono treatment as
+         .path-note, not styled as a button. -->
+    <p class="paths-jump"><a href="#paths-cta">Skip to the links ↓</a></p>
     <!-- Narrative Polish pass — the ending's "definitives" (Category B:
          strengthens the closing beat's payoff without adding a second
          climax, since it fades in via the same --paths-signal-progress
@@ -470,7 +485,54 @@
       <span class="cinematic-slider-line" data-line>Your knowledge compounds. Your capabilities grow.</span>
       <span class="cinematic-slider-line" data-line>The work moves faster. The story goes further.</span>
     </div>
-    <div class="path-choice">
+
+    <!-- ── Media Showcase — the destination's own editorial composition,
+         not a continuation of the scroll-scene engine above (no
+         story-scroll.js, no scene-sticky, no new IntersectionObserver).
+         Photography reused from this repo's own media/ library —
+         documentary/editorial stock already vetted for the Human Hand
+         scene (scene-human-hand.js), covering production, post,
+         and community rather than portraits/nature/product shots.
+         All four images sit inside this same #paths section (not a
+         sibling [data-atmo-density] section) specifically so the World
+         Layer/Guide's "current section" signal stays "paths" for the
+         visitor's entire time here — see guide.js's setResolved(). -->
+    <div class="showcase-grid">
+      <figure class="showcase-figure showcase-figure--lead">
+        <img src="media/made-by-director-chenchi-2159627038-36181988.jpg" alt="A camera operator adjusts a cinema camera mounted on a tripod." loading="lazy">
+        <figcaption>Every production starts with someone behind the frame.</figcaption>
+      </figure>
+      <figure class="showcase-figure showcase-figure--tall">
+        <img src="media/made-by-cord-allman-852631891-29216191.jpg" alt="A crowd gathers around several painters working live at a community art event." loading="lazy">
+        <figcaption>Creative work has always been communal.</figcaption>
+      </figure>
+      <figure class="showcase-figure showcase-figure--wide">
+        <img src="media/made-by-mart-production-7679465.jpg" alt="An editor works over their shoulder, cutting footage together in Premiere Pro." loading="lazy">
+        <figcaption>The edit is where the story actually gets made.</figcaption>
+      </figure>
+      <figure class="showcase-figure showcase-figure--strip">
+        <img src="media/made-by-jack-redgate-333633-3069868.jpg" alt="A close, abstract view of a color-coded video editing timeline." loading="lazy">
+      </figure>
+    </div>
+
+    <!-- ── Midwest Media Alliance — the relationship, presented plainly.
+         Mark image is decorative (the org name is set as real text right
+         next to it, not baked into the image) — no reliance on
+         alt text to carry the identification. Href is the one current
+         destination named in the brief; the visible label is the org
+         name, never the domain, so swapping the URL later needs no
+         copy/markup change. -->
+    <div class="mma-relationship">
+      <img class="mma-mark" src="media/mma-mark.png" alt="" aria-hidden="true" loading="lazy" width="400" height="400">
+      <div class="mma-relationship-text">
+        <p class="mma-line"><strong>MAIE</strong> — the creative intelligence platform for modern media.</p>
+        <p class="mma-line"><strong>Midwest Media Alliance</strong> — the media organization connected to the work behind it.</p>
+        <p class="mma-desc">MAIE and Midwest Media Alliance share one vision from two different directions: MAIE builds the technology, Midwest Media Alliance carries that craft to media professionals and creative communities across the Midwest.</p>
+        <a class="mma-link signal-link" href="https://mma.joinmaie.com">Visit Midwest Media Alliance →</a>
+      </div>
+    </div>
+
+    <div class="path-choice" id="paths-cta">
       <a class="path-link path-link--primary" href="https://waitlist.joinmaie.com">
         <span class="path-link-kicker">Begin Your Story</span>
         <span class="path-link-title signal-link">Enter MAIE</span>
@@ -480,13 +542,23 @@
         <span class="path-link-kicker">See It in Depth</span>
         <span class="path-link-title signal-link">See MAIE in Motion</span>
       </a>
+      <span class="path-divider" aria-hidden="true"></span>
+      <a class="path-link" href="https://mma.joinmaie.com">
+        <span class="path-link-kicker">For Media Communities</span>
+        <span class="path-link-title signal-link">Midwest Media Alliance</span>
+      </a>
+      <span class="path-divider" aria-hidden="true"></span>
+      <a class="path-link" href="https://portal.joinmaie.com/pitch/">
+        <span class="path-link-kicker">For Partners</span>
+        <span class="path-link-title signal-link">Pitch Deck</span>
+      </a>
     </div>
     <p class="path-note">MAIE is in active development.</p>
   </section>
 
 </main>
 
-<footer>MAIE — a Midwest Media Alliance production tool</footer>
+<footer>MAIE — in partnership with Midwest Media Alliance</footer>
 
 <script src="pixie-companion.js"></script>
 <!-- theme.js must run before the companion-intro init script below: it sets

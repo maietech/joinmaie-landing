@@ -145,6 +145,15 @@
       // actually living in the flow here.
       '<span class="guide-pixie-avatar-slot" id="guide-pixie-slot" aria-hidden="true"></span>' +
       '<div class="guide-pixie-text"><span class="guide-pixie-name">Pixie</span> <span id="guide-pixie"></span></div>' +
+    '</div>' +
+    // A single, quiet escape hatch (per the Narrative Guide brief's own
+    // limit — orientation only, never a second nav system): one link, no
+    // new region beyond this line, styled to read as an aside rather than
+    // a menu item. Naturally stops mattering once the visitor actually
+    // reaches #paths, since setResolved() above hides the whole panel
+    // there — no need to conditionally hide this link itself.
+    '<div class="guide-region guide-skip">' +
+      '<span>Prefer the direct path?</span> <a class="guide-skip-link signal-link" href="#paths">Explore MAIE directly</a>' +
     '</div>';
   panel.appendChild(body);
 
@@ -158,6 +167,15 @@
   });
 
   document.body.appendChild(panel);
+
+  // guide-skip-link is the first focusable element ever placed inside
+  // .guide-body — every other region is plain text. .guide-body clips to
+  // max-height:0 when collapsed (styles.css) but that alone doesn't stop
+  // a link inside it from still receiving keyboard focus, which would
+  // land a Tab user on something invisible. tabIndex is kept in sync with
+  // is-expanded below, same idea as setResolved()'s toggle.tabIndex.
+  var skipLink = body.querySelector('.guide-skip-link');
+  skipLink.tabIndex = -1;
 
   // ── Mini Pixie: engine init + live-measured docking ──
   // CORNER_SIZE is the on-screen diameter at rest (80px, within the 75-
@@ -274,6 +292,7 @@
   function setExpanded(expanded) {
     panel.classList.toggle('is-expanded', expanded);
     toggle.setAttribute('aria-expanded', String(expanded));
+    skipLink.tabIndex = expanded ? 0 : -1;
     reposition(true);
     if (pixieHandle) {
       if (expanded) { if (pixieHandle.resume) pixieHandle.resume(); }
@@ -310,13 +329,48 @@
     if (panel.classList.contains('is-expanded')) reposition(true);
   }
 
+  // ── Resolution — the Guide completing its purpose at #paths ──
+  // Same maie:scenechange signal applyContent already uses (whichever
+  // [data-atmo-density] section currently owns the most viewport space,
+  // per atmosphere.js) — not a second observer, not a scroll-position
+  // guess. #paths is a single, tall [data-reveal] section (arrival
+  // through the new destination content all live inside it), so this
+  // stays true for the visitor's entire time in the destination, not
+  // just the first instant they cross into it — no flicker as they
+  // scroll through the media showcase / MMA / paths content further
+  // down. Fully reversible: scrolling back up to scene-agent fires
+  // scenechange again with a different id, and setResolved(false)
+  // restores the panel exactly as it was (still expanded if it was
+  // expanded) — same "resume, never reset" contract this file already
+  // relies on for Pixie's pause()/resume().
+  function setResolved(resolved) {
+    if (panel.classList.contains('is-resolved') === resolved) return;
+    panel.classList.toggle('is-resolved', resolved);
+    panel.setAttribute('aria-hidden', String(resolved));
+    // aria-hidden="true" isn't reliably enough on its own to pull a
+    // focusable descendant out of Tab order across browsers — an
+    // aria-hidden ancestor containing a focusable element is exactly the
+    // pattern WCAG flags, so both interactive children get tabIndex -1
+    // explicitly here rather than trusting the ancestor attribute alone.
+    toggle.tabIndex = resolved ? -1 : 0;
+    skipLink.tabIndex = resolved ? -1 : (panel.classList.contains('is-expanded') ? 0 : -1);
+    if (resolved) {
+      if (pixieHandle && pixieHandle.pause) pixieHandle.pause();
+    } else if (pixieHandle) {
+      if (panel.classList.contains('is-expanded')) { if (pixieHandle.resume) pixieHandle.resume(); }
+      else if (pixieHandle.pause) { pixieHandle.pause(); }
+    }
+  }
+
   document.addEventListener('maie:scenechange', function (e) {
     applyContent(e.detail.section.id);
+    setResolved(e.detail.section.id === 'paths');
   });
   // Prime initial content immediately (scroll position at load, usually
   // scene-opening) rather than waiting for the first observer callback.
   if (window.MaieAtmosphere && window.MaieAtmosphere.currentSection) {
     applyContent(window.MaieAtmosphere.currentSection.id);
+    setResolved(window.MaieAtmosphere.currentSection.id === 'paths');
   } else {
     applyContent('scene-opening');
   }
