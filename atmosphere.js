@@ -156,10 +156,10 @@ void main() {
 
   float density = fFar * 0.4 + fNear * 0.85;
   density *= mix(1.0, 1.35, uCoagulate);
-  density *= mix(0.22, 1.0, band);
+  density *= mix(0.35, 1.0, band);
 
-  float shaped = clamp((density - 0.38) / 0.30, 0.0, 1.0);
-  shaped = pow(shaped, 1.1);
+  float shaped = clamp((density + 0.0) / 0.35, 0.0, 1.0);
+  shaped = pow(shaped, 0.6);
 
   float breathe = 1.0 + 0.09 * sin(uTime * 0.085 + uBreatheSeed);
   float auroraSwell = 0.62 + 0.4 * sin(uTime * 0.042 + 1.7);
@@ -202,7 +202,7 @@ void main() {
   // fix makes is negligible) — so the validated dark-theme look is
   // preserved while the light-theme defect is corrected, not two
   // different behaviors.
-  vec3 glow = tint * shaped * 1.15;
+  vec3 glow = tint * shaped * 1.3;
   glow = glow / (1.0 + glow * 0.5);
   vec3 col = uBg + glow;
 
@@ -211,7 +211,7 @@ void main() {
   col += uAccent * sparkle * 0.8;
 
   float vig = smoothstep(1.15, 0.15, length(uv));
-  col *= mix(0.45, 1.0, vig);
+  col *= mix(0.65, 1.0, vig);
 
   fragColor = vec4(col, 1.0);
 }`;
