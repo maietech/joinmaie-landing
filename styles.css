@@ -10,6 +10,14 @@
   --brand-light: #C24E4E;
   --brand-glow: rgba(165,42,42,0.30);
   --accent: #FFD166;
+  /* Third independent World Layer spectral color (atmosphere.js's
+     auroraRamp) — a teal/emerald complementary to --brand's crimson,
+     replacing what was previously a desaturated --brand-light derivative
+     in that ramp's "coolNeutral" stop. Decorative-glow use only (mixed
+     into an emissive shader color, never text/borders), so no WCAG
+     text-contrast variant is needed the way --brand-light-text/
+     --accent-text have one. */
+  --brand-tertiary: #2FBF9E;
   /* Text-safe variants — --brand-light/--accent are also used for borders,
      SVG strokes, and large/bold text (all fine at their own thresholds),
      but at small normal-weight sizes (kickers, mono tags/codes) they fall
@@ -43,6 +51,10 @@ html[data-theme="light"] {
   --brand-light: #A52A2A;
   --brand-glow: rgba(119,46,37,0.16);
   --accent: #B8860B;
+  /* Darker/more muted than dark theme's --brand-tertiary, matching how
+     --brand/--brand-light/--accent are each deeper here too — same hue
+     family, tuned for a near-white background rather than near-black. */
+  --brand-tertiary: #1E7D68;
   --brand-light-text: #A52A2A; /* --brand-light is already 6.69:1 on --bg here */
   --accent-text: #8D6608; /* 4.91:1 on --bg, vs --accent's 3.07:1 */
   /* --text-2 at 0.58 alpha measures 4.25-4.38:1 against --bg/--surface-2
@@ -96,12 +108,63 @@ a { color: inherit; }
   box-shadow: 0 8px 30px rgba(0,0,0,0.18);
   transition: background 0.3s ease, border-color 0.3s ease, height 0.25s ease, top 0.25s ease, box-shadow 0.25s ease;
 }
+/* Mobile clearance — desktop's flat `top: 10px` above has no accommodation
+   for a phone's own browser chrome (address bar / native nav), which was
+   reported overlapping the nav bar on real devices. Two things stacked,
+   deliberately, not one:
+     1. `env(safe-area-inset-top, 0px)` added on top of the existing 10px
+        baseline — real notch/dynamic-island clearance on devices that
+        report one, degrading to 0px (i.e. just the 10px baseline) where
+        unsupported or absent.
+     2. `max(..., 28px)` as an explicit floor — safe-area-inset-top is
+        specifically a hardware-cutout measurement, not a general "is
+        browser chrome visible" signal, and is commonly 0 on Android
+        phones with no notch even while an address bar still visually
+        occupies the same region. Without this floor, most Android
+        devices would get zero benefit from change 1. The 28px value is a
+        starting point, not device-measured — flagged for confirmation on
+        a real phone, same as this file's own established practice of not
+        treating a simulated viewport as proof of real device behavior.
+   `.nav--compact` (scrolled state, just below) gets its own, smaller
+   mobile floor rather than being left alone — checked directly (not
+   assumed) via a scripted scroll trace: `.nav-hidden` (scene-opening.js,
+   toggled off only once that scene's own scroll progress passes 50%,
+   several hundred px in) and `.nav--compact`'s 48px threshold overlap
+   completely on a normal forward scroll, so the nav goes hidden ->
+   hidden+compact -> compact, never through this plain non-compact state
+   at all during ordinary use. The mobile fix above is still correct and
+   harmless to keep (covers scroll-up-then-partial-scroll-back edge cases,
+   and costs nothing), but `.nav--compact` below is the state a mobile
+   visitor actually sees once the nav becomes visible — see its own
+   mobile override just after it. */
+/* max-width alone misses phones held in landscape (e.g. ~844x390) — a
+   plain narrow-portrait breakpoint would leave them at the desktop 10px
+   value, unchanged, confirmed by direct test. The second condition here
+   catches short-viewport landscape without also matching an ordinary
+   desktop/laptop window (those stay well above 500px tall even at narrow
+   widths). */
+@media (max-width: 640px), (orientation: landscape) and (max-height: 500px) {
+  .nav {
+    top: 28px;
+    top: max(calc(10px + env(safe-area-inset-top, 0px)), 28px);
+  }
+}
 /* Detached-panel look means the nav no longer meets the very top/sides of
    the viewport — subtly compresses on scroll (nav-float.js) rather than
    staying a fixed full-width bar, closer to an instrument panel than a
    page header. */
 .nav--compact { height: 52px; top: 6px; box-shadow: 0 6px 22px rgba(0,0,0,0.28); }
 .nav--no-motion { transition: none; }
+/* Same reasoning/formula as the base .nav mobile override above, scaled
+   down to match .nav--compact's own smaller baseline (6px vs 10px) — this
+   is the state that actually matters for the reported mobile overlap, per
+   the trace noted above. */
+@media (max-width: 640px), (orientation: landscape) and (max-height: 500px) {
+  .nav--compact {
+    top: 20px;
+    top: max(calc(6px + env(safe-area-inset-top, 0px)), 20px);
+  }
+}
 
 /* Compositor-layer hint for the alpha-mask taper (atmosphere.js) — only
    applied while a scene is actually inside its fadeIn/fadeOut window
