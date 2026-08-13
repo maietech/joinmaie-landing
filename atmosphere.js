@@ -80,6 +80,7 @@ uniform vec3 uBg;
 uniform vec3 uBrand;
 uniform vec3 uBrandLight;
 uniform vec3 uAccent;
+uniform vec3 uTertiary;
 
 float hash(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -178,10 +179,16 @@ void main() {
   float spectralPos = mix(spectralRaw, convergeTarget, spectralConverge);
 
   vec3 pale = mix(uAccent, vec3(1.0), 0.55);
-  float coolLum = dot(uBrandLight, vec3(0.299, 0.587, 0.114));
-  vec3 coolNeutral = mix(uBrandLight, vec3(coolLum), 0.62);
 
-  vec3 fullSpectrum = auroraRamp(spectralPos, uBrand, uAccent, pale, coolNeutral);
+  // uTertiary (a real, independent teal/emerald token) replaces what was
+  // previously a desaturated uBrandLight derivative here — same ramp
+  // structure/weights as before (auroraRamp itself is untouched), just a
+  // genuine third hue instead of a grayed-out stand-in. Still gated by
+  // varietyWeight below exactly as it always was, so it inherits the same
+  // rarity/concentration behavior the old coolNeutral stop had — this is
+  // deliberately the smallest change that adds a real third color, not a
+  // ramp redesign.
+  vec3 fullSpectrum = auroraRamp(spectralPos, uBrand, uAccent, pale, uTertiary);
 
   float varietyWeight = clamp(pow(shaped, 2.6) * 1.6 + uCoagulate * 0.35, 0.0, 1.0);
   vec3 tint = mix(uBrand, fullSpectrum, varietyWeight);
@@ -275,7 +282,7 @@ void main() {
 
       var fieldProg = link(VS_FULLSCREEN, FS_FIELD);
       var postProg = link(VS_FULLSCREEN, FS_POST);
-      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent']);
+      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent', 'uTertiary']);
       var postU = uniformsOf(postProg, ['uTex', 'uCanvasRes', 'uTexRes']);
 
       var vao = gl.createVertexArray();
@@ -949,12 +956,14 @@ void main() {
     var bg = (s.getPropertyValue('--bg') || '').trim() || '#09090B';
     var brand = (s.getPropertyValue('--brand') || '').trim() || '#A52A2A';
     var brandLight = (s.getPropertyValue('--brand-light') || '').trim() || '#C24E4E';
+    var tertiary = (s.getPropertyValue('--brand-tertiary') || '').trim() || '#2FBF9E';
     return {
       fg: fg, accent: accent,
       bgVec3: hexToVec3(bg, '09090B'),
       brandVec3: hexToVec3(brand, 'A52A2A'),
       brandLightVec3: hexToVec3(brandLight, 'C24E4E'),
       accentVec3: hexToVec3(accent, 'FFD166'),
+      tertiaryVec3: hexToVec3(tertiary, '2FBF9E'),
     };
   }
   // Previously called unconditionally inside render() every single frame —
@@ -1376,6 +1385,7 @@ void main() {
     g.gl.uniform3fv(g.fieldU.uBrand, colors.brandVec3);
     g.gl.uniform3fv(g.fieldU.uBrandLight, colors.brandLightVec3);
     g.gl.uniform3fv(g.fieldU.uAccent, colors.accentVec3);
+    g.gl.uniform3fv(g.fieldU.uTertiary, colors.tertiaryVec3);
     g.gl.drawArrays(g.gl.TRIANGLES, 0, 3);
 
     // Pass 2 — composite (bilinear upscale + cheap blur/bloom) to the
