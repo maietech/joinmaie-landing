@@ -156,10 +156,10 @@ void main() {
 
   float density = fFar * 0.4 + fNear * 0.85;
   density *= mix(1.0, 1.35, uCoagulate);
-  density *= mix(0.35, 1.0, band);
+  density *= mix(0.22, 1.0, band);
 
-  float shaped = clamp((density + 0.0) / 0.35, 0.0, 1.0);
-  shaped = pow(shaped, 0.6);
+  float shaped = clamp((density - 0.38) / 0.30, 0.0, 1.0);
+  shaped = pow(shaped, 1.1);
 
   float breathe = 1.0 + 0.09 * sin(uTime * 0.085 + uBreatheSeed);
   float auroraSwell = 0.62 + 0.4 * sin(uTime * 0.042 + 1.7);
@@ -202,7 +202,7 @@ void main() {
   // fix makes is negligible) — so the validated dark-theme look is
   // preserved while the light-theme defect is corrected, not two
   // different behaviors.
-  vec3 glow = tint * shaped * 1.3;
+  vec3 glow = tint * shaped * 1.15;
   glow = glow / (1.0 + glow * 0.5);
   vec3 col = uBg + glow;
 
@@ -211,7 +211,7 @@ void main() {
   col += uAccent * sparkle * 0.8;
 
   float vig = smoothstep(1.15, 0.15, length(uv));
-  col *= mix(0.65, 1.0, vig);
+  col *= mix(0.45, 1.0, vig);
 
   fragColor = vec4(col, 1.0);
 }`;
@@ -281,12 +281,23 @@ void main() {
       var vao = gl.createVertexArray();
       var fbo = gl.createFramebuffer();
       var fboTex = gl.createTexture();
-      var fboW = 2, fboH = 2;
+      // A shared, mutable object rather than two scalars — renderWebGL() reads
+      // fboSize.w/h by reference every frame, so a later setupFboTexture() call
+      // (from resize()) is immediately visible there. The earlier scalar version
+      // (fboW/fboH copied into the object tryInitWebGL() returns) was frozen at
+      // its initial 2x2 placeholder forever: resize() correctly reallocated the
+      // texture at its real size but only ever updated its own local closure
+      // variables, never the already-returned snapshot — so the field pass's
+      // viewport, uResolution, and uTexRes all stayed pinned at 2x2 while the
+      // texture itself was genuinely ~792x495, confirmed via direct uniform/
+      // viewport readback against both live and local. See the Production
+      // Integration Diagnostic record for the full investigation.
+      var fboSize = { w: 2, h: 2 };
 
       function setupFboTexture(w, h) {
-        fboW = Math.max(2, w); fboH = Math.max(2, h);
+        fboSize.w = Math.max(2, w); fboSize.h = Math.max(2, h);
         gl.bindTexture(gl.TEXTURE_2D, fboTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, fboW, fboH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, fboSize.w, fboSize.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -298,7 +309,7 @@ void main() {
         if (status !== gl.FRAMEBUFFER_COMPLETE) throw new Error('incomplete framebuffer: ' + status);
       }
 
-      return { gl: gl, fieldProg: fieldProg, postProg: postProg, fieldU: fieldU, postU: postU, vao: vao, fbo: fbo, fboTex: fboTex, fboW: fboW, fboH: fboH, setupFboTexture: setupFboTexture };
+      return { gl: gl, fieldProg: fieldProg, postProg: postProg, fieldU: fieldU, postU: postU, vao: vao, fbo: fbo, fboTex: fboTex, fboSize: fboSize, setupFboTexture: setupFboTexture };
     } catch (e) {
       // Any failure here (no WebGL2, shader compile error, driver quirk) —
       // fall back to Canvas 2D. Never let a rendering-enhancement attempt
@@ -439,6 +450,33 @@ void main() {
   // a page-load-independent phase without being non-deterministic.
   var BREATHE_SEED = rand() * Math.PI * 2;
 
+  // Runtime invariant check — catches the exact "FBO reallocated correctly but
+  // the field pass keeps rendering into a stale 2x2 viewport" failure mode
+  // (confirmed present in production from the original WebGL2 integration
+  // through Pass 3, entirely undetected by screenshot inspection since the
+  // page still "looked like something," just wrong). Cheap (resize() only
+  // fires on init + actual window resizes), always active — not gated behind
+  // a dev flag, since the whole point is not depending on someone remembering
+  // to enable it. Non-fatal: logs loudly and falls through, consistent with
+  // this file's existing "never let a rendering issue take down the page"
+  // posture — see tryInitWebGL()'s own catch-and-fall-back-to-Canvas-2D.
+  function verifyFboInvariant(requestedW, requestedH) {
+    if (!glState) return;
+    var actualW = glState.fboSize.w, actualH = glState.fboSize.h;
+    var expectedW = Math.max(2, requestedW), expectedH = Math.max(2, requestedH);
+    if (actualW !== expectedW || actualH !== expectedH) {
+      console.error(
+        '[atmosphere.js] FBO dimension invariant violated — field pass will render into the wrong viewport. ' +
+        'requested=' + requestedW + 'x' + requestedH +
+        ' expected(after 2px floor)=' + expectedW + 'x' + expectedH +
+        ' actual glState.fboSize=' + actualW + 'x' + actualH +
+        ' canvas=' + canvas.width + 'x' + canvas.height +
+        '. This is the exact shape of the 2x2-viewport regression found in the Production Integration Diagnostic — ' +
+        'check that setupFboTexture() is mutating a shared object, not a value renderWebGL() already copied.'
+      );
+    }
+  }
+
   var vw = 0, vh = 0, dpr = window.devicePixelRatio || 1;
   function resize() {
     vw = window.innerWidth; vh = window.innerHeight;
@@ -447,7 +485,9 @@ void main() {
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (glState) {
       var fboDpr = Math.min(dpr, 2);
-      glState.setupFboTexture(Math.round(vw * fboDpr * WEBGL_RES_SCALE), Math.round(vh * fboDpr * WEBGL_RES_SCALE));
+      var reqW = Math.round(vw * fboDpr * WEBGL_RES_SCALE), reqH = Math.round(vh * fboDpr * WEBGL_RES_SCALE);
+      glState.setupFboTexture(reqW, reqH);
+      verifyFboInvariant(reqW, reqH);
     }
   }
 
@@ -1322,10 +1362,10 @@ void main() {
     // on every window 'resize' event, DPR-capped there); nothing here
     // re-derives or re-checks that size per frame.
     g.gl.bindFramebuffer(g.gl.FRAMEBUFFER, g.fbo);
-    g.gl.viewport(0, 0, g.fboW, g.fboH);
+    g.gl.viewport(0, 0, g.fboSize.w, g.fboSize.h);
     g.gl.useProgram(g.fieldProg);
     g.gl.bindVertexArray(g.vao);
-    g.gl.uniform2f(g.fieldU.uResolution, g.fboW, g.fboH);
+    g.gl.uniform2f(g.fieldU.uResolution, g.fboSize.w, g.fboSize.h);
     g.gl.uniform1f(g.fieldU.uTime, clock);
     g.gl.uniform1f(g.fieldU.uCoherence, coherence);
     g.gl.uniform1f(g.fieldU.uCoagulate, uCoagulate);
@@ -1348,7 +1388,7 @@ void main() {
     g.gl.bindTexture(g.gl.TEXTURE_2D, g.fboTex);
     g.gl.uniform1i(g.postU.uTex, 0);
     g.gl.uniform2f(g.postU.uCanvasRes, canvas.width, canvas.height);
-    g.gl.uniform2f(g.postU.uTexRes, g.fboW, g.fboH);
+    g.gl.uniform2f(g.postU.uTexRes, g.fboSize.w, g.fboSize.h);
     g.gl.drawArrays(g.gl.TRIANGLES, 0, 3);
 
     updateOrbBreathing();
