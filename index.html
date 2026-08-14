@@ -550,9 +550,14 @@
          alt text to carry the identification. Href is the one current
          destination named in the brief; the visible label is the org
          name, never the domain, so swapping the URL later needs no
-         copy/markup change. -->
+         copy/markup change. Two theme-specific marks, not one: the
+         current logo family (mma-mark-light/-dark) has no self-contained
+         background disc like the old mma-mark.png did, so a single image
+         can't read on both a light and a dark --surface. CSS toggles
+         visibility off html[data-theme], same pattern as .bg-orb below. -->
     <div class="mma-relationship">
-      <img class="mma-mark" src="media/mma-mark.png" alt="" aria-hidden="true" loading="lazy" width="400" height="400">
+      <img class="mma-mark mma-mark--light" src="media/mma-mark-light.png" alt="" aria-hidden="true" loading="lazy" width="400" height="400">
+      <img class="mma-mark mma-mark--dark" src="media/mma-mark-dark.png" alt="" aria-hidden="true" loading="lazy" width="400" height="400">
       <div class="mma-relationship-text">
         <p class="mma-line"><strong>MAIE</strong> — the creative intelligence platform for modern media.</p>
         <p class="mma-line"><strong>Midwest Media Alliance</strong> — the media organization connected to the work behind it.</p>
