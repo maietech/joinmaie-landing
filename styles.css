@@ -694,6 +694,12 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
   border: 1px solid var(--border); border-radius: 20px;
 }
 .mma-mark { width: 72px; height: 72px; flex: none; }
+/* Dark theme is the default (no html[data-theme] override needed, same as
+   :root above), so the dark-background mark shows and the light one hides
+   until html[data-theme="light"] flips it — mirrors the .bg-orb rule below. */
+.mma-mark--light { display: none; }
+html[data-theme="light"] .mma-mark--dark { display: none; }
+html[data-theme="light"] .mma-mark--light { display: block; }
 .mma-relationship-text { flex: 1; }
 /* Scoped to `.mma-relationship-text .mma-line`/`.mma-desc` (0,2,0), not
    the bare class alone (0,1,0) — both are <p> tags nested inside
