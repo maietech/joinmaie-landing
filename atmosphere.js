@@ -235,6 +235,33 @@ out vec4 fragColor;
 uniform sampler2D uTex;
 uniform vec2 uCanvasRes;
 uniform vec2 uTexRes;
+uniform vec3 uBg;
+
+// Soft-knee highlight compression — linear (identity) up to BASELINE, then
+// a gentle exponential approach toward an ABSOLUTE ceiling (~0.9, never
+// actually reached) — NOT a ceiling relative to baseline (a first version
+// used baseline+0.18, which fixed light theme's background correctly but
+// then wrecked dark theme's own intended peak brightness: dark theme's
+// baseline is tiny, ~0.056, so a relative +0.18 ceiling crushed glow down
+// to ~0.24 instead of the ~0.9 that was actually validated to look right —
+// confirmed live, not assumed). BASELINE itself is still per-channel and
+// theme-relative — a glow-free pixel here reads (sharp=uBg)+(blur=uBg)*0.6
+// = uBg*1.6 exactly, so passing that in as BASELINE keeps a plain,
+// glow-free background pixel completely unchanged in EITHER theme (this
+// part of the original fix was correct — see the light-theme background
+// finding below). ceiling is clamped to never sit below baseline: light
+// theme's own baseline (#FAF8F6 -> ~1.55) already exceeds any reasonable
+// absolute ceiling, so compression has no headroom to work with there and
+// correctly falls through unchanged — that's expected, not a gap, since
+// light theme's near-white background was already at the hardware clip
+// boundary before any of this pass existed, same as it is today.
+float softKnee(float c, float baseline) {
+  const float ABS_CEILING = 0.9;
+  const float SPREAD = 0.5;
+  float ceiling = max(ABS_CEILING, baseline);
+  if (c <= baseline || ceiling <= baseline) return c;
+  return baseline + (ceiling - baseline) * (1.0 - exp(-(c - baseline) / SPREAD));
+}
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uCanvasRes;
@@ -250,7 +277,35 @@ void main() {
     }
   }
   blur /= wsum;
-  fragColor = vec4(sharp + blur * 0.6, 1.0);
+  vec3 composited = sharp + blur * 0.6;
+  vec3 baseline = uBg * 1.6;
+
+  // This pass had no upper bound at all: sharp + blur*0.6 is a plain,
+  // unclamped additive sum. When the underlying field is WIDELY bright
+  // (not just a sparse peak) rather than narrow — confirmed via direct
+  // FBO-vs-canvas readback for Reflection's settled idle state, where the
+  // field pass itself still showed real per-channel differentiation
+  // (~156,145,121 out of 255) but the post-composite canvas read
+  // ~250,232,194, all three independently pushed toward their ceiling —
+  // the additive blur term stacks on top of the sharp value with nothing
+  // to stop it. Values that exceed 1.0 get hard-clipped to flat (255,255,255)
+  // white on write to the 8-bit backbuffer regardless of their original
+  // hue, and — critically — clip identically whether they were barely over
+  // 1.0 or far over it, which is what turns a WIDE bright region into a
+  // flat wash rather than a small, contained luminous core: every pixel in
+  // that region reads as the exact same white once clipped, independent of
+  // how differentiated the underlying (pre-clip) values actually were.
+  // softKnee() (above) compresses only the portion that would otherwise
+  // clip, asymptotically approaching but never reaching 1.0, so pixels
+  // that were different-but-all-over-1.0 stay different-but-under-1.0 —
+  // preserving both the hue differentiation and a genuine gradient across
+  // what used to be a uniformly-clipped area, instead of a flat wash.
+  // Values already at or below baseline (every other scene's composited
+  // output, and any plain background pixel in either theme, confirmed via
+  // the same readback) pass through unchanged.
+  composited = vec3(softKnee(composited.r, baseline.r), softKnee(composited.g, baseline.g), softKnee(composited.b, baseline.b));
+
+  fragColor = vec4(composited, 1.0);
 }`;
 
   var WEBGL_RES_SCALE = 0.55; // matches the prototype's validated default — see Prototype Findings §5
@@ -283,7 +338,7 @@ void main() {
       var fieldProg = link(VS_FULLSCREEN, FS_FIELD);
       var postProg = link(VS_FULLSCREEN, FS_POST);
       var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent', 'uTertiary']);
-      var postU = uniformsOf(postProg, ['uTex', 'uCanvasRes', 'uTexRes']);
+      var postU = uniformsOf(postProg, ['uTex', 'uCanvasRes', 'uTexRes', 'uBg']);
 
       var vao = gl.createVertexArray();
       var fbo = gl.createFramebuffer();
@@ -1399,6 +1454,7 @@ void main() {
     g.gl.uniform1i(g.postU.uTex, 0);
     g.gl.uniform2f(g.postU.uCanvasRes, canvas.width, canvas.height);
     g.gl.uniform2f(g.postU.uTexRes, g.fboSize.w, g.fboSize.h);
+    g.gl.uniform3fv(g.postU.uBg, colors.bgVec3);
     g.gl.drawArrays(g.gl.TRIANGLES, 0, 3);
 
     updateOrbBreathing();
