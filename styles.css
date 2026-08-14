@@ -717,6 +717,137 @@ html[data-theme="light"] .mma-mark--light { display: block; }
   .mma-desc { margin-left: auto; margin-right: auto; }
 }
 
+/* ── Events Showcase ("In the Field") — the community/physical-world
+   counterpart to the Media Showcase above: same frame language (border-
+   radius, var(--border)/var(--surface-2), aria-hidden-toggled crossfade,
+   no aria-live), scaled up to one large cinematic frame instead of a
+   multi-figure grid, since there's exactly one real event to show.
+   .events-gallery/.event-frame/[data-event-frame] mirror .showcase-grid/
+   .showcase-figure/[data-frame] on purpose — same primitives, new scale. */
+.events-showcase { margin: 0 0 64px; }
+.events-gallery { max-width: 900px; margin: 8px auto 0; }
+/* aspect-ratio lives on .event-frame itself (desktop): .event-frame-media
+   and .event-frame-content are both absolutely positioned to fill/overlay
+   it. On mobile (media query further down) the aspect-ratio moves onto
+   .event-frame-media alone and both children become static/in-flow, so a
+   visible description+CTA (always-on there, no hover to gate it) grows
+   the card downward instead of overflowing/clipping against a fixed-
+   height overlay. */
+.event-frame {
+  position: relative; margin: 0; overflow: hidden; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface-2);
+  aspect-ratio: 2 / 1;
+}
+.event-frame-media { position: absolute; inset: 0; }
+.event-frame-photo {
+  position: absolute; inset: 0; display: block; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0;
+  transition: opacity var(--events-transition, 1400ms) ease;
+}
+.event-frame-photo.is-active { opacity: 1; }
+/* Small accent pulse, same signal-dot language as .paths-signal-dot —
+   used sparingly, decorative only, never a second focal point. */
+.event-frame-mark {
+  position: absolute; top: 20px; right: 22px; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 50%, transparent));
+  animation: events-mark-pulse 2.6s ease-in-out infinite;
+}
+@keyframes events-mark-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1); }
+}
+/* Permanent bottom scrim, tall enough to hold the always-visible kicker
+   + title — same white-on-scrim convention as .showcase-figure figcaption.
+   Grows taller/darker on hover/focus-within (see below) rather than a
+   second layer swapping in, so the change reads as one surface deepening. */
+.event-frame-scrim {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 45%;
+  background: linear-gradient(to top, rgba(9,9,11,0.88), transparent);
+  transition: height 0.6s cubic-bezier(0.16, 0.84, 0.2, 1);
+  pointer-events: none;
+}
+/* Desktop: overlaid on .event-frame-media (positioned relative to
+   .event-frame, which the media box fills via inset:0 below). Mobile
+   media query further down switches this to static, in-flow content
+   beneath the photo instead. */
+.event-frame-content {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 26px 24px;
+  color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.4); text-align: left;
+}
+/* Scoped as `.event-frame-content .event-frame-kicker`/etc. (0,2,0), not
+   the bare class alone (0,1,0) — these are all <p> tags nested inside
+   .final-cta, so a bare class would lose color/font-size/margin to the
+   page's existing `.final-cta p` rule (0,1,1), same trap .mma-line/
+   .mma-desc/.paths-jump a already avoid elsewhere in this file. */
+.event-frame-content .event-frame-kicker {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.75); margin: 0 0 6px;
+}
+.event-frame-title { font-size: clamp(19px, 2.6vw, 26px); font-weight: 700; margin: 0; }
+/* Description/meta/CTA — hidden until hover or keyboard focus lands on
+   the CTA inside (:focus-within, not a second tabindex on the article: the
+   real interactive element, .event-cta, already earns its own tab stop in
+   natural order). opacity/transform only (stays in the accessibility tree
+   and tab order throughout — never aria-hidden, never display:none), so a
+   keyboard user tabbing to Attend reveals it and the tab order never
+   changes underneath them. Gated to real hover input only: touch/no-hover
+   devices show this content by default instead (media query below) rather
+   than requiring a tap-to-discover gesture. */
+.event-frame-reveal { margin-top: 14px; }
+.event-frame-reveal .event-frame-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.7); margin: 0 0 10px;
+}
+.event-frame-reveal .event-frame-desc { font-size: 14.5px; line-height: 1.55; max-width: 46ch; margin: 0 0 16px; color: rgba(255,255,255,0.92); }
+.event-frame-actions { display: flex; gap: 20px; }
+.event-cta {
+  display: inline-flex; align-items: center; gap: 6px; color: #fff; font-weight: 700;
+  font-size: 15px; text-decoration: none;
+}
+.event-cta span { transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.event-cta:hover span, .event-cta:focus-visible span { transform: translateX(5px); }
+.event-cta:focus-visible { outline: 1px solid color-mix(in srgb, var(--accent) 65%, transparent); outline-offset: 3px; border-radius: 2px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .event-frame-reveal {
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 0.6s cubic-bezier(0.16, 0.84, 0.2, 1),
+                transform 0.6s cubic-bezier(0.16, 0.84, 0.2, 1);
+  }
+  .event-frame:hover .event-frame-scrim,
+  .event-frame:focus-within .event-frame-scrim { height: 78%; }
+  .event-frame:hover .event-frame-reveal,
+  .event-frame:focus-within .event-frame-reveal { opacity: 1; transform: translateY(0); }
+}
+/* Mobile: no hover, so .event-frame-reveal is always shown (see the
+   (hover: hover) query above, which is what actually hides it — this
+   query never touches that). With the description+CTA always visible,
+   overlaying everything on the photo the way desktop does would either
+   clip against a fixed-height frame or force an oversized one just to
+   fit worst-case text. Stack instead: photo on top at its own aspect-
+   ratio, caption/reveal in normal flow below it on the card's own
+   surface — same information, a composition suited to the space. */
+@media (max-width: 720px) {
+  .event-frame { aspect-ratio: auto; display: flex; flex-direction: column; }
+  .event-frame-media { position: relative; aspect-ratio: 4 / 3; }
+  .event-frame-scrim { height: 42%; }
+  .event-frame-content {
+    position: static; padding: 18px; color: var(--text-1); text-shadow: none;
+  }
+  .event-frame-content .event-frame-kicker { color: var(--brand-light-text); }
+  .event-frame-reveal .event-frame-meta { color: var(--text-2-small); }
+  .event-frame-reveal .event-frame-desc { color: var(--text-2-small); }
+  .event-cta { color: var(--brand-light); }
+  .event-frame-reveal { margin-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .event-frame-photo { transition: none; }
+  .event-frame-scrim, .event-frame-reveal { transition: none; }
+  .event-frame-mark { animation: none; opacity: 0.85; }
+}
+
 /* Demoted out of the closing headline (see maie-narrative-audit.md §11 A) —
    the dev-status disclosure is honest but shouldn't puncture the register
    of the page's most crystallized line. Small, quiet, after the choice. */
