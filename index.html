@@ -566,6 +566,59 @@
       </div>
     </div>
 
+    <!-- ── Events Showcase — "In the Field": the destination's proof that
+         MAIE's world isn't purely digital. Same visual grammar as the
+         Media Showcase above (rounded-frame, border/surface tokens, the
+         same aria-hidden-toggle-not-aria-live crossfade convention) rather
+         than a new card system — one large cinematic frame instead of a
+         multi-figure grid, since there is exactly one real event today.
+         Markup carries the data, same as .showcase-grid above: one
+         .event-frame per event, one [data-event-frame] photo per event
+         image. A future event is a sibling .event-frame; a future photo
+         is a sibling [data-event-frame] img — no JS config array, no
+         redesign. CTAs are data-driven by simple presence: this event has
+         no Volunteer link, so no Volunteer <a> exists in the markup at
+         all (not a disabled button) — a future event that wants one adds
+         a second .event-cta, nothing else changes.
+         Photography: no dedicated photo of this specific dinner exists in
+         the repo, so per the sourcing priority (real event photo, then
+         existing on-theme repo photography, then abstract treatment) this
+         reuses media/made-by-cord-allman-852631891-29216191.jpg — already
+         in the Media Showcase's "tall" figure above — since it's the one
+         asset in this repo's vetted library that actually depicts a
+         crowd gathered around live creative work at a community event,
+         the closest honest match to an industry dinner's own energy.
+         Same alt text as its other use (it's the same photo; alt text
+         describes the image, not this section's narrative) — nothing
+         here claims it's a photo of the actual Atlanta dinner.
+         Event facts (day/time cadence, city, description) verified
+         directly against the event's own Eventbrite listing before
+         writing this copy — no invented date, venue, or sponsor. -->
+    <div class="events-showcase">
+      <div class="section-tag" style="text-align:center;">In the Field</div>
+      <p>Where media meets community.</p>
+      <div class="events-gallery" data-events-gallery>
+        <article class="event-frame" data-event>
+          <div class="event-frame-media">
+            <img class="event-frame-photo" data-event-frame src="media/made-by-cord-allman-852631891-29216191.jpg" alt="A crowd gathers around several painters working live at a community art event." loading="lazy">
+            <div class="event-frame-mark" aria-hidden="true"></div>
+            <div class="event-frame-scrim" aria-hidden="true"></div>
+          </div>
+          <div class="event-frame-content">
+            <p class="event-frame-kicker">Atlanta / Community</p>
+            <h3 class="event-frame-title">Atlanta Film + Music Industry Dinner</h3>
+            <div class="event-frame-reveal">
+              <p class="event-frame-meta">Monthly · 7–10 PM · Atlanta, GA</p>
+              <p class="event-frame-desc">A monthly gathering where Atlanta's filmmakers, musicians, and industry professionals meet over dinner and conversation.</p>
+              <div class="event-frame-actions">
+                <a class="event-cta" href="https://www.eventbrite.com/e/atlanta-film-music-industry-dinner-tickets-1991810507847?aff=ebdssbdestsearch&amp;utm_source=chatgpt.com">Attend <span aria-hidden="true">→</span></a>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+
     <div class="path-choice" id="paths-cta">
       <a class="path-link path-link--primary" href="https://waitlist.joinmaie.com">
         <span class="path-link-kicker">Begin Your Story</span>
@@ -647,6 +700,7 @@
 <script src="reveal.js"></script>
 <script src="cinematic-slider.js"></script>
 <script src="showcase-slider.js"></script>
+<script src="events-showcase.js"></script>
 <script src="nav-theme.js"></script>
 <script src="nav-menu.js"></script>
 <script src="nav-float.js"></script>
