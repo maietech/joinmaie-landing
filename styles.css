@@ -761,11 +761,15 @@ html[data-theme="light"] .mma-mark--light { display: block; }
 /* Permanent bottom scrim, tall enough to hold the always-visible kicker
    + title — same white-on-scrim convention as .showcase-figure figcaption.
    Grows taller/darker on hover/focus-within (see below) rather than a
-   second layer swapping in, so the change reads as one surface deepening. */
+   second layer swapping in, so the change reads as one surface deepening.
+   Transition delay lives here, on the rest-state rule, not on the
+   hover-active one — see the (hover: hover) query below for why: this is
+   what gives the "close" direction its lazy pause while "open" stays
+   instant, without any JS timer. */
 .event-frame-scrim {
   position: absolute; left: 0; right: 0; bottom: 0; height: 45%;
   background: linear-gradient(to top, rgba(9,9,11,0.88), transparent);
-  transition: height 0.6s cubic-bezier(0.16, 0.84, 0.2, 1);
+  transition: height 0.6s cubic-bezier(0.16, 0.84, 0.2, 1) 0.5s;
   pointer-events: none;
 }
 /* Desktop: overlaid on .event-frame-media (positioned relative to
@@ -785,16 +789,34 @@ html[data-theme="light"] .mma-mark--light { display: block; }
   font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em;
   text-transform: uppercase; color: rgba(255,255,255,0.75); margin: 0 0 6px;
 }
+/* Title sits at rest wherever the bottom-anchored .event-frame-content
+   box's own flow puts it — with .event-frame-reveal collapsed to zero
+   height at rest (see the (hover: hover) query below), that's right
+   above the bottom padding, i.e. near the very bottom of the frame. No
+   separate transform/position is applied to the title itself: because
+   the box is bottom:0-anchored, growing .event-frame-reveal's height on
+   hover pushes the box's *top* edge upward, which is what "raises" the
+   title/kicker (they sit above reveal in flow) to their normal reading
+   position, in step with the same single transition. */
 .event-frame-title { font-size: clamp(19px, 2.6vw, 26px); font-weight: 700; margin: 0; }
 /* Description/meta/CTA — hidden until hover or keyboard focus lands on
    the CTA inside (:focus-within, not a second tabindex on the article: the
    real interactive element, .event-cta, already earns its own tab stop in
-   natural order). opacity/transform only (stays in the accessibility tree
-   and tab order throughout — never aria-hidden, never display:none), so a
-   keyboard user tabbing to Attend reveals it and the tab order never
-   changes underneath them. Gated to real hover input only: touch/no-hover
-   devices show this content by default instead (media query below) rather
-   than requiring a tap-to-discover gesture. */
+   natural order). Collapsed via grid-template-rows (0fr/1fr), not
+   opacity/display, so it stays in the accessibility tree and tab order
+   throughout — a keyboard user tabbing to Attend reveals it and the tab
+   order never changes underneath them. Gated to real hover input only
+   (see media query below): touch/no-hover devices show this content by
+   default instead (mobile media query further down) rather than
+   requiring a tap-to-discover gesture. The 14px gap above it is a
+   margin on .event-frame-reveal itself, not padding on the inner
+   wrapper — padding lives inside the box being row-collapsed to 0 on
+   desktop (see below), and padding always contributes to an element's
+   minimum size even under overflow:hidden, so it would leave a
+   permanent 14px floor the row could never actually collapse past. An
+   outer margin sits above/outside that box entirely, so it stays exactly
+   14px whether the row is 0 or fully open — the small remainder that
+   keeps the title from sitting flush against the very pixel edge. */
 .event-frame-reveal { margin-top: 14px; }
 .event-frame-reveal .event-frame-meta {
   font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.06em;
@@ -810,16 +832,39 @@ html[data-theme="light"] .mma-mark--light { display: block; }
 .event-cta:hover span, .event-cta:focus-visible span { transform: translateX(5px); }
 .event-cta:focus-visible { outline: 1px solid color-mix(in srgb, var(--accent) 65%, transparent); outline-offset: 3px; border-radius: 2px; }
 
+/* Rest state: collapsed to zero height (not opacity/display — see the
+   comment above .event-frame-reveal-inner). grid-template-rows: 0fr/1fr
+   is what actually animates a real "auto" height smoothly, no JS
+   measurement needed; .event-frame-reveal-inner's overflow:hidden +
+   min-height:0 is required for the grid item to honor a shrunk track
+   instead of insisting on its own content's intrinsic height.
+   The 0.5s delay lives on THIS (rest-state) rule, deliberately, not on
+   the :hover-active rule below — the transition actually applied at any
+   moment is always the one on the style being transitioned *to*, so
+   leaving hover (transitioning to this rule) inherits this delay, while
+   entering hover (transitioning to the 0s rule below) doesn't. That's
+   the whole "lazy reset" mechanic: instant open, paused-then-eased
+   close, no JS timer, and it can't glitch on a fast in/out pass because
+   the collapse never even starts until the mouse has been away for the
+   full delay. Same delay/no-delay split mirrored on .event-frame-scrim
+   just below, so the scrim and the title/content motion stay in lockstep
+   in both directions. */
 @media (hover: hover) and (pointer: fine) {
   .event-frame-reveal {
-    opacity: 0; transform: translateY(10px);
-    transition: opacity 0.6s cubic-bezier(0.16, 0.84, 0.2, 1),
-                transform 0.6s cubic-bezier(0.16, 0.84, 0.2, 1);
+    display: grid; grid-template-rows: 0fr;
+    transition: grid-template-rows 0.6s cubic-bezier(0.16, 0.84, 0.2, 1) 0.5s;
   }
+  .event-frame-reveal-inner { overflow: hidden; min-height: 0; }
   .event-frame:hover .event-frame-scrim,
-  .event-frame:focus-within .event-frame-scrim { height: 78%; }
+  .event-frame:focus-within .event-frame-scrim {
+    height: 78%;
+    transition: height 0.6s cubic-bezier(0.16, 0.84, 0.2, 1) 0s;
+  }
   .event-frame:hover .event-frame-reveal,
-  .event-frame:focus-within .event-frame-reveal { opacity: 1; transform: translateY(0); }
+  .event-frame:focus-within .event-frame-reveal {
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.6s cubic-bezier(0.16, 0.84, 0.2, 1) 0s;
+  }
 }
 /* Mobile: no hover, so .event-frame-reveal is always shown (see the
    (hover: hover) query above, which is what actually hides it — this
