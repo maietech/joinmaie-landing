@@ -324,18 +324,36 @@
     </div>
   </section>
 
-  <section id="companion-intro" data-reveal data-rail-label="Companion" data-atmo-density="1">
-    <div class="intro-inner">
-      <div class="intro-text">
-        <p class="intro-statement">The burden of the infinite project,<br><span class="accent">lifted.</span></p>
-        <p class="intro-sub">
-          The endless folders, the lost takes, the missing metadata — managed, mapped,
-          and silently understood. MAIE absorbs the heavy lifting, so you can get back
-          to why you fell in love with the craft in the first place.
-        </p>
+  <!-- Promoted from a plain [data-reveal] section to a story-scene — see
+       scene-companion-intro.js. Visitors had no speed bump through this
+       section before; the sticky panel + image slider now hold the eye
+       for a real scroll distance while the supporting copy crossfades
+       through four beats in sync with the slider, instead of one static
+       paragraph nobody had time to read. -->
+  <section id="companion-intro" class="story-scene companion-scene" data-atmo-density="1">
+    <div class="scene-sticky">
+      <div class="companion-row">
+        <div class="intro-text">
+          <p class="intro-statement">The burden of the infinite project,<br><span class="accent">lifted.</span></p>
+          <div class="companion-sub-stack">
+            <p class="intro-sub companion-sub-line is-active">The endless folders, the lost takes, the missing metadata — managed, mapped, and silently understood. MAIE absorbs the heavy lifting, so you can get back to why you fell in love with the craft in the first place.</p>
+            <p class="intro-sub companion-sub-line">Every rig, every take, every log — read, tagged, and understood the moment it lands. No manual sorting. No second-guessing where anything went.</p>
+            <p class="intro-sub companion-sub-line">Duplicates, near-duplicates, forgotten drafts — quietly reconciled while you and the crew keep moving forward.</p>
+            <p class="intro-sub companion-sub-line">One less thing to manage. One more reason to remember why you picked up the camera in the first place.</p>
+          </div>
+        </div>
+        <div class="intro-companion">
+          <canvas id="pixie-canvas" aria-label="Pixie companion" role="img"></canvas>
+        </div>
       </div>
-      <div class="intro-companion">
-        <canvas id="pixie-canvas" aria-label="Pixie companion" role="img"></canvas>
+      <!-- Decorative — the real content is the text above; images carry no
+           independent meaning of their own (same convention as
+           .showcase-figure's photos). -->
+      <div class="companion-slider" aria-hidden="true">
+        <div class="companion-slide"><img src="media/made-by-keremkaplan-pensivedirector-13710685.jpg" alt="" loading="lazy"></div>
+        <div class="companion-slide"><img src="media/made-by-assedrani-official-camequipment-177638678-19993416.jpg" alt="" loading="lazy"></div>
+        <div class="companion-slide"><img src="media/made-by-ron-lach-youngmediacrew-8089647.jpg" alt="" loading="lazy"></div>
+        <div class="companion-slide"><img src="media/made-by-kunal-studio-86423592-11998980.jpg" alt="" loading="lazy"></div>
       </div>
     </div>
   </section>
@@ -717,5 +735,6 @@
 <script src="scene-chaos-signal.js"></script>
 <script src="scene-lifecycle.js"></script>
 <script src="scene-agent.js"></script>
+<script src="scene-companion-intro.js"></script>
 </body>
 </html>
