@@ -442,9 +442,12 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
    below now replaces the old fixed min-height/::before glow entirely; the
    same warm brand-glow ambience lives on as this panel's own theme/
    atmo-veil-aware background instead of a standalone ::before layer. */
-.companion-scene { height: 280vh; }
+/* 420vh for 7 beats (~60vh/beat) — same per-beat pacing as
+   .lifecycle-scene's 420vh/8 stages (~52vh/stage), scaled up from the
+   original 280vh/4-beat version now that three more beats were added. */
+.companion-scene { height: 420vh; }
 .companion-scene .scene-sticky {
-  flex-direction: column; justify-content: center; gap: 28px; padding: 96px 24px 32px;
+  flex-direction: column; justify-content: center; gap: 20px; padding: 64px 24px 20px;
   background: radial-gradient(ellipse 60% 50% at 50% 30%,
     color-mix(in srgb, var(--brand-glow) var(--atmo-veil, 100%), transparent),
     color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent) 72%);
@@ -1179,45 +1182,42 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
 }
 .guide-reduced-motion::after { display: none; }
 
-/* ── Companion Intro — text+companion row, image slider beneath ─────
-   .companion-row holds the same two-column text/Pixie layout this section
-   always had (renamed from .intro-inner now that the section also carries
-   .companion-slider below it — see scene-companion-intro.js). Pixie's own
-   sizing script (index.html's inline companion-intro init) reads
-   .intro-companion's clientWidth on resize, so it's untouched here; only
-   its container's max-width shrinks a little at the two smaller
-   breakpoints below to leave the slider real room in the same 100vh
-   sticky panel. */
-.companion-row { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; width: min(1160px, 94vw); }
-.intro-text { max-width: 520px; flex: 1 1 380px; }
+/* ── Companion Intro — single centered column ────────────────────────
+   Was a two-column split (text left, Pixie right); the header and Pixie
+   read as too far apart from each other that way. Centering everything
+   into one column — statement, then Pixie, then the (now wider, more
+   emphasized) paragraph — puts Pixie directly between the two text
+   elements instead of off to the side, closing that gap by repositioning
+   it rather than just enlarging it in place. Pixie's own sizing script
+   (index.html's inline companion-intro init) reads .intro-companion's
+   clientWidth on resize, so it's untouched here — only the container
+   size changes. */
+.companion-row { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(760px, 92vw); }
+.companion-row .intro-statement {
+  margin: 0 auto; text-align: center; max-width: 20ch;
+}
 .intro-companion { flex-shrink: 0; width: 260px; max-width: 30vw; display: flex; justify-content: center; }
-@media (max-width: 1100px) {
-  .intro-companion { max-width: 26vw; }
-}
-@media (max-width: 860px) {
-  .companion-row { flex-direction: column; text-align: center; gap: 18px; }
-  .intro-text { max-width: 100%; }
-  .intro-statement { margin-left: auto; margin-right: auto; }
-  .intro-sub { margin-left: auto; margin-right: auto; }
-  .intro-companion { width: min(36vw, 170px); max-width: none; order: -1; margin-bottom: 4px; }
-  #pixie-canvas { width: min(36vw, 170px) !important; height: min(36vw, 170px) !important; }
-}
+/* Wider and more prominent than the original split-layout paragraph
+   (52ch/18px/--text-2-small) — the ask was specifically to give this
+   text more emphasis and more room, not just recenter it: a wider
+   measure, a size step up, and the page's primary text color instead of
+   the muted secondary one. */
+.companion-row .intro-sub { max-width: 640px; width: 100%; margin: 0 auto; text-align: center; font-size: 20px; color: var(--text-1); }
 
 /* Text lines stacked absolutely (like .cinematic-slider-line) so rotating
    through different lengths never shifts the companion row's layout —
    scene-companion-intro.js measures the tallest line up front and sets
-   this container's min-height from it. */
-.companion-sub-stack { position: relative; }
+   this container's min-height from it. Always centered now that the row
+   itself is always a single centered column, not just below the old
+   860px two-column breakpoint. */
+.companion-sub-stack { position: relative; width: 100%; }
 .companion-sub-line {
-  position: absolute; left: 0; top: 0; width: 100%;
-  opacity: 0; transform: translateY(6px); filter: blur(3px);
+  position: absolute; left: 50%; top: 0; width: 100%;
+  transform: translate(-50%, 6px); filter: blur(3px);
+  opacity: 0;
   transition: opacity 700ms ease, transform 700ms ease, filter 700ms ease;
 }
-.companion-sub-line.is-active { opacity: 1; transform: translateY(0); filter: blur(0); }
-@media (max-width: 860px) {
-  .companion-sub-line { left: 50%; transform: translate(-50%, 6px); }
-  .companion-sub-line.is-active { transform: translate(-50%, 0); }
-}
+.companion-sub-line.is-active { opacity: 1; transform: translate(-50%, 0); filter: blur(0); }
 @media (prefers-reduced-motion: reduce) {
   .companion-sub-line { transition: none; }
 }
@@ -1228,7 +1228,7 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
    100vh .scene-sticky panel at every breakpoint below, verified live
    (desktop/tablet/mobile, both themes) rather than assumed. */
 .companion-slider {
-  position: relative; width: min(620px, 88vw); height: min(42vh, 380px);
+  position: relative; width: min(620px, 88vw); height: min(38vh, 340px);
   border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
   background: var(--surface-2); flex-shrink: 0;
 }
