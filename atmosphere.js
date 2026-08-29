@@ -211,11 +211,28 @@ void main() {
   // different behaviors.
   vec3 glow = tint * shaped * 1.15;
   glow = glow / (1.0 + glow * 0.5);
-  vec3 col = uBg + glow;
+
+  // Blended aura for light theme — additive glow against a near-white uBg
+  // (~0.97, #FAF8F6) is numerically inert: uBg + glow clips straight back to
+  // ~white, which is why light theme measured live as an almost invisible
+  // haze (live screenshot comparison against dark theme's clearly visible
+  // nebula, this pass) even though every color/intensity term above already
+  // differs correctly between themes. lightMix is derived from uBg's own
+  // luminance rather than a new uniform/JS plumbing — dark theme's uBg
+  // luminance (~0.02) keeps it at 0, so col there is bit-for-bit the
+  // original additive formula; it only engages as uBg actually brightens.
+  float bgLum = dot(uBg, vec3(0.299, 0.587, 0.114));
+  float lightMix = smoothstep(0.45, 0.75, bgLum);
+  vec3 tinted = mix(uBg, tint, clamp(shaped * 1.5, 0.0, 0.82));
+  vec3 col = mix(uBg + glow, tinted, lightMix);
 
   float sp = noise(pa * 44.0 + uTime * 0.32);
   float sparkle = smoothstep(0.975, 0.997, sp) * mix(0.15, 1.0, band) * (0.35 + shaped);
-  col += uAccent * sparkle * 0.8;
+  // Same reasoning as the glow blend above — additive sparkle against a
+  // bright uBg is invisible, so light theme blends the fleck in as a
+  // visible accent tint instead of trying to brighten an already-near-white
+  // pixel further.
+  col = mix(col + uAccent * sparkle * 0.8, mix(col, uAccent, sparkle * 0.7), lightMix);
 
   float vig = smoothstep(1.15, 0.15, length(uv));
   col *= mix(0.45, 1.0, vig);

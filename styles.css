@@ -436,15 +436,18 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
    Reflection-style: stark statement + generous space, no CTA buttons —
    the ask lives solely in the closing #paths section now, not repeated
    at the top of the page. Pixie still front-and-center, per the
-   standing requirement that it not be centered/hidden. */
-#companion-intro { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
-#companion-intro::before {
-  /* radial-gradient's size values are radii, not the full ellipse span, so
-     55%/45% at a 50%/15% center previously pushed the shape ~30% past the
-     top edge and ~5% past each side. Shrunk to fit fully inside the box,
-     and overflow:hidden above is a hard backstop in case of future tweaks. */
-  content: ''; position: absolute; inset: 0; z-index: -1;
-  background: radial-gradient(ellipse 40% 35% at 50% 25%, var(--brand-glow), transparent 70%);
+   standing requirement that it not be centered/hidden.
+   Promoted to a story-scene (see scene-companion-intro.js) — visitors had
+   no speed bump through this section before, so the .scene-sticky panel
+   below now replaces the old fixed min-height/::before glow entirely; the
+   same warm brand-glow ambience lives on as this panel's own theme/
+   atmo-veil-aware background instead of a standalone ::before layer. */
+.companion-scene { height: 280vh; }
+.companion-scene .scene-sticky {
+  flex-direction: column; justify-content: center; gap: 28px; padding: 96px 24px 32px;
+  background: radial-gradient(ellipse 60% 50% at 50% 30%,
+    color-mix(in srgb, var(--brand-glow) var(--atmo-veil, 100%), transparent),
+    color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent) 72%);
 }
 .intro-statement { font-family: 'Bebas Neue', sans-serif; font-size: clamp(34px, 6vw, 64px); line-height: 1.05; letter-spacing: 0.01em; margin: 0 0 24px; max-width: 18ch; }
 .intro-statement .accent { color: var(--brand-light); }
@@ -1176,20 +1179,89 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
 }
 .guide-reduced-motion::after { display: none; }
 
-/* ── Companion Intro — two columns, companion on the right ───────── */
-.intro-inner { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
-.intro-text { max-width: 560px; flex: 1 1 380px; }
-.intro-companion { flex-shrink: 0; width: 550px; max-width: 44vw; display: flex; justify-content: center; }
+/* ── Companion Intro — text+companion row, image slider beneath ─────
+   .companion-row holds the same two-column text/Pixie layout this section
+   always had (renamed from .intro-inner now that the section also carries
+   .companion-slider below it — see scene-companion-intro.js). Pixie's own
+   sizing script (index.html's inline companion-intro init) reads
+   .intro-companion's clientWidth on resize, so it's untouched here; only
+   its container's max-width shrinks a little at the two smaller
+   breakpoints below to leave the slider real room in the same 100vh
+   sticky panel. */
+.companion-row { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; width: min(1160px, 94vw); }
+.intro-text { max-width: 520px; flex: 1 1 380px; }
+.intro-companion { flex-shrink: 0; width: 260px; max-width: 30vw; display: flex; justify-content: center; }
 @media (max-width: 1100px) {
-  .intro-companion { max-width: 100%; }
+  .intro-companion { max-width: 26vw; }
 }
 @media (max-width: 860px) {
-  .intro-inner { flex-direction: column; text-align: center; }
+  .companion-row { flex-direction: column; text-align: center; gap: 18px; }
   .intro-text { max-width: 100%; }
   .intro-statement { margin-left: auto; margin-right: auto; }
   .intro-sub { margin-left: auto; margin-right: auto; }
-  .intro-companion { width: min(70vw, 450px); order: -1; margin-bottom: 12px; }
-  #pixie-canvas { width: min(70vw, 450px) !important; height: min(70vw, 450px) !important; }
+  .intro-companion { width: min(36vw, 170px); max-width: none; order: -1; margin-bottom: 4px; }
+  #pixie-canvas { width: min(36vw, 170px) !important; height: min(36vw, 170px) !important; }
+}
+
+/* Text lines stacked absolutely (like .cinematic-slider-line) so rotating
+   through different lengths never shifts the companion row's layout —
+   scene-companion-intro.js measures the tallest line up front and sets
+   this container's min-height from it. */
+.companion-sub-stack { position: relative; }
+.companion-sub-line {
+  position: absolute; left: 0; top: 0; width: 100%;
+  opacity: 0; transform: translateY(6px); filter: blur(3px);
+  transition: opacity 700ms ease, transform 700ms ease, filter 700ms ease;
+}
+.companion-sub-line.is-active { opacity: 1; transform: translateY(0); filter: blur(0); }
+@media (max-width: 860px) {
+  .companion-sub-line { left: 50%; transform: translate(-50%, 6px); }
+  .companion-sub-line.is-active { transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .companion-sub-line { transition: none; }
+}
+
+/* Big rounded-corner image slider — deliberately "just looks like an
+   image": no arrows/dots/controls, same 16px-radius/1px-border language
+   as .showcase-figure. Sized to fit under .companion-row inside one
+   100vh .scene-sticky panel at every breakpoint below, verified live
+   (desktop/tablet/mobile, both themes) rather than assumed. */
+.companion-slider {
+  position: relative; width: min(620px, 88vw); height: min(42vh, 380px);
+  border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
+  background: var(--surface-2); flex-shrink: 0;
+}
+.companion-slide { position: absolute; inset: 0; }
+.companion-slide img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; clip-path: circle(0% at 50% 50%);
+}
+@media (max-width: 860px) {
+  .companion-slider { width: min(480px, 90vw); height: min(30vh, 300px); }
+}
+/* Phones, and any short viewport regardless of width — the biggest single
+   space cost here is the sub-stack's own 4-6-line paragraph at the desktop
+   18px size, confirmed live (a real 375x700 viewport measurement pushed
+   the slider ~56px past the sticky panel's own overflow:hidden bottom
+   edge before this rule existed; an 820x700 short/wide window overflowed
+   even further, ~87px, since width-only breakpoints never caught it).
+   Shrinking the statement/sub text and both companion elements buys back
+   enough height that the slider fits without shrinking the photo itself
+   into illegibility. The (max-height: 760px) arm catches short windows a
+   width-only breakpoint would miss — a landscape phone/tablet or just a
+   modest desktop browser window. */
+@media (max-width: 640px), (max-height: 760px) {
+  .companion-scene .scene-sticky { padding: 76px 20px 20px; gap: 14px; }
+  .companion-row { gap: 10px; }
+  .companion-scene .intro-statement { font-size: clamp(24px, 7.5vw, 32px); margin-bottom: 8px; }
+  .companion-scene .companion-sub-line { font-size: 14px; line-height: 1.45; }
+  .companion-row .intro-companion { width: min(26vw, 110px); margin-bottom: 0; }
+  .companion-scene #pixie-canvas { width: min(26vw, 110px) !important; height: min(26vw, 110px) !important; }
+  .companion-slider { height: min(22vh, 190px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .companion-slide img { transition: none; }
 }
 
 /* ── Pixie companion — real engine now, see pixie-companion.js.
