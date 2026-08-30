@@ -178,13 +178,20 @@ narrative companion.
 
 Pixie should explain. Encourage. Observe. Never dominate.
 
-Three real instances exist today (`companion-intro`, `scene-agent`, the
-Narrative Guide's corner badge), all sharing one engine
-(`pixie-companion.js`, `window.initPixieCompanion`) — never build a second
-companion visual from scratch; reuse the engine and give it whatever
-lifecycle lever it's missing (see the `pause()`/`resume()` methods added
-for the Guide's instance, whose `position: fixed` container made its
-existing `IntersectionObserver` gating structurally unable to help it).
+Three real instances exist today (`trust`, `scene-agent`, the Narrative
+Guide's corner badge), all sharing one engine (`pixie-companion.js`,
+`window.initPixieCompanion`) — never build a second companion visual from
+scratch; reuse the engine and give it whatever lifecycle lever it's
+missing (see the `pause()`/`resume()` methods added for the Guide's
+instance, whose `position: fixed` container made its existing
+`IntersectionObserver` gating structurally unable to help it). The
+`trust` instance (`trust-companion.js`) was relocated from
+`companion-intro` — that section had Pixie competing with a header,
+paragraph, and image slider for the same 100vh sticky panel; `#trust` was
+already left-biased with real empty space on the right for it to fill
+instead. `trust-companion.js` also introduced a new lifecycle lever of
+its own: a per-`.reflect-item` "lock" position, driven by
+IntersectionObserver, not a scroll listener.
 The engine's public contract: `pause()`/`resume()` control scheduling
 only, never simulation state — a resumed Pixie continues exactly where it
 left off, never re-seeds or resets. Preserve that contract; it's what
