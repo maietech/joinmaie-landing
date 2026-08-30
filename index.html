@@ -330,18 +330,18 @@
        for a real scroll distance while the supporting copy crossfades
        through seven beats in sync with the slider, instead of one static
        paragraph nobody had time to read.
-       Single centered column (statement, Pixie, paragraph) rather than the
-       original two-column split — the header and Pixie read as too far
-       apart from each other in the split layout; centering Pixie directly
-       between the header and the (now wider, more emphasized) paragraph
-       closes that gap instead of just enlarging either element in place. -->
+       Pixie removed from this section (relocated to #trust — see
+       trust-companion.js) — header, Pixie, and paragraph together in one
+       100vh sticky panel was too much competing for the same space, and
+       left the slider itself barely visible at the section's resting
+       scroll position. Single centered column (statement, paragraph) —
+       simpler than it was even before Pixie was here, since the slider is
+       now the section's one supporting visual instead of splitting
+       attention with a second one. -->
   <section id="companion-intro" class="story-scene companion-scene" data-atmo-density="1">
     <div class="scene-sticky">
       <div class="companion-row">
         <p class="intro-statement">The burden of the infinite project,<br><span class="accent">lifted.</span></p>
-        <div class="intro-companion">
-          <canvas id="pixie-canvas" aria-label="Pixie companion" role="img"></canvas>
-        </div>
         <div class="companion-sub-stack">
           <p class="intro-sub companion-sub-line is-active">The endless folders, the lost takes, the missing metadata — managed, mapped, and silently understood. MAIE absorbs the heavy lifting, so you can get back to why you fell in love with the craft in the first place.</p>
           <p class="intro-sub companion-sub-line">Every rig, every take, every log — read, tagged, and understood the moment it lands. No manual sorting. No second-guessing where anything went.</p>
@@ -398,6 +398,29 @@
       </div>
     </div>
   </section>
+
+  <!-- Pixie, relocated from #companion-intro — see trust-companion.js.
+       #trust was already left-biased (.reflect-list caps at 640px inside
+       a much wider section, leaving the right side empty); Pixie fills
+       that real gap instead of the crowded one it used to compete for.
+       position:fixed (see styles.css) — same technique this codebase
+       already uses for the Guide's corner badge (CLAUDE.md §8) — with
+       trust-companion.js computing its screen position directly, rather
+       than a two-column flex layout + position:sticky (sticky's native
+       "stuck" range is capped at (container height - element height),
+       which for a short .reflect-list column runs out well before the
+       last item, confirmed live before this approach was chosen).
+       Deliberately placed OUTSIDE #trust, as a sibling, not a child —
+       #trust is `[data-reveal]`, and [data-reveal].is-revealed carries
+       `transform: translateY(0)` (styles.css) permanently once revealed.
+       Any actual transform on an ancestor (translateY(0) counts — only
+       literally `none` doesn't) becomes the containing block for a
+       position:fixed descendant instead of the viewport, per the CSS
+       spec — confirmed live as the actual bug behind Pixie rendering far
+       off-position once #trust had revealed. -->
+  <div class="trust-companion">
+    <canvas id="trust-pixie-canvas" role="img" aria-label="Pixie companion"></canvas>
+  </div>
 
   <!-- Narrative Polish pass — Trust -> Lifecycle transition (Category A/B,
        flagged in memory as this page's weakest transition: Trust is plain
@@ -677,55 +700,14 @@
 <footer>MAIE — in partnership with Midwest Media Alliance</footer>
 
 <script src="pixie-companion.js"></script>
-<!-- theme.js must run before the companion-intro init script below: it sets
-     data-theme synchronously from the saved preference, and the init script
-     reads theme colors via getComputedStyle the moment it runs. Loading
-     theme.js after this script meant a saved light-mode preference was
-     silently ignored on first paint — the canvas would read the <html> tag's
-     default data-theme="dark" values instead (see DESIGN-DEV-GUIDE.md). -->
+<!-- theme.js must run before trust-companion.js: it sets data-theme
+     synchronously from the saved preference, and trust-companion.js reads
+     theme colors via getComputedStyle the moment it runs. Loading theme.js
+     after it meant a saved light-mode preference was silently ignored on
+     first paint — the canvas would read the <html> tag's default
+     data-theme="dark" values instead (see DESIGN-DEV-GUIDE.md). -->
 <script src="theme.js"></script>
-<script>
-  // The companion's canvas is a fixed pixel size (size * 2.5) set once at
-  // init — a hardcoded size:220 overflows `.intro-companion` any time its
-  // rendered width drops below ~550px (i.e. any viewport under ~1250px,
-  // since .intro-companion is capped at max-width:44vw). That overflow is
-  // what was throwing the companion out of alignment with the intro text.
-  // Sizing from the container's actual width, and re-measuring on resize,
-  // keeps the canvas inside its box at every breakpoint.
-  (function () {
-    var canvas = document.getElementById('pixie-canvas');
-    var container = canvas.closest('.intro-companion');
-    var handle = null;
-
-    function currentSize() {
-      var w = (container ? container.clientWidth : 550);
-      return Math.max(90, Math.min(220, w / 2.5));
-    }
-
-    function init() {
-      if (handle && handle.destroy) handle.destroy();
-      handle = window.initPixieCompanion(canvas, {
-        size: currentSize(), mode: 'ambient', phase: 'idle', archetype: 'archivist', temperament: 'idle',
-        theme: window.getPixieThemeColors(),
-      });
-    }
-
-    init();
-
-    var resizeTimer;
-    window.addEventListener('resize', function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(init, 200);
-    });
-
-    // Live update on toggle — re-init already re-reads theme colors, but
-    // that only runs on resize; this covers the toggle click directly so
-    // the canvas doesn't wait for a resize to pick up the new palette.
-    document.addEventListener('maie:themechange', function () {
-      if (handle && handle.update) handle.update({ theme: window.getPixieThemeColors() });
-    });
-  })();
-</script>
+<script src="trust-companion.js"></script>
 <script src="reveal.js"></script>
 <script src="cinematic-slider.js"></script>
 <script src="showcase-slider.js"></script>

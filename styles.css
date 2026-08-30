@@ -479,6 +479,40 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
    "supporting detail" without needing the extra transparency. */
 .reflect-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brand-light-text); margin-top: 14px; }
 
+/* ── Trust companion — Pixie relocated here from #companion-intro, see
+   trust-companion.js. #trust was already left-biased (.reflect-list caps
+   at 640px inside a much wider section) with real empty space on the
+   right; this fills it rather than competing with the header/paragraph/
+   slider for space the way it did before.
+   position:fixed rather than a two-column flex + position:sticky layout —
+   sticky's native "stuck" range is capped at (containing-block height -
+   element height), which for a .reflect-list-height container runs out
+   well before the last item's lock position, confirmed live before this
+   approach was chosen (Pixie visibly scrolled away above the viewport
+   with two items still to go). trust-companion.js computes and writes
+   this element's screen position directly instead — same "position:fixed,
+   JS-driven" shape this codebase already uses for the Guide's corner
+   badge (CLAUDE.md §8), just with a lock-to-item behavior instead of an
+   always-same-corner one. Starts hidden (opacity/visibility) — JS makes
+   it visible only while #trust itself is in view, so it's never visible
+   floating over an unrelated section. */
+.trust-companion {
+  position: fixed; top: 0; left: 0; width: 260px; height: 260px;
+  opacity: 0; visibility: hidden; pointer-events: none; z-index: 3;
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease;
+}
+.trust-companion.is-visible { opacity: 1; visibility: visible; }
+#trust-pixie-canvas { display: block; width: 100%; height: 100%; }
+@media (max-width: 860px) {
+  /* Pixie is a decorative companion, not required content (CLAUDE.md §8)
+     — below 860px there isn't real spare width for it next to
+     .reflect-list without crowding the actual content. */
+  .trust-companion { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trust-companion { transition: none; }
+}
+
 /* ── Brand divider (Trust -> Lifecycle) — see index.html for the full
    rationale. Deliberately plain, no scroll-linked reveal of its own:
    Trust is normal document flow already, so this is too — a brand beat
@@ -1183,20 +1217,16 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
 .guide-reduced-motion::after { display: none; }
 
 /* ── Companion Intro — single centered column ────────────────────────
-   Was a two-column split (text left, Pixie right); the header and Pixie
-   read as too far apart from each other that way. Centering everything
-   into one column — statement, then Pixie, then the (now wider, more
-   emphasized) paragraph — puts Pixie directly between the two text
-   elements instead of off to the side, closing that gap by repositioning
-   it rather than just enlarging it in place. Pixie's own sizing script
-   (index.html's inline companion-intro init) reads .intro-companion's
-   clientWidth on resize, so it's untouched here — only the container
-   size changes. */
+   Was a two-column split (text left, Pixie right), then briefly a
+   three-item centered column with Pixie between the header and paragraph
+   — removed now (relocated to #trust, see trust-companion.js): header +
+   Pixie + paragraph + slider was too much competing for one 100vh sticky
+   panel, and it left the slider barely visible at rest. Just the header
+   and the (wider, more emphasized) paragraph now. */
 .companion-row { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(760px, 92vw); }
 .companion-row .intro-statement {
   margin: 0 auto; text-align: center; max-width: 20ch;
 }
-.intro-companion { flex-shrink: 0; width: 260px; max-width: 30vw; display: flex; justify-content: center; }
 /* Wider and more prominent than the original split-layout paragraph
    (52ch/18px/--text-2-small) — the ask was specifically to give this
    text more emphasis and more room, not just recenter it: a wider
@@ -1241,23 +1271,19 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
   .companion-slider { width: min(480px, 90vw); height: min(30vh, 300px); }
 }
 /* Phones, and any short viewport regardless of width — the biggest single
-   space cost here is the sub-stack's own 4-6-line paragraph at the desktop
-   18px size, confirmed live (a real 375x700 viewport measurement pushed
-   the slider ~56px past the sticky panel's own overflow:hidden bottom
-   edge before this rule existed; an 820x700 short/wide window overflowed
-   even further, ~87px, since width-only breakpoints never caught it).
-   Shrinking the statement/sub text and both companion elements buys back
-   enough height that the slider fits without shrinking the photo itself
-   into illegibility. The (max-height: 760px) arm catches short windows a
-   width-only breakpoint would miss — a landscape phone/tablet or just a
-   modest desktop browser window. */
+   space cost here is the sub-stack's own multi-line paragraph at the
+   desktop 18-20px size, confirmed live (real short-viewport measurements
+   pushed the slider well past the sticky panel's own overflow:hidden
+   bottom edge before this rule existed). Shrinking the statement/sub text
+   and the slider buys back enough height that the photo itself never
+   needs to shrink into illegibility. The (max-height: 760px) arm catches
+   short windows a width-only breakpoint would miss — a landscape phone/
+   tablet or just a modest desktop browser window. */
 @media (max-width: 640px), (max-height: 760px) {
   .companion-scene .scene-sticky { padding: 76px 20px 20px; gap: 14px; }
   .companion-row { gap: 10px; }
   .companion-scene .intro-statement { font-size: clamp(24px, 7.5vw, 32px); margin-bottom: 8px; }
   .companion-scene .companion-sub-line { font-size: 14px; line-height: 1.45; }
-  .companion-row .intro-companion { width: min(26vw, 110px); margin-bottom: 0; }
-  .companion-scene #pixie-canvas { width: min(26vw, 110px) !important; height: min(26vw, 110px) !important; }
   .companion-slider { height: min(22vh, 190px); }
 }
 @media (prefers-reduced-motion: reduce) {
