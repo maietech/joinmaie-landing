@@ -1364,7 +1364,15 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
    enough overlap that it doesn't meaningfully shorten any scene's own
    pacing, but it's the actual mechanism the crossfade depends on — it's
    not just a visual nicety, removing it also removes the overlap window. */
-#scene-frame, #scene-universe, #scene-human-hand, #scene-chaos-signal, #scene-agent {
+/* #companion-intro added here — it was promoted from a plain [data-reveal]
+   section to a full story-scene (scene-companion-intro.js) after this list
+   and atmosphere.js's CROSSFADE table were originally written, and never
+   got added to either: the exact "guard applied at sibling call sites, one
+   left unguarded" shape CLAUDE.md §4 calls out. Without this overlap
+   margin (and the matching CROSSFADE entry, see atmosphere.js), visitors
+   hit a hard, un-eased cut both into and out of this scene's sticky panel
+   — the "blocky" section-color seam this fixes. */
+#scene-frame, #scene-universe, #scene-human-hand, #scene-chaos-signal, #scene-agent, #companion-intro {
   margin-top: -20vh;
 }
 /* Sections 5+6 merged into one continuous scroll region (was 250vh each,

@@ -843,7 +843,17 @@ void main() {
     'scene-frame':        { fadeIn: 0.08,  fadeOut: 0.08 },
     'scene-universe':     { fadeIn: 0.08,  fadeOut: 0.08 },
     'scene-human-hand':   { fadeIn: 0.042, fadeOut: 0.042 },
-    'scene-chaos-signal': { fadeIn: 0.028, fadeOut: 0 },     // next section (companion-intro) isn't sticky — no partner to crossfade with
+    // fadeOut was 0 here ("companion-intro isn't sticky — no partner to
+    // crossfade with") — stale since companion-intro's promotion to a
+    // story-scene (scene-companion-intro.js). Symmetric with this scene's
+    // own fadeIn, same as every other two-sided entry below.
+    'scene-chaos-signal': { fadeIn: 0.028, fadeOut: 0.028 },
+    // 20vh overlap (styles.css's margin-top list) / 420vh total height
+    // (.companion-scene) ≈ 0.048 — same "share of this scene's own scroll
+    // height" convention as every other entry. fadeOut stays 0: the next
+    // section (trust) is a plain [data-reveal] section, not sticky — same
+    // situation scene-lifecycle's fadeIn:0 already documents below.
+    'companion-intro':    { fadeIn: 0.048, fadeOut: 0 },
     'scene-lifecycle':    { fadeIn: 0,     fadeOut: 0.048 }, // previous section (trust) isn't sticky — no overlap margin behind it
     'scene-agent':        { fadeIn: 0.08,  fadeOut: 0.08 },
   };
