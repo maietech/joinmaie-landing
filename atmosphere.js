@@ -131,8 +131,19 @@ void main() {
   vec2 advect = bandDir * uTime * 0.05;
   vec2 pa = pv - advect;
 
+  // Widened from 0.62 -> 1.45 (site request, 2026-08-31): at 0.62 this mask
+  // read as a narrow, tornado-like column through the center — everything
+  // outside it was suppressed to 22% density (the mix() below). 1.45
+  // comfortably covers a 16:9 viewport's full horizontal extent (uv.x
+  // reaches roughly +-0.89 at that aspect ratio) so the field reads as a
+  // wide plane/aurora sheet instead of a funnel. Zero added cost — this is
+  // a spatial mask on an already-computed field, not more computation per
+  // pixel; scroll/render performance is unaffected either way. The gentle
+  // taper itself (via smoothstep, not a hard cutoff) and the still-nonzero
+  // floor below are both kept deliberately — a fully flat, edge-to-edge
+  // density would lose the "current" character the field is built around.
   float bandOffset = dot(uv, bandNormal);
-  float band = 1.0 - smoothstep(0.0, 0.62, abs(bandOffset));
+  float band = 1.0 - smoothstep(0.0, 1.45, abs(bandOffset));
 
   float tFar = uTime * 0.016;
   float tNear = uTime * 0.05 + uVelocity * 0.5;
@@ -157,7 +168,11 @@ void main() {
 
   float density = fFar * 0.4 + fNear * 0.85;
   density *= mix(1.0, 1.35, uCoagulate);
-  density *= mix(0.22, 1.0, band);
+  // Floor raised 0.22 -> 0.55 alongside the widened band above — the area
+  // outside the (now much wider) band still tapers off, just to a visible
+  // ambient level rather than near-invisible, so the field never reads as
+  // hard-edged.
+  density *= mix(0.55, 1.0, band);
 
   float shaped = clamp((density - 0.38) / 0.30, 0.0, 1.0);
   shaped = pow(shaped, 1.1);
@@ -234,8 +249,13 @@ void main() {
   // pixel further.
   col = mix(col + uAccent * sparkle * 0.8, mix(col, uAccent, sparkle * 0.7), lightMix);
 
-  float vig = smoothstep(1.15, 0.15, length(uv));
-  col *= mix(0.45, 1.0, vig);
+  // Same widen-and-raise-the-floor treatment as the band mask above
+  // (1.15->1.8 outer radius, 0.45->0.65 floor) — the vignette was
+  // concentrating brightness toward the center on top of the band mask,
+  // compounding the "narrow beam" read. Kept, not removed: some falloff
+  // toward the corners still reads as depth rather than a flat wash.
+  float vig = smoothstep(1.8, 0.15, length(uv));
+  col *= mix(0.65, 1.0, vig);
 
   fragColor = vec4(col, 1.0);
 }`;
