@@ -29,6 +29,7 @@
   var caption = document.getElementById('scene-opening-caption');
   var nav     = document.querySelector('.nav');
   var ctx = canvas.getContext('2d');
+  var pixieCanvas = document.getElementById('scene-opening-pixie-canvas');
 
   var dpr = window.devicePixelRatio || 1;
   var W, H;
@@ -249,6 +250,40 @@
     return w;
   }
 
+  // ── Scene Opening Direction D — an early, unnamed Pixie presence ──────
+  // A seed, not an introduction (see index.html/CLAUDE.md §8 for the full
+  // rationale): reuses pixie-companion.js's shared engine exactly like
+  // trust-companion.js does (same call shape), never a second companion
+  // visual. Absent through the scene's first four beats — reuses the
+  // existing `time` stage's own start (0.66) as its fade-in point rather
+  // than a new number, so it only ever appears once the visitor is
+  // already deep into the recognition arc, and stays settled (not fading
+  // back out) through `data`'s realization line — present alongside it,
+  // never before or after. PIXIE_SEED_MAX caps it well below the engine's
+  // normal "at rest" opacity elsewhere on the page — a peripheral trace,
+  // not a second focal point competing with the caption.
+  var PIXIE_SEED_START = 0.66, PIXIE_SEED_MAX = 0.35;
+  var pixieHandle = null;
+  if (pixieCanvas && window.initPixieCompanion) {
+    pixieHandle = window.initPixieCompanion(pixieCanvas, {
+      size: 34, mode: 'ambient', phase: 'idle',
+      archetype: 'archivist', temperament: 'idle',
+      theme: window.getPixieThemeColors(),
+    });
+    document.addEventListener('maie:themechange', function () {
+      if (pixieHandle && pixieHandle.update) pixieHandle.update({ theme: window.getPixieThemeColors() });
+    });
+  }
+  var lastPixieSeed = -1;
+  function updatePixieSeed(progress) {
+    if (!pixieCanvas) return;
+    var seed = window.storyStageWeight(progress, PIXIE_SEED_START, 1.00, 0.10, 0) * PIXIE_SEED_MAX;
+    if (Math.abs(seed - lastPixieSeed) > 0.001) {
+      lastPixieSeed = seed;
+      section.style.setProperty('--pixie-seed-opacity', seed.toFixed(3));
+    }
+  }
+
   // Caption follows whichever stage currently has the highest weight —
   // textContent only changes when the dominant stage changes (not every
   // frame), opacity tracks that stage's own weight continuously, so the
@@ -408,6 +443,7 @@
       draw(progress, staticFrame, w);
     }
     updateCaption(w);
+    updatePixieSeed(progress);
     if (nav) nav.classList.toggle('nav-hidden', progress < 0.5 && !staticFrame);
   });
 
@@ -422,6 +458,7 @@
     var settledW = computeWeights(lastProgress);
     draw(lastProgress, true, settledW);
     updateCaption(settledW);
+    updatePixieSeed(lastProgress);
   } else {
     requestAnimationFrame(runIgnition);
     // Same visibility-gating idiom scene-chaos-signal.js and

@@ -67,6 +67,18 @@ html[data-theme="light"] {
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+/* Site audit: the page had no <h1> at all (axe-core: page-has-heading-one)
+   — every visible heading-shaped element on this page is a story caption
+   or a later `<h2>`, and Section 1's own caption is one of NARRATIVE_LOCK's
+   protected landmarks (its exact tag/markup left alone rather than risking
+   a cascade change to verified, visually-tuned copy). A standard visually-
+   hidden utility + one <h1> at the top of <main> (index.html) gives
+   assistive tech and search engines a real top-level heading without
+   changing anything a sighted visitor sees. */
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
 body {
   margin: 0;
   background: var(--bg);
@@ -594,9 +606,14 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
   .paths-signal-ring { animation: none; opacity: 0.5; }
   .paths-signal-continue { animation: none; }
 }
+/* Site audit: was `var(--text-2)` — the same small-text contrast gap
+   `--text-2-small` (:root, top of this file) was created to fix elsewhere
+   (kickers/nav links/body copy under ~18px), just never migrated here.
+   Confirmed via axe-core (color-contrast, light theme only, same asymmetry
+   the token's own comment already documents). */
 .paths-arrival {
   font-family: 'DM Sans', sans-serif; font-style: italic; font-size: 15px;
-  color: var(--text-2); margin-bottom: 46px; letter-spacing: 0.01em;
+  color: var(--text-2-small); margin-bottom: 46px; letter-spacing: 0.01em;
 }
 /* Narrative Polish pass — the ending's "definitives" (index.html has the
    full rationale).
@@ -936,7 +953,13 @@ html[data-theme="light"] .mma-mark--light { display: block; }
 /* Demoted out of the closing headline (see maie-narrative-audit.md §11 A) —
    the dev-status disclosure is honest but shouldn't puncture the register
    of the page's most crystallized line. Small, quiet, after the choice. */
-.path-note { margin: 28px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.04em; color: var(--text-2-small); opacity: 0.65; }
+/* Site audit: `opacity: 0.65` layered on top of --text-2-small (a color
+   already reduced to the specific alpha that clears AA at this size) was
+   re-dimming it back under threshold — confirmed via axe-core
+   (color-contrast, light theme). --text-2-small already carries this
+   element's intended "quiet disclaimer" weight on its own; the extra
+   opacity multiplier was redundant, not additive. */
+.path-note { margin: 28px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.04em; color: var(--text-2-small); }
 
 footer { text-align: center; padding: 40px 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-2-small); }
 
@@ -1410,6 +1433,23 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
    maie-narrative-audit.md §8 and DESIGN-DEV-GUIDE.md §11 for the
    reasoning already on record about not rushing this section. */
 #scene-opening { height: 380vh; }
+/* Section 3 rebuild (video-transition): default 250vh was sized for the
+   old word->chips->recluster mechanic; 5 real video chapters need more
+   room to read. 420vh matches scene-lifecycle's own established 8-stage
+   pacing (a precedented value already shipped and tuned by feel on this
+   page) rather than a from-scratch guess — a literal "seconds per vh"
+   calibration turned out to have no stable answer (tried computing it
+   against a moderate reference scroll rate; the implied height swung from
+   ~340vh to ~760vh+ depending on the assumed rate, and the top of that
+   range would make this bridge scene nearly as long as scene-chaos-
+   signal's 880vh climax, in tension with NARRATIVE_LOCK.md §5's "Universe
+   should not become another emotional peak"). Treat this as a starting
+   point to retune by feel once live, same as every other scene's vh in
+   this project's history — not a verified-to-hit-10s number, since
+   forcing real dwell time would require scroll-hijacking (CLAUDE.md §2
+   forbids that). atmosphere.js's CROSSFADE['scene-universe'] fadeIn/
+   fadeOut was 0.08 (20vh/250vh) — recomputed to 20/420 there to match. */
+#scene-universe { height: 420vh; }
 /* Generic fallback background for any .scene-sticky that doesn't define its
    own override below. Was hardcoded to #000 — harmless for every scene that
    already has an explicit, more-specific override (#scene-frame, #scene-
@@ -1434,6 +1474,19 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
 .nav { transition: transform 0.3s ease; }
 
 #scene-opening-canvas { width: 100%; height: 100%; display: block; }
+/* Scene Opening Direction D (see scene-opening.js) — peripheral corner,
+   clear of the centered caption column (.scene-caption sits at top:62%,
+   horizontally centered); opacity is written by JS via a custom property,
+   same "JS writes, CSS reads" convention as scene-universe.js's
+   --cue-opacity. Kept small and low-ceiling by design — this is a seed,
+   not a second focal point. */
+.scene-opening-pixie {
+  position: absolute; left: 24px; bottom: 28px; width: 84px; height: 84px;
+  opacity: var(--pixie-seed-opacity, 0); pointer-events: none;
+}
+@media (max-width: 480px) {
+  .scene-opening-pixie { width: 64px; height: 64px; left: 16px; bottom: 20px; }
+}
 /* white-space was nowrap — fine for the original single short line, but
    Section 1's caption now cycles through six beats of varying length (see
    scene-opening.js), some long enough to overflow a narrow viewport at
@@ -1702,67 +1755,39 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
 @media (prefers-reduced-motion: reduce) {
   .universe-word { animation: none; background-position: 0 0; }
 }
-/* Narrative Polish pass — concrete proof accompanying the word's zoom
-   (index.html has the full rationale). top:13% mirrors scene-chaos-
-   signal.js's own top-anchored caption convention. Both lines share one
-   spot (absolute within this container) — only one is ever above ~0
-   opacity at a time (scene-universe.js), so they hand off rather than
-   stack. Real content, not decorative — no opacity:0 floor here either,
-   same reasoning the .cinematic-slider instances further down use
-   (real content, not aria-hidden decoration). */
-.universe-proof {
-  position: absolute; left: 50%; top: 13%; transform: translateX(-50%);
-  text-align: center; white-space: nowrap;
+/* Video-transition rebuild (see index.html/scene-universe.js for the full
+   rationale) — replaces the old category/atom chip rings and "Your
+   Project" recluster. Bounded box, not full-viewport: sized comparably to
+   .companion-slider/.showcase-grid's visual weight but larger, since this
+   is the scene's centerpiece the way the word/chips used to be. */
+.universe-video-box {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(1000px, 88vw); height: min(60vh, 620px);
+  border-radius: 16px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--surface-2);
 }
-.universe-proof-line {
-  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-  font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--brand-light-text);
-  opacity: 0; white-space: nowrap;
+.universe-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0;
 }
-.universe-cluster { position: absolute; inset: 0; }
-/* Phase III restoration: this carried its own `opacity: 0` with nothing in
-   scene-universe.js ever clearing it on the individual chip — only the
-   parent .universe-cluster's opacity is set per frame (`catCluster.style.
-   opacity = wCats` / `atomCluster.style.opacity = wAtoms`). A child's own
-   explicit opacity isn't overridden by a parent's opacity change, so every
-   category/atom chip stayed invisible regardless of the cluster's value —
-   confirmed live (computed opacity read as 0 at every progress sampled,
-   cluster opacity toggling correctly the whole time). Visibility was
-   always meant to live at the cluster level (exactly how .universe-word,
-   which carries no CSS opacity at all, and .universe-project, whose
-   opacity JS sets directly on itself, already work) — removing the
-   never-cleared default restores that, without changing any timing,
-   spread, or scale logic already in render()/ring(). */
-.universe-chip {
-  position: absolute; left: 50%; top: 50%;
-  transform: translate(-50%, -50%) scale(0.6);
-  font-family: 'Bebas Neue', sans-serif;
-  letter-spacing: 0.02em;
-  color: var(--brand-light);
-  font-size: clamp(20px, 3vw, 34px);
+.universe-video.is-live { will-change: opacity; }
+/* Same scrim + white-text-with-shadow convention as .hand-scrim/
+   .hand-caption (Section 4) — text sits on footage, not a theme surface,
+   so it stays fixed white regardless of light/dark toggle. */
+.universe-video-scrim {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.28) 32%, transparent 62%);
+}
+.universe-tagline {
+  position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%);
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(22px, 3.4vw, 40px);
+  letter-spacing: 0.02em; color: #fff; text-align: center; opacity: 0;
+  pointer-events: none; max-width: 84%; text-shadow: 0 2px 12px rgba(0,0,0,0.55);
   white-space: nowrap;
-  will-change: transform, opacity;
 }
-.universe-chip--atom {
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--accent);
-  font-size: clamp(12px, 1.5vw, 17px);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.universe-project {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(0.4);
-  display: flex; align-items: center; justify-content: center; opacity: 0;
-  will-change: transform, opacity;
-}
-.universe-project-ring {
-  position: absolute; width: 160px; height: 160px; border-radius: 50%;
-  border: 1px solid var(--accent); opacity: 0.4;
-}
-.universe-project-label {
-  font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text-2-small);
+@media (max-width: 720px) {
+  .universe-video-box { width: 92vw; height: min(46vh, 440px); }
+  .universe-tagline { font-size: clamp(18px, 5vw, 28px); white-space: normal; }
 }
 
 /* Narrative Polish pass — cinematic downward guidance (Category A
