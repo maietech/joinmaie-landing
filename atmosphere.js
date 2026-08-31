@@ -327,8 +327,51 @@ void main() {
 
   var WEBGL_RES_SCALE = 0.55; // matches the prototype's validated default — see Prototype Findings §5
 
+  // Site audit, 2026-08-31: `getContext('webgl2')` returning a context is
+  // NOT the same guarantee as that context being GPU-accelerated — a
+  // browser with a blocklisted/missing GPU driver (real hardware this
+  // happens on: some older integrated graphics, certain VM/remote-desktop
+  // setups) silently falls back to SwiftShader, Chromium's CPU software
+  // rasterizer, and still returns a working WebGL2 context. Running this
+  // file's 5-octave domain-warped FBM field + a 25-tap blur post-pass
+  // through a software rasterizer every animation frame is drastically
+  // more expensive than on real GPU hardware (confirmed directly in this
+  // pass: a non-throttled trace against a SwiftShader-only sandbox showed
+  // 362 long tasks, several over 2s each — not remotely representative of
+  // the GPU-accelerated hardware this renderer was actually validated
+  // against, per this file's own header comment, but real evidence that
+  // an *actually* GPU-starved visitor would have a bad time here). Detected
+  // via the same WEBGL_debug_renderer_info extension DevTools itself uses
+  // to report the renderer string; falls through to the existing Canvas 2D
+  // path (return null) exactly like a missing WebGL2 context already does
+  // — no new fallback mechanism, just a second reason to take the one that
+  // exists.
+  // Probed on a throwaway canvas, NEVER the real `canvas` element — a
+  // <canvas> commits to whichever context type its first getContext() call
+  // requests, permanently (this file's own comment on `ctx`/`glState`
+  // below already documents this for the WebGL2-vs-2D fallback itself).
+  // Calling canvas.getContext('webgl2', ...) on the real element just to
+  // inspect the renderer string, then trying to fall back to '2d' on that
+  // same element, would return null forever after — confirmed live (a
+  // first version of this check did exactly that and broke the Canvas 2D
+  // fallback path with it, throwing on the first ctx.clearRect() call).
+  function isSoftwareRenderer() {
+    try {
+      var probe = document.createElement('canvas');
+      var gl = probe.getContext('webgl2');
+      if (!gl) return false;
+      var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      if (!dbg) return false;
+      var renderer = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '');
+      return /SwiftShader|Software|llvmpipe/i.test(renderer);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function tryInitWebGL() {
     try {
+      if (isSoftwareRenderer()) return null;
       var gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance' });
       if (!gl) return null;
 
@@ -841,7 +884,9 @@ void main() {
   // trace confirming that either way in this pass.
   var CROSSFADE = {
     'scene-frame':        { fadeIn: 0.08,  fadeOut: 0.08 },
-    'scene-universe':     { fadeIn: 0.08,  fadeOut: 0.08 },
+    // 20vh overlap / 420vh total height (styles.css, since the video-
+    // transition rebuild) ≈ 0.048 — was 0.08 (20/250) before that rebuild.
+    'scene-universe':     { fadeIn: 0.048, fadeOut: 0.048 },
     'scene-human-hand':   { fadeIn: 0.042, fadeOut: 0.042 },
     // fadeOut was 0 here ("companion-intro isn't sticky — no partner to
     // crossfade with") — stale since companion-intro's promotion to a

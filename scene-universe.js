@@ -1,67 +1,120 @@
 // scene-universe.js — Section 3: "Universe to You" (Scale Shift)
-// Giant "MEDIA" typography zooms through into domain clusters, then media
-// primitives, then re-clusters into a single project. Pure DOM + CSS
-// transforms (not canvas text) so type stays crisp at any scale — the
-// brief is explicit that this section shouldn't introduce raster blur.
-// No asset dependency — text and layout only, per the dev guide.
+// Giant "MEDIA" typography zooms through (unchanged from the original
+// build — pure DOM + CSS transforms, stays crisp at any scale), then hands
+// off into a cinematic video box: 5 short clips crossfade in as the
+// visitor scrolls, each with its own tagline, replacing the old category/
+// atom chip rings and "Your Project" recluster. Universe's protected role
+// (NARRATIVE_LOCK.md §5 — "Universe earns credibility") is unchanged; only
+// the mechanism is (Category B per §8).
+//
+// Footage: Midwest Media Alliance's own branded hero reel (the "Darkened"
+// grade — already color-graded for text-overlay legibility), 5 chapters
+// extracted and re-encoded (see media/universe-0N.mp4/.jpg). Picked by
+// direct frame-by-frame inspection (1s-interval contact sheets via ffmpeg)
+// after an initial pass on coarser timestamps landed on a cross-dissolve
+// blend frame and, separately, on a recurring nude body-paint-portrait
+// motif elsewhere in the reel — both excluded; the 5 used here (foundry
+// workers, a spark/ember burst, a flower field + farmhouse, hot-air
+// balloons over grazing wildlife, a beach dancer + a rural gate) are clean,
+// on-brand, and free of that content. Muted, no audio track, ~2-3MB apiece.
+//
+// Crossfade uses the same storyStageWeight-per-stage idiom scene-human-
+// hand.js already uses for its own photo sequence — no new animation
+// primitive. Video is lazy-loaded (`data-src`, swapped to `src` only once
+// this section nears the viewport) and play/pause-gated to whichever
+// clip(s) currently have nonzero weight, same "only animate what's
+// visible" posture as every other scene's visibility-gated work.
 
 (function () {
   var section = document.getElementById('scene-universe');
   if (!section) return;
   var word = document.getElementById('universe-word');
-  var catCluster = document.getElementById('universe-categories');
-  var atomCluster = document.getElementById('universe-atoms');
-  var project = document.getElementById('universe-project');
+  var videoBox = document.getElementById('universe-video-box');
   var caption = document.getElementById('universe-caption');
   var scrollCue = document.getElementById('universe-scroll-cue');
-  var proofLines = Array.prototype.slice.call(document.querySelectorAll('#universe-proof [data-proof]'));
-  if (!word || !catCluster || !atomCluster || !project) return;
+  if (!word || !videoBox) return;
+
+  var videos = Array.prototype.slice.call(videoBox.querySelectorAll('.universe-video'));
+  var taglines = Array.prototype.slice.call(videoBox.querySelectorAll('.universe-tagline'));
+  if (!videos.length) return;
 
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  var catChips = Array.prototype.slice.call(catCluster.querySelectorAll('[data-cat]'));
-  var atomChips = Array.prototype.slice.call(atomCluster.querySelectorAll('[data-atom]'));
-
-  // Sequential, non-overlapping fade windows for #universe-proof's lines
-  // (one per proofLines entry, in order) — see the render() call site.
-  var PROOF_WINDOWS = [[0.02, 0.09], [0.11, 0.18]];
 
   function clamp01(v) { return Math.max(0, Math.min(1, v)); }
   function localP(progress, start, end) { return clamp01((progress - start) / (end - start)); }
 
-  // Arranges a set of chips in a ring whose radius grows with `spread`
-  // (0..1), so the cluster reads as "forming outward" rather than
-  // appearing fully assembled.
-  function ring(chips, spread, maxRadius) {
-    var n = chips.length;
-    chips.forEach(function (chip, i) {
-      var a = (i / n) * Math.PI * 2 - Math.PI / 2;
-      var radius = maxRadius * Math.min(1, spread * 1.35);
-      var x = Math.cos(a) * radius, y = Math.sin(a) * radius;
-      var scale = 0.55 + spread * 0.55;
-      chip.style.transform = 'translate(-50%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + scale.toFixed(2) + ')';
+  // Lazy load — a visitor who never scrolls this far never downloads any
+  // of the 5 clips, same "pay only for what's seen" posture as this page's
+  // `loading="lazy"` images. Under reduced motion, `src` is never set at
+  // all: each <video> just keeps showing its own `poster` frame forever,
+  // which is exactly the static, non-animated fallback reduced motion
+  // needs — no separate fallback mechanism required.
+  //
+  // Two triggers, not one: an IntersectionObserver (rootMargin 200% of
+  // viewport height) fires early, while the visitor is still well above
+  // this scene, so the ~2.5MB/5-clip total has as much lead time as
+  // possible to fetch+decode before it's actually needed. But a site audit
+  // found IntersectionObserver delivery can be delayed or, under some
+  // scripted-scroll conditions, not fire again at all before the visitor
+  // reaches the section — so `render()` below (driven by reveal.js's
+  // native-scroll scroll-batch, proven reliable everywhere else on this
+  // page) ALSO calls ensureLoaded() the moment this scene's own progress
+  // first becomes nonzero, as a guaranteed fallback. Both paths call the
+  // same idempotent function; whichever fires first wins.
+  var loaded = false;
+  function ensureLoaded() {
+    if (loaded) return;
+    loaded = true;
+    videos.forEach(function (v) {
+      if (v.dataset.src) { v.src = v.dataset.src; v.load(); }
     });
   }
+  if (!reducedMotion && typeof IntersectionObserver !== 'undefined') {
+    var loadObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          ensureLoaded();
+          loadObserver.disconnect();
+        }
+      });
+    }, { rootMargin: '200% 0px' });
+    loadObserver.observe(section);
+  }
 
-  // Last-written values for the write-skips below — each caches the input
-  // to an expensive multi-chip ring()/filter write, not the write itself,
-  // since these three stages (macro word, categories, atoms) are each
-  // pinned at a fixed clamped value (localP's own clamp01) for roughly
-  // three-quarters of the scroll range outside their own ~26-28%-wide
-  // active window — same shape as scene-lifecycle.js's/scene-human-hand.js's
-  // fix, applied here to CSS transforms instead of photographs.
-  var lastMacroLocal = -1, lastCatLocal = -1, lastAtomSpread = -1, lastRingW = -1;
+  // Word stage — unchanged mechanics, shortened window (was 0-0.22) so the
+  // video box gets the bulk of this scene's now-larger scroll range
+  // (styles.css bumped #scene-universe from the default 250vh to 340vh
+  // specifically to give 5 real video chapters room to read).
+  var WORD_END = 0.12, WORD_FADE = 0.04;
+  var lastMacroLocal = -1;
+
+  // Video stages — same STAGES-array / write-skip pattern scene-human-
+  // hand.js uses for its 7 photos: even spans across the range, shared
+  // FADE window, last stage's fadeOut is 0 so a reduced-motion visitor
+  // (who only ever gets progress=1 once, see story-scroll.js) still sees
+  // the final clip's poster instead of a blank box.
+  var VIDEO_START = 0.13, VIDEO_END = 1.0;
+  var n = videos.length;
+  var span = (VIDEO_END - VIDEO_START) / n;
+  var FADE = Math.min(0.05, span * 0.4);
+  var STAGES = videos.map(function (el, i) {
+    var isLast = i === n - 1;
+    return {
+      start: VIDEO_START + i * span,
+      end: isLast ? 1.0 : VIDEO_START + (i + 1) * span,
+      fadeOut: isLast ? 0 : FADE,
+    };
+  });
+  var lastW = videos.map(function () { return -1; });
 
   function render(progress) {
-    var wMacro = window.storyStageWeight(progress, 0.00, 0.22, 0.00, 0.04);
-    var wCats  = window.storyStageWeight(progress, 0.20, 0.46);
-    var wAtoms = window.storyStageWeight(progress, 0.46, 0.74);
-    var wProj  = window.storyStageWeight(progress, 0.74, 1.00, 0.04, 0.00);
+    // Guaranteed fallback trigger — see ensureLoaded() above. Fires once,
+    // the moment this scene's own progress first becomes nonzero (well
+    // before any video chapter actually needs to be visible at 0.13+).
+    if (progress > 0) ensureLoaded();
 
-    // 1. Macro — the word scales up as if the camera is pushing through
-    // its counter-spaces, blurring slightly right before the cut to the
-    // next stage rather than popping.
-    var macroLocal = localP(progress, 0.00, 0.22);
+    var wMacro = window.storyStageWeight(progress, 0.00, WORD_END, 0.00, WORD_FADE);
+    var macroLocal = localP(progress, 0.00, WORD_END);
     word.style.opacity = wMacro;
     if (Math.abs(macroLocal - lastMacroLocal) > 0.001) {
       lastMacroLocal = macroLocal;
@@ -69,105 +122,59 @@
       word.style.filter = 'blur(' + (macroLocal * 3).toFixed(1) + 'px)';
     }
 
-    // 2. Categories — domain clusters spread outward from center.
-    var w = section.clientWidth || 900;
-    if (w !== lastRingW) {
-      // ring()'s radius scales with w — a resize-only tick (progress, and
-      // so catLocal/atomLocal, unchanged) must still be allowed through
-      // below, or the chips would sit at a stale pre-resize radius.
-      lastRingW = w;
-      lastCatLocal = -1;
-      lastAtomSpread = -1;
-    }
-    var catLocal = localP(progress, 0.20, 0.46);
-    catCluster.style.opacity = wCats;
-    if (Math.abs(catLocal - lastCatLocal) > 0.001) {
-      lastCatLocal = catLocal;
-      ring(catChips, catLocal, Math.min(w * 0.30, 280));
-    }
-
-    // 3. Atoms — media primitives spread wider, further from center.
-    var atomLocal = localP(progress, 0.46, 0.74);
-    atomCluster.style.opacity = wAtoms;
-
-    // 4. Re-clustering — atoms pull back inward as the project container
-    // takes over, so the ending reads as consolidation, not a plain cut.
-    var projLocal = localP(progress, 0.74, 1.00);
-    if (projLocal > 0) {
-      // Once re-clustering has begun, this stage's own ring() call (above)
-      // would be immediately superseded by the one below — previously both
-      // ran every tick in this ~26%-of-scroll window, the first call's
-      // writes always instantly overwritten. Only the recluster spread is
-      // computed/written here now.
-      var reclusterSpread = Math.max(0, atomLocal - projLocal * 0.95);
-      if (Math.abs(reclusterSpread - lastAtomSpread) > 0.001) {
-        lastAtomSpread = reclusterSpread;
-        ring(atomChips, reclusterSpread, Math.min(w * 0.40, 380));
+    videos.forEach(function (el, i) {
+      var s = STAGES[i];
+      var w = window.storyStageWeight(progress, s.start, s.end, FADE, s.fadeOut);
+      if (Math.abs(w - lastW[i]) > 0.001) {
+        var wasLive = lastW[i] > 0;
+        lastW[i] = w;
+        el.style.opacity = w.toFixed(3);
+        if (taglines[i]) taglines[i].style.opacity = w.toFixed(3);
+        var isLive = w > 0;
+        if (isLive !== wasLive) {
+          el.classList.toggle('is-live', isLive);
+          // Play/pause only on the transition edge, never every tick —
+          // same write-skip convention as the style writes above. Never
+          // attempted under reduced motion (no `src` was ever set, so
+          // there'd be nothing to play anyway) or before this clip's
+          // lazy-loaded `src` has actually landed.
+          if (!reducedMotion) {
+            if (isLive && el.getAttribute('src')) {
+              var p = el.play();
+              if (p && p.catch) p.catch(function () {});
+            } else if (!isLive) {
+              el.pause();
+            }
+          }
+        }
       }
-      atomCluster.style.opacity = Math.max(0, wAtoms - projLocal * 0.85);
-    } else if (Math.abs(atomLocal - lastAtomSpread) > 0.001) {
-      lastAtomSpread = atomLocal;
-      ring(atomChips, atomLocal, Math.min(w * 0.40, 380));
-    }
-    project.style.opacity = wProj;
-    project.style.transform = 'translate(-50%,-50%) scale(' + (0.4 + projLocal * 0.7).toFixed(2) + ')';
-
-    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.74, 1.00, 0.08, 0.00);
-
-    // Narrative Polish pass — concrete proof accompanying the word's own
-    // zoom (styles.css/index.html have the full rationale). Two windows
-    // inside the macro (word-zoom) stage only, each ~7% of total scroll
-    // progress — comfortably before wMacro's own fadeOut starts pulling
-    // the word away, so these never linger into the categories stage.
-    // Sequential, not simultaneous: PROOF_WINDOWS' ranges don't overlap,
-    // so at most one line carries any opacity at a given progress.
-    PROOF_WINDOWS.forEach(function (win, i) {
-      if (proofLines[i]) proofLines[i].style.opacity = window.storyStageWeight(progress, win[0], win[1], 0.02, 0.02).toFixed(2);
     });
 
-    // Narrative Polish pass: a persistent, low-key "keep going" cue —
-    // present through nearly the whole scene (fades in shortly after it
-    // starts, out shortly before the project consolidation lands), not
-    // just during the MEDIA-word beat, since the complaint was about the
-    // scene reading as stalled in general, not one specific stage. The
-    // element's own CSS animation runs continuously regardless of this
-    // value; this only controls whether it's visible.
+    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.90, 1.00, 0.06, 0.00);
+
+    // Same persistent "keep going" cue as the original build — present
+    // through nearly the whole scene, independent of which chapter is
+    // active.
     if (scrollCue) scrollCue.style.setProperty('--cue-opacity', window.storyStageWeight(progress, 0.06, 0.86, 0.12, 0.10).toFixed(2));
   }
 
-  // Narrative Echo (Component 2): fired once as the atom chips re-cluster
-  // and fade into the project ring — "chips shrink → soft particles →
-  // Current" per the brief. One-shot per pass through this window, not
-  // called every tick.
+  // Narrative Echo (Component 2) — fired once as the final video chapter
+  // settles, same one-shot-per-pass convention the old atom-recluster
+  // echo used, just anchored to the video box instead of the (now
+  // removed) atom chips.
   var echoFired = false;
   window.initScrollScene(section, function (progress) {
     render(progress);
-    if (!echoFired && progress > 0.9 && window.MaieAtmosphere) {
+    if (!echoFired && progress > 0.95 && window.MaieAtmosphere) {
       echoFired = true;
-      atomChips.forEach(function (chip) {
-        window.MaieAtmosphere.echo(chip.getBoundingClientRect(), { count: 2 });
-      });
-    } else if (echoFired && progress < 0.8) {
+      window.MaieAtmosphere.echo(videoBox.getBoundingClientRect(), { count: 2 });
+    } else if (echoFired && progress < 0.9) {
       echoFired = false;
     }
   });
 
-  // Narrative Polish pass — a gentle "nudge" if the visitor stops
-  // scrolling while the cue is supposed to be on screen: the original
-  // reported complaint was visitors staring at the enormous word with no
-  // sense the page was still alive. The continuous breathe/flow animation
-  // (styles.css) already solves "doesn't look frozen"; this solves the
-  // separate "hasn't noticed there's more below" case specifically.
-  //
-  // Deliberately a single setInterval poll, not a second rAF loop — idle
-  // detection doesn't need 60fps precision, and this scene has no idle
-  // loop of its own to extend (unlike scene-chaos-signal.js/scene-
-  // opening.js). Gates on the cue's own --cue-opacity (set by render()
-  // above) rather than a second IntersectionObserver: if the cue isn't
-  // meant to be visible right now (scrolled well past/before this scene),
-  // there's nothing to nudge. Never arms under reduced motion at all —
-  // a static, non-animated presence is already the correct reduced-motion
-  // behavior (styles.css), and a nudge is motion by definition.
+  // Idle nudge — unchanged from the original build, unrelated to the
+  // word/chip -> video swap (operates on the scroll-cue only).
   if (!reducedMotion && scrollCue) {
     var IDLE_MS = 5000;
     var lastActivity = Date.now();

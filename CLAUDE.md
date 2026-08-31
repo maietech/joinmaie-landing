@@ -284,24 +284,64 @@ and what's still open (§13).
   this repo; treat its "Open" status as stale too, not as contradicting
   this entry. See `WEBSITE_CODEBASE_INTELLIGENCE_BRIEF.md` §11 for the
   fuller writeup of this specific stale-doc finding.
-- **Guide-panel Pixie's ~2.9x over-resolution while docked.** Its canvas
+- ~~**Guide-panel Pixie's ~2.9x over-resolution while docked.** Its canvas
   renders at a fixed 80px-native backing store but displays at 28px when
-  docked beside the "Pixie" label — a deliberate simplification (avoids a
-  reinit), explicitly logged as a non-decision, not a performance problem
-  on current evidence. Cosmetic/efficiency question only.
+  docked...~~ **Stale as of 2026-08-31.** Direct source read
+  (`guide.js`'s `RASTER_PX`/`ZOOM`/`DOCKED_SCALE` constants, which the
+  file's own comments note were retuned since this entry was written —
+  `DOCKED_SCALE` specifically calls out "was 1.8x; bumped ~30% further")
+  plus a live measurement (headless Chromium, `canvas.width`/`height` vs
+  `getBoundingClientRect()`) show the actual current relationship is
+  raster 140×140 vs. displayed 112×112 at rest (~1.25x) and 131×131
+  docked (~1.07x) — nowhere near 80px-native/28px-displayed or a 2.9x
+  factor. Whatever configuration this entry originally described has
+  since been superseded by the sizing rework `guide.js`'s comments
+  document. Given it was already assessed as "not a performance problem
+  on current evidence" at the old, more dramatic ratio, the now-measured
+  ~1.07-1.25x is even more clearly a non-issue — no code change made.
 - **No true 1x (non-throttled) baseline, and no real mobile/touch device
   verification, has been done for any performance work in this project's
   history to date.** Every measurement so far — the original 2026-07-23
   audit and the 2026-07-28 pass — used a throttled or sandboxed
   environment with relative before/after comparisons. Treat absolute
   millisecond figures in any existing record as directional, not as a
-  literal prediction of real end-user hardware.
-- **`scene-lifecycle.js` registers through the shared batch two different
-  ways** (directly via `registerScrollBatch` for its own field-rect cache,
-  and via `initScrollScene` for scroll progress). Not confirmed broken,
-  but flagged in the 2026-07-28 roadmap as needing extra care — check both
-  paths, not just one, before assuming a scroll-batch change covers this
-  file.
+  literal prediction of real end-user hardware. **Partial progress
+  2026-08-31, plus one real fix that came out of it:** a non-throttled
+  (1x) `longtask` PerformanceObserver trace was run against the current
+  build in headless Chromium. The raw numbers were extreme (300+ long
+  tasks, several over 2s) — traced to this specific sandbox's GPU: `atmo-
+  canvas`'s WebGL2 context reported `SwiftShader` (Chromium's CPU software
+  rasterizer) via `WEBGL_debug_renderer_info`, not real GPU hardware, so
+  `atmosphere.js`'s 5-octave field shader + blur post-pass was being
+  software-rendered every frame — not representative of the GPU-
+  accelerated hardware that renderer was actually validated against. But
+  that also surfaced a genuine, previously-undetected gap: this file's
+  `tryInitWebGL()` only ever fell back to Canvas 2D when `getContext
+  ('webgl2')` returned null outright — never when WebGL2 exists but is
+  running in software (a real condition on some actual hardware: driver-
+  blocklisted integrated graphics, some VM/remote-desktop setups). Fixed —
+  `tryInitWebGL()` now probes renderer string on a throwaway canvas (never
+  the real one; a canvas commits to its first `getContext()` type
+  permanently, confirmed live when a first version of this probe used the
+  real canvas and broke the 2D fallback path with it) and skips straight
+  to Canvas 2D when a software renderer is detected. Re-measured after the
+  fix, same scroll region: 33 long tasks totaling ~2.9s (longest 238ms),
+  down from the software-rendered path's few hundred, several 2s+. Touch-
+  emulated (device-profile, not just narrow-viewport) mobile pass also run
+  — swipe-scroll, nav disclosure, theme toggle, rail-dot tap all correct,
+  zero errors. Still doesn't close the gap fully: headless Chromium on
+  this machine is still not a real mid-range phone on real cellular
+  network, and no physical device was used.
+- ~~**`scene-lifecycle.js` registers through the shared batch two different
+  ways**...~~ **Verified, not broken — 2026-08-31.** Direct source read:
+  the direct `registerScrollBatch` call (its own `frameW`/`windowW` cache)
+  and the one inside `initScrollScene` (scroll progress) are two genuinely
+  independent read/write pairs, both correctly using the shared batching
+  infrastructure rather than a private listener — exactly what that
+  infrastructure is designed to support. reveal.js's `tick()` runs every
+  registered read before any write regardless of how many callers there
+  are, so there's no interleaving risk between them. No change needed;
+  downgrading from "needs extra care" to confirmed-fine.
 
 ## 14. Pull Request Expectations
 
