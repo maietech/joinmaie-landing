@@ -699,33 +699,41 @@
 
 <footer>MAIE — in partnership with Midwest Media Alliance</footer>
 
-<script src="pixie-companion.js"></script>
-<!-- theme.js must run before trust-companion.js: it sets data-theme
-     synchronously from the saved preference, and trust-companion.js reads
-     theme colors via getComputedStyle the moment it runs. Loading theme.js
-     after it meant a saved light-mode preference was silently ignored on
-     first paint — the canvas would read the <html> tag's default
-     data-theme="dark" values instead (see DESIGN-DEV-GUIDE.md). -->
-<script src="theme.js"></script>
-<script src="trust-companion.js"></script>
-<script src="reveal.js"></script>
-<script src="cinematic-slider.js"></script>
-<script src="showcase-slider.js"></script>
-<script src="events-showcase.js"></script>
-<script src="nav-theme.js"></script>
-<script src="nav-menu.js"></script>
-<script src="nav-float.js"></script>
-<script src="maie-logo-motion.js"></script>
-<script src="story-scroll.js"></script>
-<script src="atmosphere.js"></script>
-<script src="guide.js"></script>
-<script src="scene-opening.js"></script>
-<script src="scene-frame.js"></script>
-<script src="scene-universe.js"></script>
-<script src="scene-human-hand.js"></script>
-<script src="scene-chaos-signal.js"></script>
-<script src="scene-lifecycle.js"></script>
-<script src="scene-agent.js"></script>
-<script src="scene-companion-intro.js"></script>
+<!-- `defer` on every one of these (Category A / Technical Excellence,
+     NARRATIVE_LOCK.md §7): with plain synchronous `<script src>` tags, the
+     browser fetches and executes each file fully, one at a time, before
+     even starting the next file's request — 20 serial network round-trips,
+     the exact pattern that turns "slow" into "visibly stalled" on a
+     high-latency connection. `defer` lets the browser fetch all of them in
+     parallel while parsing continues, then run them in document order once
+     parsing finishes — same execution order and same "DOM already parsed"
+     guarantee every script here already depended on by virtue of sitting
+     at the end of body, just without the serial waterfall. Order below is
+     unchanged, so the theme.js-before-trust-companion.js dependency (theme.js
+     sets data-theme synchronously; trust-companion.js reads it via
+     getComputedStyle the moment it runs) still holds — `defer` preserves
+     relative execution order, it only parallelizes the fetch. -->
+<script src="pixie-companion.js" defer></script>
+<script src="theme.js" defer></script>
+<script src="trust-companion.js" defer></script>
+<script src="reveal.js" defer></script>
+<script src="cinematic-slider.js" defer></script>
+<script src="showcase-slider.js" defer></script>
+<script src="events-showcase.js" defer></script>
+<script src="nav-theme.js" defer></script>
+<script src="nav-menu.js" defer></script>
+<script src="nav-float.js" defer></script>
+<script src="maie-logo-motion.js" defer></script>
+<script src="story-scroll.js" defer></script>
+<script src="atmosphere.js" defer></script>
+<script src="guide.js" defer></script>
+<script src="scene-opening.js" defer></script>
+<script src="scene-frame.js" defer></script>
+<script src="scene-universe.js" defer></script>
+<script src="scene-human-hand.js" defer></script>
+<script src="scene-chaos-signal.js" defer></script>
+<script src="scene-lifecycle.js" defer></script>
+<script src="scene-agent.js" defer></script>
+<script src="scene-companion-intro.js" defer></script>
 </body>
 </html>
