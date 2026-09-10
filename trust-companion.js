@@ -108,10 +108,29 @@
   // Visible only while #trust itself is in view — otherwise a
   // position:fixed Pixie would keep floating over whatever section comes
   // after it once the visitor scrolls past.
+  //
+  // Lifecycle correction (2026-09-10, adjacent finding approved for this
+  // pass — see CLAUDE.md §8/§4's "recurring bug shape"): this canvas sits
+  // inside .trust-companion, a position:fixed box clamped to stay within
+  // viewport bounds (see apply() above) — the same structural condition
+  // guide.js's own header comment documents as the reason IT needed an
+  // explicit pause()/resume() lifecycle instead of relying on
+  // pixie-companion.js's own internal IntersectionObserver(canvas): a
+  // fixed-position element positioned to stay on-screen reads as
+  // permanently "intersecting" to that observer regardless of
+  // opacity/visibility (neither affects intersection), so guide.js got the
+  // fix and this instance didn't. handle is declared below (initPixie());
+  // pause()/resume() are called here, not inside apply(), since this
+  // observer already exists specifically to track "is #trust in view" —
+  // no second observer added.
   if ('IntersectionObserver' in window) {
     var sectionIo = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         box.classList.toggle('is-visible', entry.isIntersecting);
+        if (handle) {
+          if (entry.isIntersecting) { if (handle.resume) handle.resume(); }
+          else if (handle.pause) handle.pause();
+        }
       });
     }, { threshold: 0 });
     sectionIo.observe(section);

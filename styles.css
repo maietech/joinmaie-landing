@@ -1005,6 +1005,48 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
 }
 @media (prefers-reduced-motion: reduce) { .bg-orb { transform: none !important; } }
 
+/* ── Chapter curtain — Phase 4/7 of the 2026-09-10 Atmospheric & Scene
+   Transition pass. One shared, reused overlay (not one per boundary) —
+   "create one shared transition language," not a bespoke transition per
+   scene. Closes the three normal-flow boundaries the CROSSFADE/mask-taper
+   mechanism above (see atmosphere.js) can't reach on its own, since that
+   mechanism only ever erodes a .scene-sticky panel's own mask, and
+   primitives/trust/paths have no sticky panel to erode:
+     primitives -> scene-human-hand, trust -> scene-lifecycle,
+     scene-agent -> paths (see index.html's [data-curtain] markers).
+   Deliberately NOT an opaque panel (CLAUDE.md §5 — the World Layer is
+   never hidden outright, only dimmed) — a translucent brand-toned wash,
+   same color language as --atmo-veil's own color-mix gradients elsewhere
+   in this file, so it reads as an atmospheric event (a curtain of the
+   SAME environment briefly thickening) rather than a generic page-fade
+   transition component. transform/opacity only (no layout properties
+   animated) per the brief's own technical requirement; z-index sits below
+   the nav (100) and story-rail (90/95) so wayfinding chrome stays usable
+   through the sweep, above scene content/the canvas (both negative or
+   low-value z-index). One-shot per trigger (IntersectionObserver
+   unobserves after firing, see atmosphere.js) — same one-way convention
+   as .is-revealed/echoFired elsewhere on this page, not a repeating
+   scroll-linked animation. */
+.chapter-curtain {
+  position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--brand-light) 20%, var(--bg) 80%) 42%,
+    color-mix(in srgb, var(--accent) 12%, var(--bg) 88%) 58%,
+    transparent 100%);
+}
+.chapter-curtain.is-sweeping { animation: chapter-sweep 1100ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes chapter-sweep {
+  0%   { opacity: 0; }
+  38%  { opacity: 0.92; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .chapter-curtain { display: none; } }
+/* Zero-height anchor, same convention as .atmo-beacon — exists only so
+   IntersectionObserver has a real document-flow point to watch; never
+   rendered itself. */
+.curtain-trigger { height: 0; overflow: visible; pointer-events: none; }
+
 /* ── The World Layer (formerly "atmospheric system" internally — the
    rename matters: an "atmosphere" reads as an overlay/effect, a "World
    Layer" reads as the persistent environment every scene is a window
@@ -1416,14 +1458,26 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
    grows to ~380vh, deliberately the longest single segment now, so
    "scene completion" is the part visitors spend the most scroll inside
    rather than the shortest. See scene-chaos-signal.js for the exact
-   fractions. */
-#scene-chaos-signal { height: 880vh; }
+   fractions.
+   Reduced 880vh -> 700vh (2026-09-10 Atmospheric & Scene Transition pass,
+   Phase 5 — see MAIE_Framework_2.0/findings-and-fixes for the full
+   Discovery/Implementation record). Chaos (~110vh) and convergence
+   (~390vh) are UNCHANGED in absolute vh — only the fully-static resolved
+   hold shrinks, ~380vh -> ~200vh (HOLD_FRACTION in scene-chaos-signal.js
+   changed to match). This was the one scene on the page found to have a
+   multi-hundred-vh window where nothing further changes; the goal per
+   direction was "less scrolling, not less story" — the hold itself, and
+   its ember-burst embellishment, are still fully present, just reached in
+   about half the scroll distance instead of being stretched further than
+   the resolved state needs to register. */
+#scene-chaos-signal { height: 700vh; }
 /* Mobile-specific pacing bump on top of the desktop height above, same
    established pattern as .lifecycle-scene below (§21/§22 refinement
    passes) — a mobile fling covers proportionally more of a scene than
    the same gesture on desktop. Kept the same +140vh gap over desktop
-   this scene has had since §22. */
-@media (max-width: 720px) { #scene-chaos-signal { height: 1020vh; } }
+   this scene has had since §22 (was 1020vh over the old 880vh desktop
+   height; now 840vh over the new 700vh, same +140vh gap). */
+@media (max-width: 720px) { #scene-chaos-signal { height: 840vh; } }
 /* Section 1 now carries a six-beat caption narrative (see scene-opening.js)
    instead of a single line — more scroll distance per beat than the
    default 250vh would give (250/6 ≈ 42vh/beat, tighter than felt right

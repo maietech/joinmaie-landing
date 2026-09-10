@@ -39,6 +39,10 @@
 </div>
 <div class="bg-grain" aria-hidden="true"></div>
 <canvas id="atmo-canvas" aria-hidden="true"></canvas>
+<!-- Chapter curtain — one shared overlay reused at every normal-flow
+     chapter boundary (see styles.css/atmosphere.js for the full rationale
+     and the three [data-curtain] trigger markers below). -->
+<div id="chapter-curtain" class="chapter-curtain" aria-hidden="true"></div>
 
 <nav class="nav">
   <a class="nav-brand" href="#top">
@@ -268,6 +272,11 @@
        photography (a colorist grading suite, a story-structure card wall,
        a music production session). Deliberately the slowest, quietest
        scene on the page — see scene-human-hand.js. -->
+  <!-- Chapter-curtain trigger 1 of 3 — primitives -> scene-human-hand had
+       no entrance gesture of its own beyond scene-human-hand's own short
+       fadeIn taper (see atmosphere.js CROSSFADE); this closes that gap. -->
+  <div class="curtain-trigger" data-curtain aria-hidden="true"></div>
+
   <section id="scene-human-hand" class="story-scene" data-atmo-density="1">
     <div class="scene-sticky">
       <div class="hand-frame" id="hand-frame">
@@ -448,6 +457,13 @@
        just the mark + a brand-voice line, not an explanation of the
        signal-curve recurring through the page — that pattern stays a
        discovery, per the standing decision not to call attention to it. -->
+  <!-- Chapter-curtain trigger 2 of 3 — trust -> scene-lifecycle: the
+       audit found scene-lifecycle's own CROSSFADE entry has fadeIn:0
+       (trust isn't sticky, so there was never any overlap margin behind
+       it to taper against) — the plain brand-divider gave this boundary
+       narrative connective tissue but no atmospheric gesture at all. -->
+  <div class="curtain-trigger" data-curtain aria-hidden="true"></div>
+
   <div class="brand-divider">
     <svg class="brand-divider-mark" viewBox="0 0 92 56" fill="none" stroke="var(--brand-light)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
@@ -497,6 +513,12 @@
        .paths-signal's scroll-linked animation — no second scroll listener,
        reuses the same proximity computation every other beacon already
        gets. -->
+  <!-- Chapter-curtain trigger 3 of 3 — scene-agent -> paths: scene-agent's
+       own fadeOut taper already dissolves its sticky panel, but paths
+       itself (a plain [data-reveal] section, not sticky) had no curtain
+       gesture marking the arrival at the destination as a distinct beat. -->
+  <div class="curtain-trigger" data-curtain aria-hidden="true"></div>
+
   <div class="atmo-beacon" id="paths-arrival-beacon" aria-hidden="true"><div class="atmo-beacon-mark"></div></div>
 
   <section id="paths" class="final-cta" data-reveal data-rail-label="Your Path" data-atmo-density="3">

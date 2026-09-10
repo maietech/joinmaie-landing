@@ -116,28 +116,33 @@
   // 0.0-0.22 chaos/escalation, 0.22-1.0 convergence/ignition.
   //
   // Retuned from 0.45/0.85 (crescendo/momentum refinement pass), then
-  // again from 0.30 (this pass, Narrative Polish — user testing: "the
-  // current balance still feels a little long"). With HOLD_FRACTION
-  // unchanged at 0.568 and the styles.css height unchanged at 880vh:
-  //   chaos        ~0.22 * 0.568 * 880vh ≈ 110vh (was ~150vh)
-  //   convergence  ~0.78 * 0.568 * 880vh ≈ 390vh (was ~350vh — gains the
-  //                difference; per this pass's own instruction to
-  //                preserve/improve convergence's readability rather than
-  //                rush it, the saved chaos time goes to convergence, not
-  //                away from it)
-  //   hold         ~0.432 * 880vh       ≈ 380vh (unchanged — already the
-  //                longest beat as of the previous pass, and this pass
-  //                gives it a living resolution instead of touching its
-  //                length further, see the header note above)
-  // See chipEnergyMult()/--chaos-density below for the matching change to
-  // how chaos *feels* over that shorter span — an accelerating build
-  // rather than a linear one, so the shortened beat still reads as rising
-  // action into convergence, not a beat that got clipped.
+  // again from 0.30 (Narrative Polish pass — user testing: "the current
+  // balance still feels a little long"). CONV_START itself is UNCHANGED by
+  // this pass (2026-09-10 Atmospheric & Scene Transition pass, Phase 5) —
+  // the chaos/convergence split has already been live-tuned twice against
+  // real feedback and isn't being re-litigated a third time without new
+  // evidence, per CLAUDE.md §2. What changed is HOLD_FRACTION and the
+  // styles.css height together (was 0.568 / 880vh):
+  //   chaos        ~0.22 * 0.714 * 700vh ≈ 110vh (unchanged absolute vh)
+  //   convergence  ~0.78 * 0.714 * 700vh ≈ 390vh (unchanged absolute vh)
+  //   hold         ~0.286 * 700vh        ≈ 200vh (was ~380vh)
+  // Discovery Record finding: this scene's static "hold" (chips fully
+  // converged, nothing left moving except the ember bursts) was, on direct
+  // read, the ONLY multi-hundred-vh fully-static dwell window found
+  // anywhere on the page (every other scene's full scroll distance drives
+  // continuously-changing content) — so it's the one place a pacing cut
+  // removes dwell time rather than content or narrative beats. Chaos and
+  // convergence's absolute scroll distance (and everything already tuned
+  // within them — chipEnergyMult()'s build curve, the ignition-flash
+  // timing) are deliberately held at their exact previous vh values so
+  // their feel is unchanged; only the hold's vh dropped, keeping the
+  // resolved state (and its ember bursts) genuinely intact just reached in
+  // roughly half the scroll distance.
   var CONV_START = 0.22;
   // Hoisted out of render() (was declared local to it) so step()'s energy
   // ramp (Narrative Polish Phase 2 item 2) can compute the same remapped
   // chaosLocal without duplicating the HOLD_FRACTION constant.
-  var HOLD_FRACTION = 0.568;
+  var HOLD_FRACTION = 0.714;
   // CONV_START is a fraction of *remapped* progress (post-HOLD_FRACTION),
   // not raw scroll progress — anything that needs to compare against raw
   // progress (the mouseenter guard below, the Narrative Echo trigger)

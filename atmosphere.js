@@ -81,6 +81,9 @@ uniform vec3 uBrand;
 uniform vec3 uBrandLight;
 uniform vec3 uAccent;
 uniform vec3 uTertiary;
+uniform vec2 uPointer;
+uniform float uPointerIntensity;
+uniform float uWarmth;
 
 float hash(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -183,6 +186,20 @@ void main() {
   shaped *= envelope;
   shaped *= uIntensity;
 
+  // Pointer disturbance (Phase 2) — a single cheap length()+smoothstep
+  // against the already-computed shaped density, in the same normalized
+  // uv space uv itself is in (see the top of main()). No extra fbm()
+  // calls (the expensive part of this shader) — the pointer brightens/
+  // thickens the EXISTING field locally rather than drawing anything of
+  // its own, so it reads as "the current responding" not "a cursor
+  // effect layered on top." uPointerIntensity is 0 whenever the pointer
+  // hasn't moved recently (JS-side decay, see atmosphere.js's
+  // updateAtmosphericState), so this is a no-op cost-wise for idle/touch
+  // visitors beyond the one smoothstep.
+  float pointerDist = length(uv - uPointer);
+  float pointerInfluence = uPointerIntensity * smoothstep(0.5, 0.0, pointerDist);
+  shaped = clamp(shaped + pointerInfluence * 0.35, 0.0, 1.0);
+
   vec2 specVec = vec2(
     fbm(near0 * 0.8 + turb * qNear + vec2(11.3, 2.7)),
     fbm(near0 * 0.8 + turb * qNear + vec2(3.1, 17.9))
@@ -192,6 +209,10 @@ void main() {
   float convergeTarget = 0.58;
   float spectralConverge = clamp(uCoagulate * 1.1 + uCoherence * 0.3, 0.0, 1.0);
   float spectralPos = mix(spectralRaw, convergeTarget, spectralConverge);
+  // Per-section warmth (Phase 3) — a small bias on the ramp's own spectral
+  // position rather than a second color table; auroraRamp() fracts its
+  // input internally, so this wraps cleanly at either end.
+  spectralPos += uWarmth * 0.12;
 
   vec3 pale = mix(uAccent, vec3(1.0), 0.55);
 
@@ -417,7 +438,7 @@ void main() {
 
       var fieldProg = link(VS_FULLSCREEN, FS_FIELD);
       var postProg = link(VS_FULLSCREEN, FS_POST);
-      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent', 'uTertiary']);
+      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent', 'uTertiary', 'uPointer', 'uPointerIntensity', 'uWarmth']);
       var postU = uniformsOf(postProg, ['uTex', 'uCanvasRes', 'uTexRes', 'uBg']);
 
       var vao = gl.createVertexArray();
@@ -579,10 +600,30 @@ void main() {
   };
   function currentFlow(x, y, t) {
     var base = flow(x, y, t);
-    if (coherence >= 0.999) return base;
-    var chaos = flowChaos(x, y, t);
-    var mix = 1 - coherence;
-    return { vx: base.vx + chaos.vx * mix * 0.7, vy: base.vy + chaos.vy * mix * 0.7 };
+    if (coherence < 0.999) {
+      var chaos = flowChaos(x, y, t);
+      var mix = 1 - coherence;
+      base = { vx: base.vx + chaos.vx * mix * 0.7, vy: base.vy + chaos.vy * mix * 0.7 };
+    }
+    // Pointer disturbance (Canvas 2D fallback path — field cells, ribbons,
+    // foam all sample currentFlow(), so one repulsion term here reaches
+    // every layer consistently, same "one current, unsynced consumers"
+    // principle the rest of this function already follows). Radius-gated
+    // before the sqrt so this is a no-op cost for every sample point
+    // outside the pointer's own neighborhood, and skipped entirely once
+    // pointerIntensity has decayed back to ~0 between visits.
+    if (pointerIntensity > 0.01 && vw > 0) {
+      var pdx = x - pointerX, pdy = y - pointerY;
+      var radius = Math.max(vw, vh) * 0.22;
+      var distSq = pdx * pdx + pdy * pdy;
+      if (distSq < radius * radius) {
+        var dist = Math.sqrt(distSq) || 1;
+        var falloff = 1 - dist / radius;
+        var push = falloff * falloff * pointerIntensity * 1.6;
+        base = { vx: base.vx + (pdx / dist) * push, vy: base.vy + (pdy / dist) * push };
+      }
+    }
+    return base;
   }
 
   // ── Breathing — an almost-imperceptible ~70s-period pulse applied as one
@@ -845,6 +886,7 @@ void main() {
   var openingPulseStart = null;
   document.addEventListener('maie:ignition', function () {
     if (openingPulseStart === null) openingPulseStart = clock;
+    wake();
   });
 
   if (densityEls.length && typeof IntersectionObserver !== 'undefined') {
@@ -866,6 +908,8 @@ void main() {
         // IntersectionObserver over the same elements.
         if (window.MaieAtmosphere.currentSection !== best) {
           window.MaieAtmosphere.currentSection = best;
+          targetCharacter = SECTION_CHARACTER[best.id] || DEFAULT_CHARACTER;
+          wake(); // a chapter change is itself a "meaningful input" per §1, even absent a raw scroll event this tick
           document.dispatchEvent(new CustomEvent('maie:scenechange', { detail: { section: best } }));
         }
       }
@@ -1077,6 +1121,32 @@ void main() {
     }
   }
 
+  // ── Chapter curtain — Phase 4/7. One shared overlay element
+  // (#chapter-curtain, index.html), triggered by any of the
+  // [data-curtain] anchor markers dropped at the three normal-flow
+  // boundaries the CROSSFADE mask-taper above can't reach on its own
+  // (see styles.css's .chapter-curtain comment for the full list/why).
+  // IntersectionObserver + a one-shot classList toggle — same idiom as
+  // reveal.js's own revealObserver, no new scroll listener, no rAF. The
+  // rootMargin fires the sweep as the trigger nears viewport-center
+  // (anticipating the transition) rather than only once it's already
+  // scrolled past.
+  var curtainEl = document.getElementById('chapter-curtain');
+  var curtainTriggers = Array.prototype.slice.call(document.querySelectorAll('[data-curtain]'));
+  if (curtainEl && curtainTriggers.length && !reducedMotion && typeof IntersectionObserver !== 'undefined') {
+    var curtainObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        curtainEl.classList.remove('is-sweeping');
+        void curtainEl.offsetWidth; // force a reflow so re-adding the class below restarts the CSS animation even if a previous sweep is still finishing
+        curtainEl.classList.add('is-sweeping');
+        wake(); // the sweep itself is atmospheric motion — keep the render loop at full rate while it plays
+        curtainObserver.unobserve(entry.target); // one-shot per trigger, matching .is-revealed/echoFired's one-way convention elsewhere on this page
+      });
+    }, { threshold: 0, rootMargin: '-35% 0px -35% 0px' });
+    curtainTriggers.forEach(function (t) { curtainObserver.observe(t); });
+  }
+
   // ── Scroll-velocity nudge — 10-15% faster while actively scrolling,
   // decaying back to baseline. A lightweight passive listener (a single
   // number update, no reads/writes of layout) rather than routing through
@@ -1088,7 +1158,110 @@ void main() {
   // reuse one already-tuned decay curve instead of inventing a second
   // one, per the brief's "unify existing motion systems." ──
   var scrollBoost = 1;
-  window.addEventListener('scroll', function () { scrollBoost = 1.13; }, { passive: true });
+  window.addEventListener('scroll', function () { scrollBoost = 1.13; wake(); }, { passive: true });
+
+  // ── Wake / settle lifecycle — Phase 1 of the 2026-09-10 Atmospheric &
+  // Scene Transition pass. Previously this file's render loop ran a full
+  // state-advance + paint on every single rAF tick for as long as the tab
+  // was visible, regardless of whether anything on screen was actually
+  // changing (see the Discovery Record: one continuous RAF chain, no idle
+  // throttle). That's the confirmed always-on cost.
+  //
+  // Fix is a throttle, not a second scheduler: render()/renderWebGL() are
+  // still scheduled by exactly one requestAnimationFrame chain, same as
+  // before. While "awake" (something happened recently — scroll, pointer
+  // disturbance, a section/level change, page just became visible, a
+  // keyboard event), every tick still does a full update+paint, same as
+  // today. Once AWAKE_HOLD_MS has passed with no wake() call, the loop
+  // drops into "settled": each tick becomes a cheap timestamp comparison
+  // that returns immediately unless IDLE_FRAME_INTERVAL of real time has
+  // actually elapsed, at which point exactly one full update+paint runs
+  // (with the real accumulated dt, so slow ambient drift — field cells,
+  // particles, breathing — keeps moving at its true real-world rate,
+  // just sampled ~12x/sec instead of ~60x/sec, rather than freezing).
+  // This preserves "the world never actually stops" (CLAUDE.md §5 — the
+  // World Layer is never hidden or switched off) while removing the
+  // ~5x continuous-render cost the Discovery Record measured.
+  var AWAKE_HOLD_MS = 1400;
+  var IDLE_FRAME_INTERVAL = 1 / 12;
+  var lastMeaningfulInput = Date.now();
+  function wake() { lastMeaningfulInput = Date.now(); }
+  window.MaieAtmosphere.wake = wake; // scene scripts may call this directly for their own transition beats
+
+  // Keyboard equivalent of pointer disturbance (§13 requirement: the
+  // experience must stay legible without a pointer). This does not drive
+  // the pointer-disturbance visual below — only prevents a keyboard-only
+  // visitor's atmosphere from reading as "stuck" mid-throttle the moment
+  // they Tab/arrow through the page, the same courtesy scroll/pointer
+  // already get.
+  window.addEventListener('keydown', wake, { passive: true });
+
+  // ── Pointer disturbance — Phase 2. "Pointer -> disturbance -> the
+  // existing world responds", not a decorative cursor-follower: this does
+  // NOT draw anything of its own. It feeds a single decaying intensity
+  // value + position into the systems that already exist (currentFlow(),
+  // sampled by field cells/ribbons/foam in the Canvas 2D path; uPointer/
+  // uPointerIntensity in the WebGL field shader) so the current itself
+  // bends around the pointer, then relaxes back once it stops — no new
+  // particle system, no cursor halo.
+  //
+  // The listener does the absolute minimum per event (two number writes)
+  // — all distance-thresholding, decay, and the wake() call happen once
+  // per rAF tick inside updateAtmosphericState() below, not once per
+  // mousemove (mousemove can fire far faster than the render loop needs
+  // it to), satisfying "coalesce/throttle pointer input."
+  //
+  // pointerType is checked so touch never drives this — per §13, touch
+  // visitors get the ambient/section-state variation only, never a
+  // manufactured "cursor" effect; a touch/pen contact point is not a
+  // pointer resting in the environment the way a mouse cursor is.
+  var pointerRawX = 0, pointerRawY = 0, pointerSeen = false;
+  var pointerX = 0, pointerY = 0, pointerUVx = 0, pointerUVy = 0;
+  var pointerIntensity = 0, lastPointerMoveTime = 0;
+  var POINTER_ACTIVE_MS = 900; // how long the disturbance lingers/decays after motion stops
+  if (!reducedMotion) {
+    window.addEventListener('pointermove', function (e) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      pointerRawX = e.clientX; pointerRawY = e.clientY; pointerSeen = true;
+    }, { passive: true });
+  }
+
+  // ── Per-section atmospheric identity — Phase 3. Extends the existing
+  // data-atmo-density/LEVEL_BUDGET mechanism (unchanged above) rather than
+  // adding a parallel section-tagging system, same convention CROSSFADE
+  // already uses (a small table keyed by section id). Two extra knobs,
+  // both smoothed with the same lerp speed as currentLevel:
+  //   warmth      -1..1 — nudges the aurora ramp's spectral position, so
+  //               each chapter reads as a distinct hue lean (cooler for
+  //               Signal/Chaos, warmer for the Human/Companion beats)
+  //               without introducing a new palette or opaque backdrop.
+  //   turbulence  multiplies the section's default coherence target
+  //               (>1 = more fragmented/competing sub-currents, <1 =
+  //               calmer/more laminar) — purely a default-state nudge;
+  //               scene-chaos-signal.js's own explicit setCoherence()
+  //               override still wins outright (coherenceOverride is
+  //               checked first in updateAtmosphericState, untouched by
+  //               this), so this never fights that scene's own resolution
+  //               beat, it only shapes the *before* state.
+  // Named per the brief's own chapter language (Signal / Frame / Network /
+  // Chaos-Convergence / closure) in the comments only — the actual keys
+  // are the existing section ids, so this stays correct automatically if
+  // a section is ever renamed in markup.
+  var SECTION_CHARACTER = {
+    'scene-opening':      { warmth: -0.15, turbulence: 0.85 }, // Signal — quiet, cool, barely perceptible
+    'scene-frame':        { warmth:  0.05, turbulence: 0.85 }, // Frame — still, observational
+    'scene-universe':     { warmth:  0.15, turbulence: 1.1  }, // Network — more energy, wider field
+    'primitives':         { warmth:  0.1,  turbulence: 1.0  },
+    'scene-human-hand':   { warmth:  0.35, turbulence: 0.75 }, // Human/Companion — warmest, softest, most settled
+    'scene-chaos-signal': { warmth: -0.1,  turbulence: 1.35 }, // Chaos -> Convergence — most turbulent by default; setCoherence() still owns the actual resolution
+    'companion-intro':    { warmth:  0.25, turbulence: 0.85 },
+    'trust':               { warmth: 0.2,  turbulence: 0.85 },
+    'scene-lifecycle':    { warmth:  0.0,  turbulence: 1.0  },
+    'scene-agent':        { warmth:  0.05, turbulence: 1.0  },
+    'paths':               { warmth: 0.1,  turbulence: 0.7  }  // Convergence/closure — expansive, settled
+  };
+  var DEFAULT_CHARACTER = { warmth: 0, turbulence: 1 };
+  var targetCharacter = DEFAULT_CHARACTER, currentWarmth = 0, currentTurbulence = 1;
 
   // ── Render ──
   var clock = 0, lastT = null, rafId = null;
@@ -1236,16 +1409,47 @@ void main() {
     var lo = Math.max(0, Math.floor(currentLevel)), hi = Math.min(3, Math.ceil(currentLevel));
     var frac = currentLevel - lo;
 
+    // Section character (warmth/turbulence) — same smoothing rate as the
+    // density level above, so a chapter change reads as one coordinated
+    // shift rather than two systems arriving at different times.
+    currentWarmth += (targetCharacter.warmth - currentWarmth) * Math.min(1, dt * 2.2);
+    currentTurbulence += (targetCharacter.turbulence - currentTurbulence) * Math.min(1, dt * 2.2);
+
     // Coherence settles toward its target more slowly than the level lerp
     // above (dt*0.6 vs dt*2.2) — deliberately: the density budget should
     // respond promptly to a scene change, but the field's own "agreement
     // with itself" should feel like it's catching up a beat later, the way
     // weather reorganizes rather than switches. An active setCoherence()
-    // override (see above) takes priority until it expires.
+    // override (see above) takes priority until it expires — turbulence
+    // (a per-section default-state nudge, see SECTION_CHARACTER) never
+    // competes with an explicit narrative override, only with the base
+    // per-level table it's multiplying.
     if (coherenceOverride !== null && Date.now() >= coherenceOverrideUntil) coherenceOverride = null;
     var coherenceTarget = coherenceOverride !== null ? coherenceOverride
-      : (COHERENCE_BY_LEVEL[lo] + (COHERENCE_BY_LEVEL[hi] - COHERENCE_BY_LEVEL[lo]) * frac);
+      : Math.max(0, Math.min(1, (COHERENCE_BY_LEVEL[lo] + (COHERENCE_BY_LEVEL[hi] - COHERENCE_BY_LEVEL[lo]) * frac) / currentTurbulence));
     coherence += (coherenceTarget - coherence) * Math.min(1, dt * 0.6);
+
+    // Pointer disturbance — the actual movement-vs-noise threshold and the
+    // wake() call both happen here, once per processed tick, not once per
+    // raw mousemove event (see the pointermove listener above).
+    if (pointerSeen) {
+      var pdx = pointerRawX - pointerX, pdy = pointerRawY - pointerY;
+      if (pdx * pdx + pdy * pdy > 9) { // >3px — filters sensor/measurement jitter, not real motion
+        pointerX = pointerRawX; pointerY = pointerRawY;
+        lastPointerMoveTime = Date.now();
+        wake();
+      }
+    }
+    var pointerAge = Date.now() - lastPointerMoveTime;
+    var pointerTarget = (pointerSeen && pointerAge < POINTER_ACTIVE_MS) ? (1 - pointerAge / POINTER_ACTIVE_MS) : 0;
+    pointerIntensity += (pointerTarget - pointerIntensity) * Math.min(1, dt * 3.5);
+    if (vw > 0 && vh > 0) {
+      // Same normalized space as the WebGL shader's own `uv` (centered,
+      // y-up-independent, divided by height) — see FS_FIELD's first line —
+      // so uPointer lines up with the field exactly, no separate mapping.
+      pointerUVx = (pointerX - vw * 0.5) / vh;
+      pointerUVy = -(pointerY - vh * 0.5) / vh;
+    }
 
     return { lo: lo, hi: hi, frac: frac };
   }
@@ -1269,10 +1473,27 @@ void main() {
     }
   }
 
-  function render(tNow) {
-    if (lastT === null) lastT = tNow;
-    var dt = Math.min(0.05, (tNow - lastT) / 1000);
+  // Shared by both renderers (Phase 1) — returns the dt to advance state by,
+  // or null if this tick should be skipped outright (settled/idle and not
+  // enough real time has passed since the last processed frame yet). Real
+  // elapsed time (rawDt) always accumulates against lastT regardless of how
+  // many ticks get skipped, so the eventual dt reflects true elapsed time —
+  // ambient motion (field drift, breathing) keeps moving at its authored
+  // real-world rate while idle, just sampled ~12x/sec instead of ~60x/sec,
+  // rather than freezing or jumping.
+  function beginFrame(tNow) {
+    if (lastT === null) { lastT = tNow; return 0; }
+    var rawDt = (tNow - lastT) / 1000;
+    var awake = (Date.now() - lastMeaningfulInput) < AWAKE_HOLD_MS;
+    if (!awake && rawDt < IDLE_FRAME_INTERVAL) return null;
+    var dt = Math.min(awake ? 0.05 : 0.15, rawDt);
     lastT = tNow;
+    return dt;
+  }
+
+  function render(tNow) {
+    var dt = beginFrame(tNow);
+    if (dt === null) { rafId = requestAnimationFrame(render); return; }
 
     var lvl = updateAtmosphericState(dt);
     var lo = lvl.lo, hi = lvl.hi, frac = lvl.frac;
@@ -1461,9 +1682,8 @@ void main() {
   // tryInitWebGL() succeeded (see the top of this file) — never runs
   // alongside the Canvas 2D path, only instead of it.
   function renderWebGL(tNow) {
-    if (lastT === null) lastT = tNow;
-    var dt = Math.min(0.05, (tNow - lastT) / 1000);
-    lastT = tNow;
+    var dt = beginFrame(tNow);
+    if (dt === null) { rafId = requestAnimationFrame(renderWebGL); return; }
 
     var lvl = updateAtmosphericState(dt);
     var fieldBudget = lerpBudget(lvl.lo, lvl.hi, lvl.frac, 'field');
@@ -1533,6 +1753,9 @@ void main() {
     g.gl.uniform3fv(g.fieldU.uBrandLight, colors.brandLightVec3);
     g.gl.uniform3fv(g.fieldU.uAccent, colors.accentVec3);
     g.gl.uniform3fv(g.fieldU.uTertiary, colors.tertiaryVec3);
+    g.gl.uniform2f(g.fieldU.uPointer, pointerUVx, pointerUVy);
+    g.gl.uniform1f(g.fieldU.uPointerIntensity, pointerIntensity);
+    g.gl.uniform1f(g.fieldU.uWarmth, currentWarmth);
     g.gl.drawArrays(g.gl.TRIANGLES, 0, 3);
 
     // Pass 2 — composite (bilinear upscale + cheap blur/bloom) to the
@@ -1575,7 +1798,10 @@ void main() {
 
   if (reducedMotion) {
     // One static, settled frame — no continuous drift, per prefers-reduced-motion.
-    lastT = 0; clock = 0;
+    // lastT stays null (not 0) so beginFrame()'s own first-call branch sets
+    // it, independent of the awake/idle timing beginFrame otherwise checks
+    // — this single frame must always render, never be skipped as "settled."
+    lastT = null; clock = 0;
     activeRender(0);
     if (rafId) cancelAnimationFrame(rafId); // activeRender() above schedules a next frame; cancel it immediately
   } else if (typeof IntersectionObserver !== 'undefined') {
@@ -1583,7 +1809,7 @@ void main() {
     // visible — same convention as pixie-companion.js/scene-opening.js.
     var pageVisibilityObserver = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting && rafId === null) rafId = requestAnimationFrame(activeRender);
+        if (entry.isIntersecting && rafId === null) { wake(); rafId = requestAnimationFrame(activeRender); }
         else if (!entry.isIntersecting && rafId !== null) { cancelAnimationFrame(rafId); rafId = null; lastT = null; }
       });
     }, { threshold: 0 });
@@ -1595,6 +1821,6 @@ void main() {
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden && rafId !== null) { cancelAnimationFrame(rafId); rafId = null; lastT = null; }
-    else if (!document.hidden && !reducedMotion && rafId === null) rafId = requestAnimationFrame(activeRender);
+    else if (!document.hidden && !reducedMotion && rafId === null) { wake(); rafId = requestAnimationFrame(activeRender); }
   });
 })();
