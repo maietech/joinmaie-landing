@@ -106,6 +106,10 @@
 </div>
 
 <div id="story-rail"><div class="rail-fill" id="story-rail-fill"></div></div>
+<!-- Mobile's distinct minimal progress indicator — see styles.css's
+     .story-progress-bar comment. Desktop hides this (860px), mobile hides
+     #story-rail — never both at once. -->
+<div class="story-progress-bar" aria-hidden="true"><div class="story-progress-bar-fill" id="story-progress-bar-fill"></div></div>
 
 <main id="top">
 
@@ -114,7 +118,7 @@
        protected caption; matches <title> above. -->
   <h1 class="visually-hidden">MAIE — The Creative Companion for Modern Media</h1>
 
-  <section id="scene-opening" class="story-scene" data-atmo-density="0">
+  <section id="scene-opening" class="story-scene" data-rail-label="Impulse" data-atmo-density="0">
     <div class="scene-sticky">
       <canvas id="scene-opening-canvas" aria-hidden="true"></canvas>
       <div class="scene-caption" id="scene-opening-caption">Everything begins with something.</div>
@@ -129,7 +133,7 @@
     </div>
   </section>
 
-  <section id="scene-frame" class="story-scene" data-atmo-density="0">
+  <section id="scene-frame" class="story-scene" data-rail-label="Frame" data-atmo-density="0">
     <div class="scene-sticky">
       <div class="frame-stage">
         <div class="frame-photo-wrap">
@@ -172,7 +176,7 @@
 
   <div class="atmo-beacon" aria-hidden="true"><div class="atmo-beacon-mark"></div></div>
 
-  <section id="scene-universe" class="story-scene" data-atmo-density="2">
+  <section id="scene-universe" class="story-scene" data-rail-label="Universe" data-atmo-density="2">
     <div class="scene-sticky">
       <div class="universe-stage">
         <div class="universe-word" id="universe-word">MEDIA</div>
@@ -258,15 +262,37 @@
   <section id="primitives" data-reveal data-rail-label="Primitives" data-atmo-density="1">
     <div class="section-tag" style="text-align:center;">The Foundation</div>
     <h2 class="section-title" style="text-align:center;">Every project is built with the same primitives.</h2>
-    <div class="cinematic-slider" id="primitives-cinematic" data-cinematic-slider role="group" aria-label="What MAIE has committed to building" aria-live="off">
-      <span class="cinematic-slider-line" data-line>1,000+ hours invested. So you can spend fewer hours figuring it out.</span>
-      <span class="cinematic-slider-line" data-line>Thousands of decisions made before you ever had to make one.</span>
-      <span class="cinematic-slider-line" data-line>We built the infrastructure. You build what comes next.</span>
-      <span class="cinematic-slider-line" data-line>The complexity is ours to solve. The possibility is yours to explore.</span>
-      <span class="cinematic-slider-line" data-line>Built deliberately. Tested relentlessly. Designed around your work.</span>
-      <span class="cinematic-slider-line" data-line>The foundation is already built. Now build something extraordinary.</span>
+    <!-- Instrument-panel frame (Cinematic Content pass, 2026-09-11) — the
+         rotating statement below used to sit with nothing but atmosphere
+         around it. Reuses the page's own mono "data-readout" language
+         (scene-frame.js's fracture tags, trust's reflect-code) as a
+         structural frame instead: corner ticks + a thin rule, CSS only. -->
+    <div class="primitives-frame">
+      <span class="primitives-frame-tick primitives-frame-tick--tl" aria-hidden="true"></span>
+      <span class="primitives-frame-tick primitives-frame-tick--tr" aria-hidden="true"></span>
+      <span class="primitives-frame-tick primitives-frame-tick--bl" aria-hidden="true"></span>
+      <span class="primitives-frame-tick primitives-frame-tick--br" aria-hidden="true"></span>
+      <div class="cinematic-slider" id="primitives-cinematic" data-cinematic-slider role="group" aria-label="What MAIE has committed to building" aria-live="off">
+        <span class="cinematic-slider-line" data-line>1,000+ hours invested. So you can spend fewer hours figuring it out.</span>
+        <span class="cinematic-slider-line" data-line>Thousands of decisions made before you ever had to make one.</span>
+        <span class="cinematic-slider-line" data-line>We built the infrastructure. You build what comes next.</span>
+        <span class="cinematic-slider-line" data-line>The complexity is ours to solve. The possibility is yours to explore.</span>
+        <span class="cinematic-slider-line" data-line>Built deliberately. Tested relentlessly. Designed around your work.</span>
+        <span class="cinematic-slider-line" data-line>The foundation is already built. Now build something extraordinary.</span>
+      </div>
     </div>
   </section>
+
+  <!-- Checkpoint 1 of 3 — primitives -> scene-human-hand. Copy: derived
+       from primitives' own "foundation" theme handing off to
+       scene-human-hand's thesis ("Technology does not create meaning.
+       People do."). -->
+  <div class="checkpoint" data-reveal>
+    <div class="checkpoint-rule" aria-hidden="true"></div>
+    <div class="checkpoint-kicker">The Foundation Is Set</div>
+    <p class="checkpoint-line">But technology alone was never the point.</p>
+    <a class="checkpoint-cta signal-link" href="#scene-human-hand" data-checkpoint-target="scene-human-hand">Continue to Reflection <span class="checkpoint-cta-arrow" aria-hidden="true">→</span></a>
+  </div>
 
   <!-- Section 4 — The Human Hand (Reflection). Previously blocked on real
        documentary photography — the 10 stock photos on hand were
@@ -280,7 +306,7 @@
        fadeIn taper (see atmosphere.js CROSSFADE); this closes that gap. -->
   <div class="curtain-trigger" data-curtain aria-hidden="true"></div>
 
-  <section id="scene-human-hand" class="story-scene" data-atmo-density="1">
+  <section id="scene-human-hand" class="story-scene" data-rail-label="Reflection" data-atmo-density="1">
     <div class="scene-sticky">
       <div class="hand-frame" id="hand-frame">
         <!-- object-position tuned per photo (Phase II, Area 2, Direction B) —
@@ -312,7 +338,7 @@
        the path, concatenating into one line as the mark ignites. -->
   <div class="atmo-beacon" aria-hidden="true"><div class="atmo-beacon-mark"></div></div>
 
-  <section id="scene-chaos-signal" class="story-scene" data-atmo-density="0">
+  <section id="scene-chaos-signal" class="story-scene" data-rail-label="Chaos → Signal" data-atmo-density="0">
     <div class="scene-sticky">
       <svg id="signal-svg" viewBox="0 0 92 56" xmlns="http://www.w3.org/2000/svg">
         <path id="signal-path" class="signal-stroke"
@@ -356,15 +382,15 @@
        for a real scroll distance while the supporting copy crossfades
        through seven beats in sync with the slider, instead of one static
        paragraph nobody had time to read.
-       Pixie removed from this section (relocated to #trust — see
-       trust-companion.js) — header, Pixie, and paragraph together in one
+       Pixie removed from this section (relocated to #trust at the time)
+       — header, Pixie, and paragraph together in one
        100vh sticky panel was too much competing for the same space, and
        left the slider itself barely visible at the section's resting
        scroll position. Single centered column (statement, paragraph) —
        simpler than it was even before Pixie was here, since the slider is
        now the section's one supporting visual instead of splitting
        attention with a second one. -->
-  <section id="companion-intro" class="story-scene companion-scene" data-atmo-density="1">
+  <section id="companion-intro" class="story-scene companion-scene" data-rail-label="Companion" data-atmo-density="1">
     <div class="scene-sticky">
       <div class="companion-row">
         <p class="intro-statement">The burden of the infinite project,<br><span class="accent">lifted.</span></p>
@@ -423,29 +449,29 @@
         <div class="reflect-code">14 security &amp; data-isolation issues, found and resolved pre-launch</div>
       </div>
     </div>
+    <!-- Trust anchor — replaces the removed Trust Pixie (Cinematic Content
+         pass, 2026-09-11). See styles.css's .trust-anchor comment for the
+         full rationale; reveals via the section's own existing
+         [data-reveal]/.is-revealed mechanism (reveal.js), no new observer. -->
+    <div class="trust-anchor" aria-hidden="true">
+      <div class="trust-anchor-ring"></div>
+      <div class="trust-anchor-ring"></div>
+      <div class="trust-anchor-ring"></div>
+      <div class="trust-anchor-core"></div>
+    </div>
   </section>
 
-  <!-- Pixie, relocated from #companion-intro — see trust-companion.js.
-       #trust was already left-biased (.reflect-list caps at 640px inside
-       a much wider section, leaving the right side empty); Pixie fills
-       that real gap instead of the crowded one it used to compete for.
-       position:fixed (see styles.css) — same technique this codebase
-       already uses for the Guide's corner badge (CLAUDE.md §8) — with
-       trust-companion.js computing its screen position directly, rather
-       than a two-column flex layout + position:sticky (sticky's native
-       "stuck" range is capped at (container height - element height),
-       which for a short .reflect-list column runs out well before the
-       last item, confirmed live before this approach was chosen).
-       Deliberately placed OUTSIDE #trust, as a sibling, not a child —
-       #trust is `[data-reveal]`, and [data-reveal].is-revealed carries
-       `transform: translateY(0)` (styles.css) permanently once revealed.
-       Any actual transform on an ancestor (translateY(0) counts — only
-       literally `none` doesn't) becomes the containing block for a
-       position:fixed descendant instead of the viewport, per the CSS
-       spec — confirmed live as the actual bug behind Pixie rendering far
-       off-position once #trust had revealed. -->
-  <div class="trust-companion">
-    <canvas id="trust-pixie-canvas" role="img" aria-label="Pixie companion"></canvas>
+  <!-- Checkpoint 2 of 3 — trust -> scene-lifecycle. See checkpoints.js /
+       .checkpoint (styles.css) for the shared component this reuses at
+       all three boundaries. Copy: derived from this section's own "Built
+       to Be Trusted" theme handing off to scene-lifecycle's "The Media
+       Lifecycle" (guide.js's own copy for that scene: "Imagine if every
+       production remembered everything."). -->
+  <div class="checkpoint" data-reveal>
+    <div class="checkpoint-rule" aria-hidden="true"></div>
+    <div class="checkpoint-kicker">Your Work Is Protected</div>
+    <p class="checkpoint-line">See what MAIE remembers, project after project.</p>
+    <a class="checkpoint-cta signal-link" href="#scene-lifecycle" data-checkpoint-target="scene-lifecycle">Continue to the Lifecycle <span class="checkpoint-cta-arrow" aria-hidden="true">→</span></a>
   </div>
 
   <!-- Narrative Polish pass — Trust -> Lifecycle transition (Category A/B,
@@ -479,7 +505,7 @@
     <p class="brand-divider-line">Protected. Connected. Ready for what's next.</p>
   </div>
 
-  <section id="scene-lifecycle" class="story-scene lifecycle-scene" data-atmo-density="0">
+  <section id="scene-lifecycle" class="story-scene lifecycle-scene" data-rail-label="Memory" data-atmo-density="0">
     <div class="scene-sticky">
       <div class="lifecycle-caption" id="lifecycle-caption">The Media Lifecycle</div>
       <div class="lifecycle-window">
@@ -489,7 +515,7 @@
     </div>
   </section>
 
-  <section id="scene-agent" class="story-scene agent-scene" data-atmo-density="0">
+  <section id="scene-agent" class="story-scene agent-scene" data-rail-label="Agent" data-atmo-density="0">
     <div class="scene-sticky">
       <div class="agent-caption" id="agent-caption">Watch the agent work.</div>
       <div class="agent-stage">
@@ -510,6 +536,16 @@
       <div class="agent-detail" id="agent-detail">The creator states what they need — in plain language, not a menu of settings.</div>
     </div>
   </section>
+
+  <!-- Checkpoint 3 of 3 — scene-agent -> paths (the destination). Copy:
+       derived from scene-agent's own "watch the agent work" theme handing
+       off to #paths as the arrival point. -->
+  <div class="checkpoint" data-reveal>
+    <div class="checkpoint-rule" aria-hidden="true"></div>
+    <div class="checkpoint-kicker">The Agent Is Ready</div>
+    <p class="checkpoint-line">See where this actually takes you.</p>
+    <a class="checkpoint-cta signal-link" href="#paths" data-checkpoint-target="paths">Continue to Your Path <span class="checkpoint-cta-arrow" aria-hidden="true">→</span></a>
+  </div>
 
   <!-- id'd specifically so atmosphere.js's existing beaconWrite can mirror
        this one beacon's --beacon-intensity onto #paths (see there) for
@@ -748,13 +784,13 @@
      parsing finishes — same execution order and same "DOM already parsed"
      guarantee every script here already depended on by virtue of sitting
      at the end of body, just without the serial waterfall. Order below is
-     unchanged, so the theme.js-before-trust-companion.js dependency (theme.js
-     sets data-theme synchronously; trust-companion.js reads it via
-     getComputedStyle the moment it runs) still holds — `defer` preserves
-     relative execution order, it only parallelizes the fetch. -->
+     unchanged, so theme.js-before-consumer dependencies (theme.js sets
+     data-theme synchronously; guide.js/scene-agent.js's Pixie instances
+     read it via getComputedStyle the moment they run) still hold —
+     `defer` preserves relative execution order, it only parallelizes the
+     fetch. -->
 <script src="pixie-companion.js" defer></script>
 <script src="theme.js" defer></script>
-<script src="trust-companion.js" defer></script>
 <script src="reveal.js" defer></script>
 <script src="cinematic-slider.js" defer></script>
 <script src="showcase-slider.js" defer></script>
@@ -774,6 +810,7 @@
 <script src="scene-lifecycle.js" defer></script>
 <script src="scene-agent.js" defer></script>
 <script src="scene-companion-intro.js" defer></script>
+<script src="checkpoints.js" defer></script>
 <script src="cursor.js" defer></script>
 </body>
 </html>
