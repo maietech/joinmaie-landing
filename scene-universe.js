@@ -93,6 +93,11 @@
   // FADE window, last stage's fadeOut is 0 so a reduced-motion visitor
   // (who only ever gets progress=1 once, see story-scroll.js) still sees
   // the final clip's poster instead of a blank box.
+  // Aurora refinement pass (§9) — the box's own container (styles.css) now
+  // starts at opacity:0; this fades it in as the word fades out, closing
+  // the window where the box's always-opaque background used to sit on
+  // top of the word regardless of any individual video's own opacity.
+  var lastBoxOpacity = -1;
   var VIDEO_START = 0.13, VIDEO_END = 1.0;
   var n = videos.length;
   var span = (VIDEO_END - VIDEO_START) / n;
@@ -116,6 +121,17 @@
     var wMacro = window.storyStageWeight(progress, 0.00, WORD_END, 0.00, WORD_FADE);
     var macroLocal = localP(progress, 0.00, WORD_END);
     word.style.opacity = wMacro;
+
+    // Fade the box's own container in across [WORD_END, WORD_END+0.06] —
+    // i.e. invisible until the word starts fading out (0.12), fully
+    // visible by 0.18, just after the word has fully cleared (0.16, per
+    // WORD_FADE) — a brief, deliberate handoff instead of the word and an
+    // opaque box silently coexisting.
+    var boxOpacity = window.storyStageWeight(progress, WORD_END + 0.06, 1.0, 0.06, 0);
+    if (Math.abs(boxOpacity - lastBoxOpacity) > 0.001) {
+      lastBoxOpacity = boxOpacity;
+      videoBox.style.opacity = boxOpacity.toFixed(3);
+    }
     if (Math.abs(macroLocal - lastMacroLocal) > 0.001) {
       lastMacroLocal = macroLocal;
       word.style.transform = 'translate(-50%,-50%) scale(' + (1 + macroLocal * 9).toFixed(2) + ')';
