@@ -43,6 +43,9 @@
      chapter boundary (see styles.css/atmosphere.js for the full rationale
      and the three [data-curtain] trigger markers below). -->
 <div id="chapter-curtain" class="chapter-curtain" aria-hidden="true"></div>
+<!-- Custom pointer (see cursor.js/styles.css) — inert until cursor.js
+     confirms a fine, hover-capable pointer with no prefers-reduced-motion. -->
+<div id="maie-cursor" aria-hidden="true"><div class="maie-cursor-ring"></div><div class="maie-cursor-core"></div></div>
 
 <nav class="nav">
   <a class="nav-brand" href="#top">
@@ -771,5 +774,6 @@
 <script src="scene-lifecycle.js" defer></script>
 <script src="scene-agent.js" defer></script>
 <script src="scene-companion-intro.js" defer></script>
+<script src="cursor.js" defer></script>
 </body>
 </html>

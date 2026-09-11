@@ -18,6 +18,15 @@
      text-contrast variant is needed the way --brand-light-text/
      --accent-text have one. */
   --brand-tertiary: #2FBF9E;
+  /* Aurora refinement pass (2026-09-10, live-feedback follow-up): the World
+     Layer's default/baseline tint used to fall back to --brand (crimson)
+     whenever the ramp's own "variety" weight was low — which is most of
+     the screen, most of the time — leaving too little separation between
+     the maroon content palette and the atmosphere behind it. This is a
+     genuinely new, atmosphere-only hue (deep indigo/blue), not a reuse of
+     any content-facing brand token — decorative-glow use only, same
+     posture as --brand-tertiary above. */
+  --aurora-deep: #2B3E7A;
   /* Text-safe variants — --brand-light/--accent are also used for borders,
      SVG strokes, and large/bold text (all fine at their own thresholds),
      but at small normal-weight sizes (kickers, mono tags/codes) they fall
@@ -55,6 +64,7 @@ html[data-theme="light"] {
      --brand/--brand-light/--accent are each deeper here too — same hue
      family, tuned for a near-white background rather than near-black. */
   --brand-tertiary: #1E7D68;
+  --aurora-deep: #33437A;
   --brand-light-text: #A52A2A; /* --brand-light is already 6.69:1 on --bg here */
   --accent-text: #8D6608; /* 4.91:1 on --bg, vs --accent's 3.07:1 */
   /* --text-2 at 0.58 alpha measures 4.25-4.38:1 against --bg/--surface-2
@@ -207,12 +217,26 @@ a { color: inherit; }
   background-size: 280% 100%;
   background-position: 200% 0;
   background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  transition: background-position 0.9s cubic-bezier(0.16, 0.84, 0.2, 1);
+  /* Aurora refinement pass (§5) — a soft glow riding the same transition as
+     the sweep itself (one shared timing/easing, not a second animation),
+     so the text feels like it's briefly catching light rather than just
+     changing color. filter/drop-shadow, not text-shadow: this element's
+     fill is already transparent (background-clip:text), and drop-shadow
+     follows the rendered glyph alpha the same way text-shadow would here,
+     while staying a single compositor-friendly filter. Deliberately small
+     (6px, ~45% accent) — "tactile," not a glowing sign. */
+  filter: drop-shadow(0 0 0px transparent);
+  transition: background-position 0.9s cubic-bezier(0.16, 0.84, 0.2, 1),
+              filter 0.9s cubic-bezier(0.16, 0.84, 0.2, 1);
 }
-.signal-link:hover, .signal-link:focus-visible { background-position: -80% 0; }
+.signal-link:hover, .signal-link:focus-visible {
+  background-position: -80% 0;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--signal-c) 45%, transparent));
+}
 .signal-link:focus-visible { outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 3px; border-radius: 2px; }
 @media (prefers-reduced-motion: reduce) {
-  .signal-link { transition: none; background-position: 200% 0; }
+  .signal-link { transition: none; background-position: 200% 0; filter: none; }
+  .signal-link:hover, .signal-link:focus-visible { filter: none; }
 }
 .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-1); }
 .nav-brand svg { width: 30px; height: auto; }
@@ -1047,6 +1071,57 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
    rendered itself. */
 .curtain-trigger { height: 0; overflow: visible; pointer-events: none; }
 
+/* ── Custom pointer (§6, aurora refinement pass) — an interaction
+   instrument belonging to the World Layer, not a decorative gimmick.
+   Two layers: a small core that tracks the real pointer almost instantly,
+   and a larger ring that trails it on a slower ease — same "immediate
+   signal + softer atmospheric follow" relationship the rest of this file
+   already uses (see pixie-companion.js's spring physics). Both layers are
+   pure CSS transitions on transform/opacity/border/background only — no
+   JS animation loop, cursor.js only ever writes a transform on an actual
+   pointer event. Inert (opacity:0, no `cursor:none` anywhere) until
+   cursor.js confirms a fine, hover-capable pointer AND no
+   prefers-reduced-motion, at which point it adds .maie-cursor-active to
+   <html> — the safe default (JS disabled/errors, touch, keyboard-only,
+   reduced motion) is always the native cursor, never a hidden one with
+   nothing standing in for it. */
+#maie-cursor {
+  position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9998;
+  opacity: 0; transition: opacity 200ms ease;
+}
+html.maie-cursor-active #maie-cursor { opacity: 1; }
+html.maie-cursor-active, html.maie-cursor-active * { cursor: none; }
+.maie-cursor-core {
+  position: absolute; top: 0; left: 0; width: 8px; height: 8px; margin: -4px 0 0 -4px;
+  border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--accent) 65%, transparent);
+  transition: transform 70ms linear, background 220ms ease, box-shadow 220ms ease;
+}
+.maie-cursor-ring {
+  position: absolute; top: 0; left: 0; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+  border-radius: 50%; border: 1px solid color-mix(in srgb, var(--brand-tertiary) 55%, var(--accent) 25%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-deep) 28%, transparent) 0%, transparent 72%);
+  transition: transform 320ms cubic-bezier(0.16, 0.84, 0.2, 1),
+              width 220ms ease, height 220ms ease, margin 220ms ease,
+              border-color 220ms ease, opacity 220ms ease;
+}
+/* Entering an interactive element — the ring grows and warms toward the
+   accent, the core brightens slightly. Deliberately no scale on the core
+   itself (§5/§6 explicitly warn against "excessive scaling"/"cartoon-like
+   effects") — the ring is what communicates "this is touchable." */
+#maie-cursor.is-interactive .maie-cursor-ring {
+  width: 54px; height: 54px; margin: -27px 0 0 -27px;
+  border-color: var(--accent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 72%);
+}
+#maie-cursor.is-interactive .maie-cursor-core {
+  box-shadow: 0 0 11px 2px color-mix(in srgb, var(--accent) 75%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  html.maie-cursor-active #maie-cursor { display: none; }
+  html.maie-cursor-active, html.maie-cursor-active * { cursor: auto; }
+}
+
 /* ── The World Layer (formerly "atmospheric system" internally — the
    rename matters: an "atmosphere" reads as an overlay/effect, a "World
    Layer" reads as the persistent environment every scene is a window
@@ -1819,6 +1894,17 @@ html[data-theme="light"] .bg-orb { opacity: calc(0.14 * var(--orb-breathe, 1)); 
   width: min(1000px, 88vw); height: min(60vh, 620px);
   border-radius: 16px; overflow: hidden;
   border: 1px solid var(--border); background: var(--surface-2);
+  /* Root cause found in the aurora-refinement audit (§9): this box's own
+     background/border were unconditionally opaque from the very first
+     frame — only each <video> CHILD's opacity was ever scroll-driven —
+     so this fully occluded .universe-word (same centered position, earlier
+     in the DOM) for the entirety of the word's own dedicated 0-0.12
+     progress window, regardless of z-index (there never was a z-index
+     conflict; this was a plain "opaque box sitting on top" issue).
+     Starts transparent; scene-universe.js's render() now fades this
+     CONTAINER in (not just its videos) starting right as the word fades
+     out, so there's no window where the two silently overlap. */
+  opacity: 0;
 }
 .universe-video {
   position: absolute; inset: 0; width: 100%; height: 100%;

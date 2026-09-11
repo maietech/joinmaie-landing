@@ -84,6 +84,7 @@ uniform vec3 uTertiary;
 uniform vec2 uPointer;
 uniform float uPointerIntensity;
 uniform float uWarmth;
+uniform vec3 uAuroraDeep;
 
 float hash(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -125,7 +126,16 @@ void main() {
   float drift = uTime * 0.0035;
   vec2 p = rot2(drift) * uv;
 
-  float stretch = 1.0 + uVelocity * 2.6;
+  // Aurora refinement pass (2026-09-10): this anisotropic stretch used to
+  // scale up to 3.6x with scroll velocity — the single biggest contributor
+  // to the field reading as a "maelstrom/explosive vortex" during fast
+  // scrolling rather than a slow-drifting aurora. Cut to a small fraction
+  // of its old gain (still a real, felt response to fast scrolling — not
+  // removed outright — just no longer large-scale deformation). Per the
+  // brief: prefer reducing the gain of an existing input over building a
+  // new one; the pointer (uPointerIntensity below) is the intended primary
+  // source of temporary atmospheric energy now, not scroll velocity.
+  float stretch = 1.0 + uVelocity * 0.35;
   vec2 pv = vec2(p.x, p.y / stretch);
 
   float bandAngle = 0.22 + sin(uTime * 0.011) * 0.12;
@@ -149,7 +159,12 @@ void main() {
   float band = 1.0 - smoothstep(0.0, 1.45, abs(bandOffset));
 
   float tFar = uTime * 0.016;
-  float tNear = uTime * 0.05 + uVelocity * 0.5;
+  // uVelocity's coefficient here used to nearly double the near field's own
+  // evolution rate at max scroll speed (+0.5 against a 0.05 base) — a
+  // second, independent source of "everything churns faster/more
+  // chaotically" during scrolling, on top of the stretch above. Reduced to
+  // a gentle nudge, same reasoning as stretch's own cut just above.
+  float tNear = uTime * 0.05 + uVelocity * 0.1;
 
   float turb = mix(1.7, 0.35, uCoherence);
 
@@ -196,9 +211,14 @@ void main() {
   // hasn't moved recently (JS-side decay, see atmosphere.js's
   // updateAtmosphericState), so this is a no-op cost-wise for idle/touch
   // visitors beyond the one smoothstep.
+  // Amplified (radius 0.5->0.6, gain 0.35->0.55) alongside the lowered
+  // baseline budget below (LEVEL_BUDGET) — the pointer is now the primary
+  // source of temporary atmospheric energy, per the brief, so its relative
+  // contribution against a quieter resting state needed to grow, not just
+  // stay the same absolute amount.
   float pointerDist = length(uv - uPointer);
-  float pointerInfluence = uPointerIntensity * smoothstep(0.5, 0.0, pointerDist);
-  shaped = clamp(shaped + pointerInfluence * 0.35, 0.0, 1.0);
+  float pointerInfluence = uPointerIntensity * smoothstep(0.6, 0.0, pointerDist);
+  shaped = clamp(shaped + pointerInfluence * 0.55, 0.0, 1.0);
 
   vec2 specVec = vec2(
     fbm(near0 * 0.8 + turb * qNear + vec2(11.3, 2.7)),
@@ -227,7 +247,22 @@ void main() {
   vec3 fullSpectrum = auroraRamp(spectralPos, uBrand, uAccent, pale, uTertiary);
 
   float varietyWeight = clamp(pow(shaped, 2.6) * 1.6 + uCoagulate * 0.35, 0.0, 1.0);
-  vec3 tint = mix(uBrand, fullSpectrum, varietyWeight);
+  // Aurora refinement pass (2026-09-10): this mix's base color used to be
+  // uBrand (crimson) directly, so anywhere varietyWeight was low — most of
+  // the screen, most of the time — the field read as a plain wash of the
+  // same maroon the content itself uses, leaving too little separation
+  // between "content palette" and "atmosphere palette". Reusing uTertiary
+  // (teal, already a genuine independent hue token) and the new uAuroraDeep
+  // (indigo/deep-blue, decorative-glow-only, see styles.css) as the actual
+  // baseline instead — blended by fFar (already computed above, the slow
+  // background field sample; zero extra fbm cost) so the base itself drifts
+  // between teal and deep indigo across the field rather than sitting flat.
+  // uBrand/uAccent still appear, just as rarer accents inside fullSpectrum's
+  // own ramp (gated by varietyWeight exactly as before) — this preserves
+  // MAIE's brand identity as a recognizable accent within the atmosphere,
+  // not its dominant baseline hue.
+  vec3 auroraBase = mix(uAuroraDeep, uTertiary, clamp(fFar * 1.3, 0.0, 1.0));
+  vec3 tint = mix(auroraBase, fullSpectrum, varietyWeight);
 
   // Absorption-like rolloff — bright cores saturate into deep color
   // instead of clipping flat white. Applied to the EMISSIVE glow only,
@@ -438,7 +473,7 @@ void main() {
 
       var fieldProg = link(VS_FULLSCREEN, FS_FIELD);
       var postProg = link(VS_FULLSCREEN, FS_POST);
-      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent', 'uTertiary', 'uPointer', 'uPointerIntensity', 'uWarmth']);
+      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent', 'uTertiary', 'uPointer', 'uPointerIntensity', 'uWarmth', 'uAuroraDeep']);
       var postU = uniformsOf(postProg, ['uTex', 'uCanvasRes', 'uTexRes', 'uBg']);
 
       var vao = gl.createVertexArray();
@@ -861,11 +896,19 @@ void main() {
   // (1.0) reference; absolute opacities are derived from these in render()
   // below. Numbers are a starting point per the Atmospheric Evolution
   // strategy doc, §6 — expect a visual tuning pass once this is live.
+  // Aurora refinement pass (2026-09-10): lowered ~30% across the board
+  // (relative shape between levels unchanged) — the brief's "the
+  // atmosphere is currently too visually 'on' at all times" / "lower
+  // baseline vibrancy so the pointer becomes the source of temporary
+  // intensity" (§4). Reflection (level 1) was already the level a prior
+  // pass (PR #62) found ran closest to its own compositing ceiling even
+  // after tonemapping — pulling its budget down from 1.0 gives that
+  // headroom back too, without touching the tonemapping itself again.
   var LEVEL_BUDGET = {
-    0: { field: 0.6, ribbon: 0.25, particulate: 0.55, signal: 0.4 },  // Cinematic
-    1: { field: 1.0, ribbon: 1.0,  particulate: 1.0,  signal: 1.0 },  // Reflection — full atmosphere
-    2: { field: 0.8, ribbon: 0.6,  particulate: 0.8,  signal: 0.6 },  // Editorial / Exploration
-    3: { field: 0.3, ribbon: 0.15, particulate: 0.35, signal: 0.2 },  // Hero — minimal baseline; the pulse below is the reveal
+    0: { field: 0.42, ribbon: 0.18, particulate: 0.38, signal: 0.28 },  // Cinematic
+    1: { field: 0.72, ribbon: 0.7,  particulate: 0.72, signal: 0.7  },  // Reflection — fullest, but no longer maxed
+    2: { field: 0.56, ribbon: 0.42, particulate: 0.56, signal: 0.42 },  // Editorial / Exploration
+    3: { field: 0.2,  ribbon: 0.1,  particulate: 0.24, signal: 0.14 },  // Hero — minimal baseline; the pulse below is the reveal
   };
   var currentLevel = 0, targetLevel = 0;
   var densityEls = Array.prototype.slice.call(document.querySelectorAll('[data-atmo-density]'));
@@ -1247,18 +1290,23 @@ void main() {
   // Chaos-Convergence / closure) in the comments only — the actual keys
   // are the existing section ids, so this stays correct automatically if
   // a section is ever renamed in markup.
+  // Warmth spread widened ~1.6x (§7, aurora refinement pass — live feedback
+  // that chapters didn't read as distinctly enough) — turbulence left
+  // untouched, it already has real range and scene-chaos-signal's entry
+  // directly documents why it can't be pushed further without competing
+  // with that scene's own explicit narrative override.
   var SECTION_CHARACTER = {
-    'scene-opening':      { warmth: -0.15, turbulence: 0.85 }, // Signal — quiet, cool, barely perceptible
-    'scene-frame':        { warmth:  0.05, turbulence: 0.85 }, // Frame — still, observational
-    'scene-universe':     { warmth:  0.15, turbulence: 1.1  }, // Network — more energy, wider field
-    'primitives':         { warmth:  0.1,  turbulence: 1.0  },
-    'scene-human-hand':   { warmth:  0.35, turbulence: 0.75 }, // Human/Companion — warmest, softest, most settled
-    'scene-chaos-signal': { warmth: -0.1,  turbulence: 1.35 }, // Chaos -> Convergence — most turbulent by default; setCoherence() still owns the actual resolution
-    'companion-intro':    { warmth:  0.25, turbulence: 0.85 },
-    'trust':               { warmth: 0.2,  turbulence: 0.85 },
+    'scene-opening':      { warmth: -0.24, turbulence: 0.85 }, // Signal — quiet, cool, barely perceptible
+    'scene-frame':        { warmth:  0.08, turbulence: 0.85 }, // Frame — still, observational
+    'scene-universe':     { warmth:  0.24, turbulence: 1.1  }, // Network — more energy, wider field
+    'primitives':         { warmth:  0.16, turbulence: 1.0  },
+    'scene-human-hand':   { warmth:  0.5,  turbulence: 0.75 }, // Human/Companion — warmest, softest, most settled
+    'scene-chaos-signal': { warmth: -0.16, turbulence: 1.35 }, // Chaos -> Convergence — most turbulent by default; setCoherence() still owns the actual resolution
+    'companion-intro':    { warmth:  0.4,  turbulence: 0.85 },
+    'trust':               { warmth: 0.32, turbulence: 0.85 },
     'scene-lifecycle':    { warmth:  0.0,  turbulence: 1.0  },
-    'scene-agent':        { warmth:  0.05, turbulence: 1.0  },
-    'paths':               { warmth: 0.1,  turbulence: 0.7  }  // Convergence/closure — expansive, settled
+    'scene-agent':        { warmth:  0.08, turbulence: 1.0  },
+    'paths':               { warmth: 0.16, turbulence: 0.7  }  // Convergence/closure — expansive, settled
   };
   var DEFAULT_CHARACTER = { warmth: 0, turbulence: 1 };
   var targetCharacter = DEFAULT_CHARACTER, currentWarmth = 0, currentTurbulence = 1;
@@ -1277,6 +1325,7 @@ void main() {
     var brand = (s.getPropertyValue('--brand') || '').trim() || '#A52A2A';
     var brandLight = (s.getPropertyValue('--brand-light') || '').trim() || '#C24E4E';
     var tertiary = (s.getPropertyValue('--brand-tertiary') || '').trim() || '#2FBF9E';
+    var auroraDeep = (s.getPropertyValue('--aurora-deep') || '').trim() || '#2B3E7A';
     return {
       fg: fg, accent: accent,
       bgVec3: hexToVec3(bg, '09090B'),
@@ -1284,6 +1333,7 @@ void main() {
       brandLightVec3: hexToVec3(brandLight, 'C24E4E'),
       accentVec3: hexToVec3(accent, 'FFD166'),
       tertiaryVec3: hexToVec3(tertiary, '2FBF9E'),
+      auroraDeepVec3: hexToVec3(auroraDeep, '2B3E7A'),
     };
   }
   // Previously called unconditionally inside render() every single frame —
@@ -1409,11 +1459,14 @@ void main() {
     var lo = Math.max(0, Math.floor(currentLevel)), hi = Math.min(3, Math.ceil(currentLevel));
     var frac = currentLevel - lo;
 
-    // Section character (warmth/turbulence) — same smoothing rate as the
-    // density level above, so a chapter change reads as one coordinated
-    // shift rather than two systems arriving at different times.
-    currentWarmth += (targetCharacter.warmth - currentWarmth) * Math.min(1, dt * 2.2);
-    currentTurbulence += (targetCharacter.turbulence - currentTurbulence) * Math.min(1, dt * 2.2);
+    // Section character (warmth/turbulence). Slowed relative to the
+    // density-level lerp above (2.2 -> 1.3) in the aurora refinement pass
+    // (§7): a chapter's color/mood identity settling in gradually over
+    // ~1.5-2s (rather than ~1s) reads as a deliberate arrival rather than
+    // an instant switch, while the density budget itself (which also
+    // gates render cost per level) keeps responding at its original rate.
+    currentWarmth += (targetCharacter.warmth - currentWarmth) * Math.min(1, dt * 1.3);
+    currentTurbulence += (targetCharacter.turbulence - currentTurbulence) * Math.min(1, dt * 1.3);
 
     // Coherence settles toward its target more slowly than the level lerp
     // above (dt*0.6 vs dt*2.2) — deliberately: the density budget should
@@ -1499,16 +1552,17 @@ void main() {
     var lo = lvl.lo, hi = lvl.hi, frac = lvl.frac;
 
     // Ribbon elongation reuses scrollBoost's own decay curve rather than a
-    // second velocity tracker — amplified (x4) so its max ~13% scroll
-    // nudge becomes a much more visible ~50% ribbon stretch, matching
-    // pixie-companion.js's wakeStretch in spirit (reuse a tuned decay,
-    // scale it for a different visual purpose) without a second formula.
-    var ribbonStretch = 1 + (scrollBoost - 1) * 4;
+    // second velocity tracker. Aurora refinement pass (2026-09-10): the old
+    // x4/x1.2 gains turned a ~13% scroll nudge into up to ~50%/16% visible
+    // stretch — the Canvas 2D fallback path's own version of the WebGL
+    // shader's "maelstrom" stretch, same root cause (scroll velocity gain
+    // too high), same fix (cut the gain, don't remove the mechanism).
+    var ribbonStretch = 1 + (scrollBoost - 1) * 0.6;
 
-    // stretchY: same scroll signal as ribbonStretch, scaled down (field
-    // cells are large — a 4x anisotropic stretch like ribbons get would
-    // look distorted, not "elongated downstream") — capped modestly.
-    var stretchY = 1 + (scrollBoost - 1) * 1.2;
+    // stretchY: same scroll signal as ribbonStretch, scaled down further —
+    // field cells are large, so even a small anisotropic stretch reads more
+    // than ribbons' does.
+    var stretchY = 1 + (scrollBoost - 1) * 0.25;
 
     var fieldBudget = lerpBudget(lo, hi, frac, 'field');
     var ribbonBudget = lerpBudget(lo, hi, frac, 'ribbon');
@@ -1753,6 +1807,7 @@ void main() {
     g.gl.uniform3fv(g.fieldU.uBrandLight, colors.brandLightVec3);
     g.gl.uniform3fv(g.fieldU.uAccent, colors.accentVec3);
     g.gl.uniform3fv(g.fieldU.uTertiary, colors.tertiaryVec3);
+    g.gl.uniform3fv(g.fieldU.uAuroraDeep, colors.auroraDeepVec3);
     g.gl.uniform2f(g.fieldU.uPointer, pointerUVx, pointerUVy);
     g.gl.uniform1f(g.fieldU.uPointerIntensity, pointerIntensity);
     g.gl.uniform1f(g.fieldU.uWarmth, currentWarmth);
