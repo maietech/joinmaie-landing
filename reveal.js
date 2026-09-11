@@ -14,6 +14,10 @@
   // below for why. Computed in this same rAF-throttled handler rather than
   // adding a third scroll listener for it.
   var railFill = document.getElementById('story-rail-fill');
+  // Mobile's own minimal progress bar (styles.css's .story-progress-bar) —
+  // same pct this tick already computes for railFill, just also written
+  // to a second element's width instead of height. No separate listener.
+  var progressBarFill = document.getElementById('story-progress-bar-fill');
 
   // `document.documentElement.scrollHeight` is a layout-forcing read.
   // Previously read on every scroll-driven tick, immediately after writing
@@ -74,9 +78,10 @@
     var reads = batchEntries.map(function (e) { return e.read(); });
     // WRITE PHASE — this module's own writes, then every registered write().
     document.documentElement.style.setProperty('--scroll-y', window.scrollY);
-    if (railFill) {
+    if (railFill || progressBarFill) {
       var pct = cachedMax > 0 ? Math.min(100, Math.max(0, (window.scrollY / cachedMax) * 100)) : 0;
-      railFill.style.height = pct + '%';
+      if (railFill) railFill.style.height = pct + '%';
+      if (progressBarFill) progressBarFill.style.width = pct + '%';
     }
     batchEntries.forEach(function (e, i) { e.write(reads[i]); });
     ticking = false;
@@ -96,53 +101,79 @@
 })();
 
 (function () {
-  var sections = Array.prototype.slice.call(document.querySelectorAll('[data-reveal]'));
+  var revealSections = Array.prototype.slice.call(document.querySelectorAll('[data-reveal]'));
   var rail = document.getElementById('story-rail');
 
-  if (!sections.length) return;
+  if (revealSections.length) {
+    var revealObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+        }
+      });
+    }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
+    revealSections.forEach(function (sec) { revealObserver.observe(sec); });
+  }
 
-  // Build rail dots, one per section.
-  if (rail) {
-    sections.forEach(function (sec, i) {
+  // Cinematic Content pass (2026-09-11): the rail used to represent only
+  // the 3 [data-reveal] sections (primitives/trust/paths) — 8 of the
+  // page's 11 real chapters (every story-scene) were simply absent from
+  // it, even though the fill height already tracked true whole-page
+  // progress. [data-atmo-density] is the exact set of 11 major chapters
+  // atmosphere.js's own density observer already tracks (every story-
+  // scene plus every [data-reveal] section) — reused here as the rail's
+  // node list too, rather than inventing a second "what are the real
+  // chapters" enumeration.
+  var railSections = Array.prototype.slice.call(document.querySelectorAll('[data-atmo-density]'));
+  if (rail && railSections.length) {
+    var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var sectionToDot = new Map();
+    railSections.forEach(function (sec, i) {
+      var label = sec.dataset.railLabel || 'section ' + (i + 1);
       var dot = document.createElement('button');
       dot.className = 'rail-dot';
       dot.type = 'button';
-      dot.setAttribute('aria-label', 'Jump to ' + (sec.dataset.railLabel || 'section ' + (i + 1)));
+      dot.setAttribute('aria-label', 'Jump to ' + label);
+      var labelEl = document.createElement('span');
+      labelEl.className = 'rail-dot-label';
+      labelEl.textContent = label;
+      labelEl.setAttribute('aria-hidden', 'true'); // decorative — the button's own aria-label already carries this for assistive tech
+      dot.appendChild(labelEl);
       dot.addEventListener('click', function () {
-        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        sec.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
       });
       rail.appendChild(dot);
+      sectionToDot.set(sec, dot);
     });
+    var dots = Array.prototype.slice.call(rail.querySelectorAll('.rail-dot'));
+
+    // Active-node tracking reuses atmosphere.js's existing maie:scenechange
+    // event (the same "which [data-atmo-density] section currently owns
+    // the most viewport space" signal the World Layer's own per-scene
+    // budget already runs off — see atmosphere.js's density
+    // IntersectionObserver) instead of a second IntersectionObserver over
+    // the same 11 elements.
+    // .passed/.upcoming (relative to the active node's index in document
+    // order) is what lets the rail "communicate the journey ahead" (§11)
+    // — completed chapters read as filled/settled, remaining ones stay
+    // quieter, without needing separate per-node state beyond one index
+    // comparison.
+    function setActive(activeDot) {
+      var activeIdx = dots.indexOf(activeDot);
+      dots.forEach(function (d, i) {
+        d.classList.toggle('active', i === activeIdx);
+        d.classList.toggle('passed', activeIdx !== -1 && i < activeIdx);
+        d.classList.toggle('upcoming', activeIdx !== -1 && i > activeIdx);
+      });
+    }
+    document.addEventListener('maie:scenechange', function (e) {
+      setActive(sectionToDot.get(e.detail.section));
+    });
+    // Prime initial state immediately (scroll position at load) rather
+    // than waiting for atmosphere.js's first observer callback — mirrors
+    // guide.js's own "prime initial content immediately" convention for
+    // the same event.
+    setActive(window.MaieAtmosphere && window.MaieAtmosphere.currentSection
+      ? sectionToDot.get(window.MaieAtmosphere.currentSection) : dots[0]);
   }
-  var dots = rail ? Array.prototype.slice.call(rail.querySelectorAll('.rail-dot')) : [];
-
-  var revealObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('is-revealed');
-      }
-    });
-  }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
-
-  sections.forEach(function (sec) { revealObserver.observe(sec); });
-
-  // Track which reveal section is "current" for the rail dots — dots stay
-  // scoped to reveal sections only (a dot mid-cinematic-scene would still
-  // undercut the immersion, per DESIGN-DEV-GUIDE.md §4/§6 item 3's original
-  // reasoning for excluding story scenes from the rail). Fill height is no
-  // longer computed here — see the scroll handler above: it now tracks true
-  // whole-page progress, so it advances through story scenes too, resolving
-  // the gap flagged in maie-narrative-audit.md §8 (the rail was blank for
-  // most of the visitor's actual scroll distance, since 7 of 12 built
-  // sections are story scenes and account for most of the page's height).
-  var activeObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        var idx = sections.indexOf(entry.target);
-        dots.forEach(function (d, i) { d.classList.toggle('active', i === idx); });
-      }
-    });
-  }, { threshold: 0.5 });
-
-  sections.forEach(function (sec) { activeObserver.observe(sec); });
 })();

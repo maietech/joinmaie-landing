@@ -32,12 +32,32 @@
   // at script init — so there's never a frame where the cursor renders at
   // an assumed default (e.g. viewport center) before the actual pointer
   // has been located.
+  // Rail/pointer interaction (§12, Cinematic Content pass) — one extra
+  // distance check inside the SAME already-coalesced per-frame callback
+  // below, not a new listener or RAF. #story-rail is display:none under
+  // 860px (its own CSS), where getBoundingClientRect() reports a
+  // zero-size rect — skipped in that case, not just visually inert.
+  var rail = document.getElementById('story-rail');
+  var RAIL_PROXIMITY_PX = 90;
+  function updateRailProximity() {
+    if (!rail) return;
+    var r = rail.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return;
+    var dx = Math.max(r.left - tx, 0, tx - r.right);
+    var dy = Math.max(r.top - ty, 0, ty - r.bottom);
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var proximity = Math.max(0, Math.min(1, 1 - dist / RAIL_PROXIMITY_PX));
+    rail.classList.toggle('rail-near', proximity > 0);
+    rail.style.setProperty('--rail-proximity', proximity.toFixed(2));
+  }
+
   var tx = 0, ty = 0, pending = false, positioned = false;
   function apply() {
     pending = false;
     var t = 'translate3d(' + tx + 'px,' + ty + 'px,0)';
     core.style.transform = t;
     ring.style.transform = t;
+    updateRailProximity();
     if (!positioned) { positioned = true; document.documentElement.classList.add('maie-cursor-active'); }
   }
   window.addEventListener('pointermove', function (e) {
