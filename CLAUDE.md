@@ -252,8 +252,9 @@ Before major work, read:
 - **Open follow-up ticket:** `MAIE_Framework_2.0/findings-and-fixes/JOINMAIE_LANDING_THEMECHANGE_LISTENER_MISMATCH_FOLLOWUP_7-28.md`
 - **The implementation prompt these records were built against:** `MAIE_Framework_2.0/prompts/JOINMAIE_LANDING_SCROLL_PERFORMANCE_IMPLEMENTATION_PROMPT_7-28.md`
 - **The EDR process guide itself:** `MAIE_Framework_2.0/standards/ENGINEERING_DECISION_RECORD_EDR_GUIDE.md`
+- **Agent git-authority rule (the general cross-project principle; this repo's own practiced workflow is §16 below, not here):** `MAIE_Framework_2.0/standards/GIT_POLICY_AUTHORITY_RULE_AMENDMENT_9-11.md`
 
-All five live in **`MAIE_Framework_2.0`, a sibling repo on disk** (typically
+All six live in **`MAIE_Framework_2.0`, a sibling repo on disk** (typically
 `../MAIE_Framework_2.0/` relative to this repo's root) — **not** inside
 joinmaie-landing itself. This repo has no local `findings-and-fixes/` or
 `prompts/` directory of its own; don't create one that duplicates the
@@ -362,6 +363,65 @@ changed, an Architectural Note, live verification results in a table, a
 
 Every future system should make the landing page feel more alive, more
 coherent, and easier to understand — not busier.
+
+---
+
+## 16. Git Workflow & PR Hygiene
+
+Verified directly against this repo's own GitHub history (branch names,
+PR authorship/review, merge-commit parent counts — 20+ merged PRs
+checked, 2026-09-11, zero exceptions found), not assumed or copied from
+a generic template. Kept here — not a separate file — so it stays the
+one tracked, always-current source; a prior standalone doc drifted out
+of sync with actual practice and is now just a pointer back to this
+section.
+
+**Agent git authority:** agents may perform git-mutating actions
+(commit, push, branch create/delete, checkout/switch, merge, rebase,
+reset, and similar) only with explicit, per-action human permission,
+granted at the time — never assumed, and never inherited from approval
+of the broader task. Approval to implement or ship a pass is not, by
+itself, approval to branch/commit/push/merge on its behalf; ask first,
+every time, even mid-task. Read-only inspection (`git status`, `git
+diff`, `git log`, `git show`, `git grep`, checking PR/CI state) doesn't
+need to ask first. Merging to `main` stays exclusively human, always.
+Full rationale and history: `MAIE_Framework_2.0/standards/
+GIT_POLICY_AUTHORITY_RULE_AMENDMENT_9-11.md` (sibling repo).
+
+**The practiced workflow:**
+
+1. **Branch**, cut from an up-to-date `main`: `landing-page-updates-vNN`
+   is the only branch-naming convention in current use — no `feature/`,
+   `bugfix/`, etc. prefixes, regardless of what any older doc says.
+2. **Commit** with descriptive messages (why/what/how verified, matching
+   §14's PR-expectations shape). Multiple commits per branch are fine —
+   they get squashed into one on merge.
+3. **Open the PR.** Title convention: `Live verified, version NN` (+ an
+   optional short suffix) once its Cloudflare Pages *preview* deploy has
+   actually been checked, for a PR shipping a feature/content pass; a
+   plain descriptive title (no version number) for a pure bug-fix PR —
+   both patterns are attested in real history. **Version numbers are not
+   strictly sequential** (the same number has appeared on two different
+   PRs more than once) — determine the next one from the most recently
+   *merged* PR, not a gap-free counter.
+4. Cloudflare Pages auto-builds a **preview** for the PR (a GitHub Check,
+   no manual deploy step) — what "Live verified" means was checked.
+5. **Review + merge:** one GitHub account opens the PR; a different
+   second account reviews and merges, 100% consistent across all checked
+   history. `main` has **no branch-protection rule configured at the
+   GitHub level** enforcing this — it's a team convention, not a
+   technical gate.
+6. **Merge strategy: squash**, always (verified via merge-commit parent
+   counts). The squashed commit message is the PR title.
+7. Cloudflare Pages auto-builds **production** from `main` on merge — no
+   manual deploy step. Confirm the deploy actually completed (the GitHub
+   Check on the merge commit) before calling anything "deployed," and
+   confirm the live site itself reflects the change before calling
+   anything "live-verified."
+8. **Branch deletion is manual** — `delete_branch_on_merge` is off at the
+   repo level.
+9. **Local sync**, once remote deletion is confirmed: switch to `main`,
+   pull, delete the local branch.
 
 ---
 
