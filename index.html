@@ -259,27 +259,51 @@
        reader arrives at it in normal flow, and the six commitment
        statements (cinematic-slider.js, same engine as #paths-cinematic)
        unfold immediately beneath it. -->
+  <!-- Foundation hierarchy refinement (2026-09-11 refinement pass) — live
+       feedback that this section's copy "wasn't landing visually": it was
+       one undifferentiated block (kicker, title, then all six statements
+       treated identically inside the rotating slider, including the
+       "1,000+ hours" stat). Restructured into a real hierarchy: kicker ->
+       primary statement (larger) -> a standalone stat with visual
+       authority (its own number treatment, pulled OUT of the rotating
+       slider) -> the remaining five statements in a redesigned, larger,
+       progress-indicated slider. Each tier reveals with its own
+       transition-delay off the section's existing [data-reveal]/
+       .is-revealed trigger (styles.css) — one reveal signal, staggered
+       presentation, not a new observer per tier.
+       No media exists for this section in this codebase (the photography
+       the refinement brief describes — photographer, editor, colorists —
+       belongs to scene-human-hand, the NEXT chapter, not this one) —
+       flagged to the user rather than duplicated here or invented. -->
   <section id="primitives" data-reveal data-rail-label="Primitives" data-atmo-density="1">
     <div class="section-tag" style="text-align:center;">The Foundation</div>
-    <h2 class="section-title" style="text-align:center;">Every project is built with the same primitives.</h2>
-    <!-- Instrument-panel frame (Cinematic Content pass, 2026-09-11) — the
-         rotating statement below used to sit with nothing but atmosphere
-         around it. Reuses the page's own mono "data-readout" language
-         (scene-frame.js's fracture tags, trust's reflect-code) as a
-         structural frame instead: corner ticks + a thin rule, CSS only. -->
+    <h2 class="section-title section-title--foundation" style="text-align:center;">Every project is built with the same primitives.</h2>
+
+    <div class="foundation-stat">
+      <div class="foundation-stat-number">1,000+</div>
+      <div class="foundation-stat-label">Hours Invested</div>
+      <p class="foundation-stat-support">So you can spend fewer hours figuring it out.</p>
+    </div>
+
+    <!-- Instrument-panel frame — reuses the page's own mono "data-readout"
+         language (scene-frame.js's fracture tags, trust's reflect-code)
+         as a structural frame: corner ticks + a thin rule, CSS only. -->
     <div class="primitives-frame">
       <span class="primitives-frame-tick primitives-frame-tick--tl" aria-hidden="true"></span>
       <span class="primitives-frame-tick primitives-frame-tick--tr" aria-hidden="true"></span>
       <span class="primitives-frame-tick primitives-frame-tick--bl" aria-hidden="true"></span>
       <span class="primitives-frame-tick primitives-frame-tick--br" aria-hidden="true"></span>
-      <div class="cinematic-slider" id="primitives-cinematic" data-cinematic-slider role="group" aria-label="What MAIE has committed to building" aria-live="off">
-        <span class="cinematic-slider-line" data-line>1,000+ hours invested. So you can spend fewer hours figuring it out.</span>
+      <div class="cinematic-slider cinematic-slider--foundation" id="primitives-cinematic" data-cinematic-slider role="group" aria-label="What MAIE has committed to building" aria-live="off">
         <span class="cinematic-slider-line" data-line>Thousands of decisions made before you ever had to make one.</span>
         <span class="cinematic-slider-line" data-line>We built the infrastructure. You build what comes next.</span>
         <span class="cinematic-slider-line" data-line>The complexity is ours to solve. The possibility is yours to explore.</span>
         <span class="cinematic-slider-line" data-line>Built deliberately. Tested relentlessly. Designed around your work.</span>
         <span class="cinematic-slider-line" data-line>The foundation is already built. Now build something extraordinary.</span>
       </div>
+      <!-- Progress indicator — opt-in: cinematic-slider.js only builds
+           dots when this sibling exists, so #paths-cinematic (the other
+           instance of the shared engine) is completely unaffected. -->
+      <div class="cinematic-slider-progress" data-slider-progress aria-hidden="true"></div>
     </div>
   </section>
 
@@ -328,6 +352,26 @@
       <div class="hand-caption" id="hand-caption"></div>
     </div>
   </section>
+
+  <!-- Strategic Cinematic Checkpoint (Refinement pass, 2026-09-11) — audit
+       finding: scene-human-hand is the largest single scene on the page
+       (480vh) with no checkpoint or curtain on either side, and its quiet
+       thesis is easy to blast straight through into Chaos-Signal's much
+       more intense chip field. Native-scroll-only, per direction: nothing
+       here ever touches scroll input. The CTA jumps straight to
+       #scene-chaos-signal; a visitor who just keeps scrolling instead
+       still reaches it on their own after the quiet .chapter-pause buffer
+       below — never blocked, just given room to actually settle here
+       first. See styles.css's .checkpoint--strategic/.chapter-pause
+       comments for the full rationale. -->
+  <div class="checkpoint checkpoint--strategic" data-reveal>
+    <div class="checkpoint-rule" aria-hidden="true"></div>
+    <div class="checkpoint-kicker">People, Not Just Process</div>
+    <p class="checkpoint-line">Technology does not create meaning. People do.</p>
+    <a class="checkpoint-cta checkpoint-cta--strategic" href="#scene-chaos-signal" data-checkpoint-target="scene-chaos-signal">Continue to Chaos → Signal <span class="checkpoint-cta-arrow" aria-hidden="true">→</span></a>
+  </div>
+  <div class="curtain-trigger" data-curtain aria-hidden="true"></div>
+  <div class="chapter-pause" aria-hidden="true"></div>
 
   <!-- Sections 5+6 merged into one continuous scroll region per
        chaos-to-signal-merge-direction.md — one .story-scene wrapper, one
@@ -461,18 +505,23 @@
     </div>
   </section>
 
-  <!-- Checkpoint 2 of 3 — trust -> scene-lifecycle. See checkpoints.js /
-       .checkpoint (styles.css) for the shared component this reuses at
-       all three boundaries. Copy: derived from this section's own "Built
-       to Be Trusted" theme handing off to scene-lifecycle's "The Media
-       Lifecycle" (guide.js's own copy for that scene: "Imagine if every
-       production remembered everything."). -->
-  <div class="checkpoint" data-reveal>
+  <!-- Checkpoint 2 of 3 — trust -> scene-lifecycle. Upgraded to a
+       Strategic Cinematic Checkpoint (Refinement pass, 2026-09-11) —
+       #trust was the confirmed top scroll-risk priority: important
+       security/trust content a fast scroller could skim straight past.
+       Copy: derived from this section's own "Built to Be Trusted" theme
+       handing off to scene-lifecycle's "The Media Lifecycle" (guide.js's
+       own copy for that scene: "Imagine if every production remembered
+       everything."). Native-scroll-only — see styles.css's
+       .checkpoint--strategic/.chapter-pause comments; nothing here
+       touches scroll input. -->
+  <div class="checkpoint checkpoint--strategic" data-reveal>
     <div class="checkpoint-rule" aria-hidden="true"></div>
     <div class="checkpoint-kicker">Your Work Is Protected</div>
     <p class="checkpoint-line">See what MAIE remembers, project after project.</p>
-    <a class="checkpoint-cta signal-link" href="#scene-lifecycle" data-checkpoint-target="scene-lifecycle">Continue to the Lifecycle <span class="checkpoint-cta-arrow" aria-hidden="true">→</span></a>
+    <a class="checkpoint-cta checkpoint-cta--strategic" href="#scene-lifecycle" data-checkpoint-target="scene-lifecycle">Continue to the Lifecycle <span class="checkpoint-cta-arrow" aria-hidden="true">→</span></a>
   </div>
+  <div class="chapter-pause" aria-hidden="true"></div>
 
   <!-- Narrative Polish pass — Trust -> Lifecycle transition (Category A/B,
        flagged in memory as this page's weakest transition: Trust is plain

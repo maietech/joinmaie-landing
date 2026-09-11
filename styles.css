@@ -626,6 +626,55 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
   .checkpoint-cta-arrow { transition: none; }
 }
 
+/* ── Strategic Cinematic Checkpoint (Refinement pass, 2026-09-11) ──────
+   A settled chapter state where progression into the next chapter is
+   intentionally activated by the user, while native scrolling remains
+   completely unrestricted — nothing on this page ever reads scroll
+   position to gate content, and nothing here changes that. Two-part
+   design, both additive to the existing .checkpoint component (same
+   base structure, more visual weight — not a second component):
+     1. .checkpoint--strategic — more ceremony (larger kicker/line, more
+        vertical room) than the three original "soft" checkpoints.
+     2. .chapter-pause — a plain, quiet spacer sitting after a strategic
+        checkpoint and before the next chapter's own sticky panel begins.
+        No content, no [data-reveal], no [data-atmo-density] — the
+        current chapter's own atmospheric mood and Story Rail state
+        simply continue through it (neither changes until the NEXT
+        chapter's own section actually starts intersecting), which reads
+        as "still settled here," not a bug. The checkpoint's own CTA
+        `scrollIntoView`s straight past this to the next section id; a
+        visitor who just keeps scrolling manually reaches the same place
+        on their own, at their own pace — the pause is a real distance,
+        never a blocked one. */
+.checkpoint--strategic { padding: 64px 20px; }
+.checkpoint--strategic .checkpoint-kicker { font-size: 13px; letter-spacing: 0.16em; margin-bottom: 16px; }
+.checkpoint--strategic .checkpoint-line { font-size: clamp(22px, 3.2vw, 30px); margin-bottom: 36px; }
+/* The CTA itself — a "restrained illuminated button" per the brief's own
+   language, not the plain text-link the three original checkpoints use.
+   Still keeps .checkpoint-cta-arrow's existing nudge-on-hover; still a
+   plain <a>, so cursor.js's existing INTERACTIVE selector (which already
+   matches every bare `a` on the page) picks it up with no change needed
+   there. */
+.checkpoint-cta--strategic {
+  padding: 16px 32px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: 0 0 0 0 transparent;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.checkpoint-cta--strategic:hover, .checkpoint-cta--strategic:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 35%, transparent);
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .checkpoint-cta--strategic { transition: none; }
+  .checkpoint-cta--strategic:hover, .checkpoint-cta--strategic:focus-visible { transform: none; }
+}
+.chapter-pause { height: 140vh; }
+@media (max-width: 720px) { .chapter-pause { height: 100vh; } }
+
 /* ── Primitives instrument frame — Cinematic Content pass (2026-09-11).
    The rotating statement in #primitives used to sit with nothing but
    atmosphere around it; this gives it a defined "instrument panel" using
@@ -838,6 +887,93 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 }
 @media (max-width: 640px) {
   .cinematic-slider-line { font-size: 12px; line-height: 1.7; }
+}
+
+/* ── Foundation content-emphasis refinement (2026-09-11) ──────────────
+   Scoped to #primitives specifically (section-title/cinematic-slider are
+   shared classes used by #trust and #paths-cinematic respectively) so
+   nothing else on the page changes. */
+.section-title--foundation {
+  font-size: clamp(34px, 6vw, 58px); max-width: 16ch; margin-left: auto; margin-right: auto;
+}
+/* The "1,000+ hours" stat, pulled out of the rotating slider so it can
+   carry real visual authority instead of taking its turn with five other
+   equally-weighted lines. Bebas Neue for the number — the same "giant
+   impactful numeral/word" register scene-universe.js's MEDIA word and
+   the brand wordmark already use on this page, not a new typographic
+   voice. */
+.foundation-stat { text-align: center; margin: 8px auto 40px; }
+.foundation-stat-number {
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(56px, 11vw, 110px);
+  line-height: 1; letter-spacing: 0.01em; color: var(--text-1);
+}
+.foundation-stat-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent-text); margin-top: 4px;
+}
+.foundation-stat-support { color: var(--text-2-small); font-size: 16px; max-width: 42ch; margin: 10px auto 0; }
+
+/* Larger, more legible statement text for this instance only — the
+   brief's own complaint was specifically that this text (13px, shared
+   with #paths-cinematic) was "too small... easy to pass over." */
+.cinematic-slider--foundation .cinematic-slider-line {
+  font-size: 17px; letter-spacing: 0.05em; line-height: 1.7; color: var(--text-1);
+}
+@media (max-width: 640px) {
+  .cinematic-slider--foundation .cinematic-slider-line { font-size: 15px; }
+}
+
+/* Progress indicator — visually consistent with the redesigned Story
+   Rail's node language (small circle, active = larger + illuminated)
+   rather than a conventional carousel's dash-row, per the brief's own
+   "visually consistent with the redesigned Story Rail" instruction.
+   Opt-in (cinematic-slider.js only builds these when this element is
+   present) — #paths-cinematic is untouched. */
+.cinematic-slider-progress {
+  display: flex; justify-content: center; gap: 10px; margin-top: 18px;
+}
+.cinematic-slider-progress-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--border);
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+.cinematic-slider-progress-dot.is-active {
+  width: 9px; height: 9px; background: var(--accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-slider-progress-dot { transition: none; }
+}
+
+/* Staggered reveal (§3 of the refinement brief: "use the existing
+   cinematic scene architecture to reveal them intentionally") — one
+   reveal signal (#primitives.is-revealed, from reveal.js's existing
+   IntersectionObserver), each tier given its own transition + delay so
+   the section arrives as kicker -> title -> stat -> frame rather than
+   one flat fade. */
+#primitives > .section-tag,
+#primitives > .section-title--foundation,
+#primitives > .foundation-stat,
+#primitives > .primitives-frame {
+  opacity: 0; transform: translateY(16px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+#primitives.is-revealed > .section-tag { transition-delay: 0.05s; }
+#primitives.is-revealed > .section-title--foundation { transition-delay: 0.25s; }
+#primitives.is-revealed > .foundation-stat { transition-delay: 0.5s; }
+#primitives.is-revealed > .primitives-frame { transition-delay: 0.75s; }
+#primitives.is-revealed > .section-tag,
+#primitives.is-revealed > .section-title--foundation,
+#primitives.is-revealed > .foundation-stat,
+#primitives.is-revealed > .primitives-frame {
+  opacity: 1; transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #primitives > .section-tag,
+  #primitives > .section-title--foundation,
+  #primitives > .foundation-stat,
+  #primitives > .primitives-frame {
+    opacity: 1; transform: none; transition: none;
+  }
 }
 /* Skip-the-Story, from inside the destination itself — quiet, mono,
    same register as .path-note below rather than a second CTA.
