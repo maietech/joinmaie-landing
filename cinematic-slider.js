@@ -46,6 +46,24 @@
       line.setAttribute('aria-hidden', i === 0 ? 'false' : 'true');
     });
 
+    // Progress indicator (Refinement pass, 2026-09-11) — opt-in: only
+    // built when a [data-slider-progress] element sits right after this
+    // slider (see #primitives-cinematic in index.html). #paths-cinematic
+    // has no such sibling, so it's completely unaffected by this — same
+    // shared engine, one instance gets the added affordance via markup,
+    // not a fork of the file.
+    var progressEl = root.nextElementSibling;
+    var progressDots = null;
+    if (progressEl && progressEl.hasAttribute('data-slider-progress')) {
+      progressDots = lines.map(function (line, i) {
+        var dot = document.createElement('span');
+        dot.className = 'cinematic-slider-progress-dot';
+        dot.classList.toggle('is-active', i === 0);
+        progressEl.appendChild(dot);
+        return dot;
+      });
+    }
+
     if (reducedMotion) {
       // Static, not motion-reduced: a single settled statement, no
       // auto-advancing content at all. Matches this codebase's existing
@@ -65,6 +83,10 @@
       lines[index].setAttribute('aria-hidden', 'true');
       lines[next].classList.add('is-active');
       lines[next].setAttribute('aria-hidden', 'false');
+      if (progressDots) {
+        progressDots[index].classList.remove('is-active');
+        progressDots[next].classList.add('is-active');
+      }
       index = next;
     }
 

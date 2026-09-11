@@ -211,14 +211,15 @@ void main() {
   // hasn't moved recently (JS-side decay, see atmosphere.js's
   // updateAtmosphericState), so this is a no-op cost-wise for idle/touch
   // visitors beyond the one smoothstep.
-  // Amplified (radius 0.5->0.6, gain 0.35->0.55) alongside the lowered
-  // baseline budget below (LEVEL_BUDGET) — the pointer is now the primary
-  // source of temporary atmospheric energy, per the brief, so its relative
-  // contribution against a quieter resting state needed to grow, not just
-  // stay the same absolute amount.
+  // Amplified again (gain 0.55->0.75, ~36%, within the requested 25-50%
+  // range) in the Pointer Color Refinement pass (2026-09-11) — live
+  // feedback that the density/brightness bump alone didn't read as a
+  // "color reveal." pointerInfluence itself is still computed once here
+  // and reused below for the NEW direct varietyWeight boost, so this
+  // stays one signal driving two related effects, not two separate ones.
   float pointerDist = length(uv - uPointer);
   float pointerInfluence = uPointerIntensity * smoothstep(0.6, 0.0, pointerDist);
-  shaped = clamp(shaped + pointerInfluence * 0.55, 0.0, 1.0);
+  shaped = clamp(shaped + pointerInfluence * 0.75, 0.0, 1.0);
 
   vec2 specVec = vec2(
     fbm(near0 * 0.8 + turb * qNear + vec2(11.3, 2.7)),
@@ -246,7 +247,18 @@ void main() {
   // ramp redesign.
   vec3 fullSpectrum = auroraRamp(spectralPos, uBrand, uAccent, pale, uTertiary);
 
-  float varietyWeight = clamp(pow(shaped, 2.6) * 1.6 + uCoagulate * 0.35, 0.0, 1.0);
+  // Pointer Color Refinement pass (2026-09-11): the prior pass's pointer
+  // effect only ever brightened shaped — varietyWeight (how much of
+  // fullSpectrum's actual color ramp shows through vs. the flat
+  // auroraBase below) only rose as a SIDE EFFECT of that brightness
+  // increase (via pow(shaped,2.6)). Live feedback: this read as "brighter"
+  // more than "more colorful." Direct term added here so pointer motion
+  // explicitly reveals color/variety, not just density — "quiet
+  // atmosphere -> pointer disturbance -> brief luminous color bloom,"
+  // not "quiet atmosphere -> pointer disturbance -> brighter quiet
+  // atmosphere." Same pointerInfluence signal as the density boost above,
+  // not a second pointer computation.
+  float varietyWeight = clamp(pow(shaped, 2.6) * 1.6 + uCoagulate * 0.35 + pointerInfluence * 0.5, 0.0, 1.0);
   // Aurora refinement pass (2026-09-10): this mix's base color used to be
   // uBrand (crimson) directly, so anywhere varietyWeight was low — most of
   // the screen, most of the time — the field read as a plain wash of the
