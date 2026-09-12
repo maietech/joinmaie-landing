@@ -674,6 +674,13 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 }
 .chapter-pause { height: 140vh; }
 @media (max-width: 720px) { .chapter-pause { height: 100vh; } }
+/* Smaller sibling to .chapter-pause — purely structural clearance for a
+   checkpoint immediately followed by a scene carrying this page's
+   pre-existing crossfade overlap margin (`margin-top: -20vh` on several
+   #scene-* ids — see that rule's own comment), not a pacing/settling
+   beat like .chapter-pause. 28vh comfortably exceeds the 20vh it needs
+   to absorb, with headroom for rounding/viewport differences. */
+.checkpoint-clearance { height: 28vh; }
 
 /* ── Primitives instrument frame — Cinematic Content pass (2026-09-11).
    The rotating statement in #primitives used to sit with nothing but
@@ -1508,7 +1515,18 @@ html.maie-cursor-active, html.maie-cursor-active * { cursor: none; }
   overflow: hidden; border-radius: 0 0 22px 22px;
   transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
 }
-.guide-panel.is-expanded .guide-body { max-height: 420px; opacity: 1; padding: 2px 18px 18px; }
+/* 420px was a guessed cap, not derived from real content — this panel's
+   content length varies per scene (guide.js's CONTENT table has real
+   variance in blurb/why-text length) and this box's own width shrinks
+   with the viewport (.guide-panel's `min(640px, calc(100vw - 32px))`),
+   so narrower screens wrap the same text across more lines. Either
+   factor can push real content past a fixed 420px, silently clipping
+   whatever sits at the bottom (bug report: "the last sentence or so...
+   cut off"). Bumped to a viewport-scaled, much more generous cap
+   (min(70vh, 600px)) plus overflow-y:auto as a real safety net — even in
+   a combination this doesn't fully anticipate, content becomes
+   internally scrollable, never silently invisible again. */
+.guide-panel.is-expanded .guide-body { max-height: min(70vh, 600px); opacity: 1; padding: 2px 18px 18px; overflow-y: auto; }
 
 .guide-kicker { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2-small); margin-bottom: 4px; }
 .guide-scene-headline { font-size: 17px; font-weight: 600; color: var(--text-1); margin-bottom: 6px; }
@@ -1879,7 +1897,21 @@ html.maie-cursor-active, html.maie-cursor-active * { cursor: none; }
   display: flex; align-items: center; justify-content: center;
   background: color-mix(in srgb, var(--bg) var(--atmo-veil, 100%), transparent);
 }
-.nav.nav-hidden { transform: translateY(-100%); transition: transform 0.3s ease; }
+/* translateY(-100%) moves the nav by its OWN height only (64px) — correct
+   when `top` is ~0, but .nav's `top` is never 0 (10px desktop, up to
+   `max(10px+safe-area, 28px)` on mobile, see .nav's own mobile media
+   query above). A 64px-tall nav starting at top:28px and moving up
+   exactly 64px lands at -36px to +28px — a real, measured 28px sliver
+   (44% of the bar) still inside the viewport, confirmed via direct
+   getBoundingClientRect() on a small viewport at initial load (bug
+   report: "hangs halfway out of the viewport's top border" — literal,
+   not an exaggeration). Desktop's much smaller 10px top offset made this
+   nearly invisible, which is why it went unnoticed until mobile. Fixed
+   with a fixed extra clearance comfortably covering every current `top`
+   value (including generous notch/safe-area cases), rather than trying
+   to compute the exact offset in CSS — simplest correct fix, no new
+   custom property needed. */
+.nav.nav-hidden { transform: translateY(calc(-100% - 80px)); transition: transform 0.3s ease; }
 .nav { transition: transform 0.3s ease; }
 
 #scene-opening-canvas { width: 100%; height: 100%; display: block; }
