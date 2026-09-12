@@ -317,6 +317,19 @@
     <p class="checkpoint-line">But technology alone was never the point.</p>
     <a class="checkpoint-cta signal-link" href="#scene-human-hand" data-checkpoint-target="scene-human-hand">Continue to Reflection <span class="checkpoint-cta-arrow" aria-hidden="true">→</span></a>
   </div>
+  <!-- Bug fix (small-viewport touch report): #scene-human-hand has a
+       pre-existing margin-top: -20vh (part of this page's original
+       scene-crossfade overlap system — see styles.css). This checkpoint
+       is the one boundary that never got a .chapter-pause buffer (it
+       predates that pattern, added for the later Strategic Checkpoints).
+       Without any clearance, that -20vh pulled scene-human-hand's own
+       sticky panel up far enough to physically cover this checkpoint's
+       CTA — confirmed directly (getBoundingClientRect() showed the
+       section starting at the same y-position as the button, and
+       Playwright's own actionability check refused to tap it: "element
+       intercepts pointer events"). This spacer only needs to clear
+       ~20vh, not a full chapter-pause's worth of pacing. -->
+  <div class="checkpoint-clearance" aria-hidden="true"></div>
 
   <!-- Section 4 — The Human Hand (Reflection). Previously blocked on real
        documentary photography — the 10 stock photos on hand were
