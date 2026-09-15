@@ -63,7 +63,7 @@
     fractures.forEach(function (el, i) {
       if (!el) return;
       var win = windows[i];
-      var w = window.storyStageWeight(progress, win.start, win.end, 0.04, 0);
+      var w = window.storyStageWeightGuarded('frame-tag-' + i, progress, win.start, win.end, 0.04, 0);
       if (Math.abs(w - lastW[i]) <= 0.001) return;
       lastW[i] = w;
       el.style.height = (2 + w * MAX_HEIGHT) + 'px';
@@ -72,7 +72,7 @@
       if (dots[i]) dots[i].style.opacity = w;
     });
 
-    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.0, 0.20, 0.04, 0.10);
+    if (caption) caption.style.opacity = window.storyStageWeightGuarded('frame-caption', progress, 0.0, 0.20, 0.04, 0.10);
 
     if (!echoFired && progress > 0.96 && window.MaieAtmosphere) {
       echoFired = true;

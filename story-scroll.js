@@ -85,3 +85,38 @@ window.storyStageWeight = function (progress, start, end, fadeIn, fadeOut) {
   if (progress > end) return 1 - (progress - end) / fadeOut;
   return 1;
 };
+
+// Guarded stage-weight — protects a narrow reveal window (e.g. a caption
+// visible for only 15-20% of a scene's scroll range) from being skipped
+// entirely by one large scroll delta (a fast trackpad fling, a held Page
+// Down/spacebar, high OS-level scroll acceleration). This never touches
+// scroll position — the hard rule this file is built on (see the header
+// comment above) — it only changes what OPACITY a given tick reports, by
+// noticing when that tick's raw scroll jump cleared a reveal window's
+// entire span (fade margins included) without either the previous or the
+// current progress ever landing inside it. In that case it reports a full
+// reveal for this one tick instead of storyStageWeight's true (usually 0)
+// value at the landing point — the moment genuinely was passed through,
+// even though no sample point was inside it to say so. The next tick
+// recomputes the real value normally, so this never gets stuck mid-window;
+// pairing the caller's element with a CSS `transition: opacity` (see
+// styles.css's .scene-caption/.lifecycle-caption/.agent-caption/.frame-tag)
+// is what turns this one forced tick into an actual eased hold instead of
+// a reveal-then-instant-vanish on the very next tick.
+//
+// `key` is a caller-chosen id (e.g. an element id) so this can track
+// several independent call sites through one shared Map instead of each
+// scene file rolling its own prevProgress variable — small, local, no new
+// scheduler; reuses this file's existing per-tick call shape.
+var guardState = new Map();
+window.storyStageWeightGuarded = function (key, progress, start, end, fadeIn, fadeOut) {
+  var raw = window.storyStageWeight(progress, start, end, fadeIn, fadeOut);
+  var prev = guardState.get(key);
+  guardState.set(key, progress);
+  if (prev == null) return raw;
+  var lo = Math.min(prev, progress), hi = Math.max(prev, progress);
+  var winStart = start - (fadeIn != null ? fadeIn : 0.04);
+  var winEnd = end + (fadeOut != null ? fadeOut : 0.04);
+  if (lo <= winStart && hi >= winEnd) return 1;
+  return raw;
+};

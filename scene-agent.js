@@ -128,7 +128,7 @@
       pixieHandle.update({ progress: within });
     }
 
-    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.00, 1.00, 0.05, 0.05);
+    if (caption) caption.style.opacity = window.storyStageWeightGuarded('agent-caption', progress, 0.00, 1.00, 0.05, 0.05);
   }
 
   function clamp01(v) { return Math.max(0, Math.min(1, v)); }

@@ -73,7 +73,6 @@ uniform vec2 uResolution;
 uniform float uTime;
 uniform float uCoherence;
 uniform float uCoagulate;
-uniform float uVelocity;
 uniform float uIntensity;
 uniform float uBreatheSeed;
 uniform vec3 uBg;
@@ -85,6 +84,18 @@ uniform vec2 uPointer;
 uniform float uPointerIntensity;
 uniform float uWarmth;
 uniform vec3 uAuroraDeep;
+// Shooting star (Night-Sky pass, 2026-09-14) — one small additive streak
+// term, computed JS-side per currentShootingStar()/atmosphere.js and fed
+// in as plain numbers rather than adding a second draw call: uShootHead/
+// uShootDir are in the same centered, height-normalized uv space uPointer
+// already uses. uShootEnvelope is 0 whenever no streak is active, making
+// the whole block below a single cheap branch for the overwhelming
+// majority of frames.
+uniform vec2 uShootHead;
+uniform vec2 uShootDir;
+uniform float uShootTrail;
+uniform float uShootEnvelope;
+uniform float uShootTint;
 
 float hash(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -126,23 +137,24 @@ void main() {
   float drift = uTime * 0.0035;
   vec2 p = rot2(drift) * uv;
 
-  // Aurora refinement pass (2026-09-10): this anisotropic stretch used to
-  // scale up to 3.6x with scroll velocity — the single biggest contributor
-  // to the field reading as a "maelstrom/explosive vortex" during fast
-  // scrolling rather than a slow-drifting aurora. Cut to a small fraction
-  // of its old gain (still a real, felt response to fast scrolling — not
-  // removed outright — just no longer large-scale deformation). Per the
-  // brief: prefer reducing the gain of an existing input over building a
-  // new one; the pointer (uPointerIntensity below) is the intended primary
-  // source of temporary atmospheric energy now, not scroll velocity.
-  float stretch = 1.0 + uVelocity * 0.35;
-  vec2 pv = vec2(p.x, p.y / stretch);
-
+  // Night-sky/time-lapse pass (2026-09-14): the prior pass here (an
+  // anisotropic squish of sample-space, gain already cut once before) was
+  // still the wrong MECHANISM, not just too strong a gain — scaling space
+  // during fast scroll bends round structures into ellipses, which reads
+  // as a mechanical stretch/warp no matter how small the gain, not as "the
+  // current moving faster." Removed outright. uTime itself already speeds
+  // up during scroll (atmosphere.js's shared clock variable, driven by the same
+  // scrollBoost every other layer — ribbons, field cells, particles — also
+  // samples for its own position/advection), so every term below that
+  // depends on uTime already advances faster in lockstep, isotropically,
+  // with no shape distortion: existing structures visibly flow past faster,
+  // like a time-lapse of rushing current/wafting vapor, exactly because
+  // nothing about their shape changes, only how fast they travel.
   float bandAngle = 0.22 + sin(uTime * 0.011) * 0.12;
   vec2 bandDir = vec2(sin(bandAngle), cos(bandAngle));
   vec2 bandNormal = vec2(bandDir.y, -bandDir.x);
   vec2 advect = bandDir * uTime * 0.05;
-  vec2 pa = pv - advect;
+  vec2 pa = p - advect;
 
   // Widened from 0.62 -> 1.45 (site request, 2026-08-31): at 0.62 this mask
   // read as a narrow, tornado-like column through the center — everything
@@ -159,12 +171,7 @@ void main() {
   float band = 1.0 - smoothstep(0.0, 1.45, abs(bandOffset));
 
   float tFar = uTime * 0.016;
-  // uVelocity's coefficient here used to nearly double the near field's own
-  // evolution rate at max scroll speed (+0.5 against a 0.05 base) — a
-  // second, independent source of "everything churns faster/more
-  // chaotically" during scrolling, on top of the stretch above. Reduced to
-  // a gentle nudge, same reasoning as stretch's own cut just above.
-  float tNear = uTime * 0.05 + uVelocity * 0.1;
+  float tNear = uTime * 0.05;
 
   float turb = mix(1.7, 0.35, uCoherence);
 
@@ -324,6 +331,21 @@ void main() {
   // toward the corners still reads as depth rather than a flat wash.
   float vig = smoothstep(1.8, 0.15, length(uv));
   col *= mix(0.65, 1.0, vig);
+
+  // Shooting star — added AFTER the vignette (not before) so a streak
+  // crossing a corner still reads at full brightness rather than being
+  // dimmed by the same falloff that mutes the field there; it's meant to
+  // read as a distinct, sudden object, not part of the ambient field.
+  if (uShootEnvelope > 0.001) {
+    vec2 toP = uv - uShootHead;
+    float along = dot(toP, uShootDir);
+    float perp = length(toP - uShootDir * along);
+    float inSegment = step(-uShootTrail, along) * step(along, 0.006);
+    float tailFade = 1.0 - clamp(-along / uShootTrail, 0.0, 1.0);
+    float core = exp(-perp * perp * 2600.0) * tailFade * inSegment;
+    vec3 streakColor = mix(vec3(1.0), uAccent, uShootTint * 0.5);
+    col += streakColor * core * uShootEnvelope * 0.9;
+  }
 
   fragColor = vec4(col, 1.0);
 }`;
@@ -485,7 +507,7 @@ void main() {
 
       var fieldProg = link(VS_FULLSCREEN, FS_FIELD);
       var postProg = link(VS_FULLSCREEN, FS_POST);
-      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uVelocity', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent', 'uTertiary', 'uPointer', 'uPointerIntensity', 'uWarmth', 'uAuroraDeep']);
+      var fieldU = uniformsOf(fieldProg, ['uResolution', 'uTime', 'uCoherence', 'uCoagulate', 'uIntensity', 'uBreatheSeed', 'uBg', 'uBrand', 'uBrandLight', 'uAccent', 'uTertiary', 'uPointer', 'uPointerIntensity', 'uWarmth', 'uAuroraDeep', 'uShootHead', 'uShootDir', 'uShootTrail', 'uShootEnvelope', 'uShootTint']);
       var postU = uniformsOf(postProg, ['uTex', 'uCanvasRes', 'uTexRes', 'uBg']);
 
       var vao = gl.createVertexArray();
@@ -843,6 +865,61 @@ void main() {
       if (c.y > 1 + padY) c.y -= 1 + padY * 2;
     }
   }
+
+  // ── Shooting stars — Night-Sky pass (2026-09-14). Rare, brief, deliberately
+  // understated (a thin fading streak, not a cartoon sparkle burst) — the
+  // brief's own "classy, not on-the-nose" instruction. Scheduled entirely
+  // up front from the same mulberry32 stream every other particle in this
+  // file draws its own seed from — never a per-frame Math.random() roll —
+  // so this stays a pure function of `clock`, matching the file's existing
+  // "deterministic, a reload lands the same composition" contract. Gaps
+  // between events are themselves randomized (70-140s) rather than a fixed
+  // interval, so the recurrence never reads as a metronome (§7's "avoid
+  // obvious looping").
+  var SHOOTING_STAR_DURATION = 0.9; // seconds a single streak is ever visible for
+  var SHOOTING_STARS = [];
+  var SHOOTING_STAR_PERIOD = 1;
+  (function () {
+    var t = 20 + rand() * 30; // first one arrives a while after load, not on arrival
+    for (var s = 0; s < 6; s++) {
+      SHOOTING_STARS.push({
+        time: t,
+        xFrac: 0.08 + rand() * 0.6,
+        yFrac: 0.04 + rand() * 0.32,
+        // Degrees off horizontal; sign picks down-left vs down-right so
+        // successive events don't all travel the same way.
+        angleDeg: (rand() < 0.5 ? 1 : -1) * (16 + rand() * 22),
+        tint: rand() < 0.3,
+      });
+      t += 70 + rand() * 70;
+    }
+    SHOOTING_STAR_PERIOD = t;
+  })();
+  // Pure function of clock — returns null when no streak is active, or its
+  // current travel fraction (t, 0..1) and envelope (fade in/hold/fade out)
+  // otherwise. Shared verbatim by both renderers below; only how the head
+  // position gets drawn/uniformed differs.
+  function currentShootingStar(clockNow) {
+    var loopT = clockNow % SHOOTING_STAR_PERIOD;
+    for (var i = 0; i < SHOOTING_STARS.length; i++) {
+      var ev = SHOOTING_STARS[i];
+      var dt = loopT - ev.time;
+      if (dt >= 0 && dt < SHOOTING_STAR_DURATION) {
+        var t = dt / SHOOTING_STAR_DURATION;
+        var envelope = Math.min(1, t / 0.12) * (1 - Math.max(0, (t - 0.55) / 0.45));
+        var rad = ev.angleDeg * Math.PI / 180;
+        return {
+          xFrac: ev.xFrac, yFrac: ev.yFrac,
+          dx: Math.cos(rad), dy: Math.sin(rad),
+          t: t, envelope: Math.max(0, Math.min(1, envelope)),
+          tint: ev.tint,
+        };
+      }
+    }
+    return null;
+  }
+  var SHOOTING_STAR_TRAVEL_FRAC = 0.5; // fraction of the viewport diagonal the head crosses over the full duration
+  var SHOOTING_STAR_TRAIL_FRAC = 0.1;  // trail length, same units
 
   // Background orbs (styles.css's .bg-orb-1/2/3) breathe off this same
   // field — see render()'s orb-breathe block below — so the large anchored
@@ -1202,18 +1279,20 @@ void main() {
     curtainTriggers.forEach(function (t) { curtainObserver.observe(t); });
   }
 
-  // ── Scroll-velocity nudge — 10-15% faster while actively scrolling,
-  // decaying back to baseline. A lightweight passive listener (a single
-  // number update, no reads/writes of layout) rather than routing through
-  // the read/write batch, since it doesn't touch the DOM at all.
-  //
-  // Ribbons reuse this exact same signal for their own elongation (see
-  // ribbonStretch in render()) rather than tracking scroll velocity a
-  // second way — same reasoning as pixie-companion.js's wakeStretch:
-  // reuse one already-tuned decay curve instead of inventing a second
-  // one, per the brief's "unify existing motion systems." ──
+  // ── Scroll-velocity nudge — the SOLE scroll-reactive speed cue as of the
+  // 2026-09-14 night-sky/time-lapse pass (previously paired with a separate
+  // anisotropic spatial stretch in both renderers, removed — see FS_FIELD's
+  // own comment on `pa` and drawFieldCell/drawRibbon below for why: warping
+  // shape read as mechanical no matter the gain, where speeding up the
+  // shared virtual clock reads as the current genuinely moving faster).
+  // Retuned from a subtle 1.13 peak (tuned back when it was a secondary
+  // accent to the stretch) up to 1.6, with a slightly longer decay tail, so
+  // it alone carries the full "time-lapse/rushing current" feeling on a
+  // real scroll gesture. A lightweight passive listener (a single number
+  // update, no reads/writes of layout) rather than routing through the
+  // read/write batch, since it doesn't touch the DOM at all. ──
   var scrollBoost = 1;
-  window.addEventListener('scroll', function () { scrollBoost = 1.13; wake(); }, { passive: true });
+  window.addEventListener('scroll', function () { scrollBoost = 1.6; wake(); }, { passive: true });
 
   // ── Wake / settle lifecycle — Phase 1 of the 2026-09-10 Atmospheric &
   // Scene Transition pass. Previously this file's render loop ran a full
@@ -1389,21 +1468,21 @@ void main() {
   // currentFlow() — the coherence-blended field, so ribbons visibly
   // fragment/compete during low-coherence (Chaos-beat) sections and
   // straighten into clean laminar traces as coherence rises, not an
-  // independent per-ribbon formula. `stretch` is ribbonStretch from
-  // render() (the scroll-velocity nudge), applied to the ribbon's own
-  // length so faster scrolling visibly elongates it before it settles
-  // back to baseline.
+  // independent per-ribbon formula. Length stays constant regardless of
+  // scroll — headY's own advance rate (clock * r.speed * r.depth) already
+  // speeds up with scrollBoost, so a fast scroll reads as the ribbon
+  // traveling faster, not stretching longer.
   //
   // Drawn as a 2-pass "streakline bundle" (a slightly offset, thinner,
   // fainter second trace) rather than a single line — a cheap way to read
   // as a flow-visualization streakline rather than a drawn stroke, without
   // doubling the ribbon count (and its seeded state) in the array above.
   var RIBBON_SEGS = 8;
-  function drawRibbon(r, alpha, color, stretch) {
+  function drawRibbon(r, alpha, color) {
     var band = vh + 300;
     var headY = (((r.baseY * band) + clock * r.speed * r.depth) % band) - 150;
     var headX = r.xFrac * vw;
-    var length = r.length * stretch;
+    var length = r.length;
     for (var pass = 0; pass < 2; pass++) {
       var passOffset = pass === 0 ? 0 : 5;
       ctx.beginPath();
@@ -1425,10 +1504,12 @@ void main() {
   // (see render()) so overlapping cells brighten/merge rather than simply
   // layering — the actual "merge, split, recombine" behavior the fluid
   // model asks for comes from this blend mode plus stepField()'s
-  // advection, not from any explicit merge logic. stretchY anisotropically
-  // elongates the cell along the vertical (scroll) axis — reuses the same
-  // scroll signal as ribbonStretch, so field structures visibly elongate
-  // downstream under fast scrolling too, same as ribbons.
+  // advection, not from any explicit merge logic. Cells stay circular
+  // regardless of scroll speed (the old scroll-linked vertical squish,
+  // stretchY, is gone as of the 2026-09-14 night-sky pass — see render()'s
+  // own comment) — stepField()'s currentFlow() sampling already carries
+  // cells downstream faster when scrollBoost/clock speeds up, so "faster"
+  // comes from real position advection, not shape distortion.
   //
   // shimmer is a small, fast (distinct-frequency-from-everything-else)
   // alpha wobble — a cheap, honest approximation of "soft illumination
@@ -1437,17 +1518,47 @@ void main() {
   // c.pulse (0 normally) briefly bumps radius+alpha when an echo is
   // absorbed into this cell — see the echoes loop in render() below; the
   // "energy transforms rather than disappearing" gesture.
-  function drawFieldCell(c, budget, color, stretchY) {
+  function drawFieldCell(c, budget, color) {
     var x = c.x * vw, y = c.y * vh;
     var shimmer = 0.85 + 0.15 * Math.sin(clock * 1.7 + c.seed * 2);
     var r = Math.min(vw, vh) * c.r * (1 + c.pulse * 0.15);
     ctx.save();
     ctx.translate(x, y);
-    ctx.scale(1, stretchY);
     var g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
     g.addColorStop(0, color); g.addColorStop(0.55, color); g.addColorStop(1, 'transparent');
     ctx.fillStyle = g; ctx.globalAlpha = budget * 0.09 * shimmer * (1 + c.pulse * 0.4);
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Canvas 2D rendering of currentShootingStar()'s state — a thin gradient
+  // streak (transparent tail -> solid head) plus a small brighter core dot
+  // at the head, drawn additively so it reads as a brief glint rather than
+  // a flat drawn line. Deliberately no particle trail / sparkle burst — a
+  // single soft stroke is the whole effect, per the "classy, not on-the-
+  // nose" brief.
+  function drawShootingStar(star, budgetScale) {
+    if (!star || star.envelope <= 0.001) return;
+    var diag = Math.sqrt(vw * vw + vh * vh);
+    var headDist = star.t * SHOOTING_STAR_TRAVEL_FRAC * diag;
+    var hx = star.xFrac * vw + star.dx * headDist;
+    var hy = star.yFrac * vh + star.dy * headDist;
+    var trailLen = SHOOTING_STAR_TRAIL_FRAC * diag;
+    var tx = hx - star.dx * trailLen, ty = hy - star.dy * trailLen;
+    var col = star.tint ? cachedColors.accent : cachedColors.fg;
+    var grad = ctx.createLinearGradient(tx, ty, hx, hy);
+    grad.addColorStop(0, 'transparent');
+    grad.addColorStop(1, col);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = grad;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 1.3;
+    ctx.globalAlpha = star.envelope * 0.85 * budgetScale;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.globalAlpha = star.envelope * budgetScale;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(hx, hy, 1.4, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
@@ -1464,7 +1575,7 @@ void main() {
   // what it computes. Returns lo/hi/frac since both renderers need them
   // (the WebGL path for its single 'field' budget, Canvas 2D for all four).
   function updateAtmosphericState(dt) {
-    scrollBoost += (1 - scrollBoost) * Math.min(1, dt * 1.8); // decay back to 1
+    scrollBoost += (1 - scrollBoost) * Math.min(1, dt * 1.3); // decay back to 1 — slightly slower than the old 1.8 for a bit more inertia/tail
     clock += dt * scrollBoost;
 
     currentLevel += (targetLevel - currentLevel) * Math.min(1, dt * 2.2); // smoothed level transition
@@ -1563,18 +1674,14 @@ void main() {
     var lvl = updateAtmosphericState(dt);
     var lo = lvl.lo, hi = lvl.hi, frac = lvl.frac;
 
-    // Ribbon elongation reuses scrollBoost's own decay curve rather than a
-    // second velocity tracker. Aurora refinement pass (2026-09-10): the old
-    // x4/x1.2 gains turned a ~13% scroll nudge into up to ~50%/16% visible
-    // stretch — the Canvas 2D fallback path's own version of the WebGL
-    // shader's "maelstrom" stretch, same root cause (scroll velocity gain
-    // too high), same fix (cut the gain, don't remove the mechanism).
-    var ribbonStretch = 1 + (scrollBoost - 1) * 0.6;
-
-    // stretchY: same scroll signal as ribbonStretch, scaled down further —
-    // field cells are large, so even a small anisotropic stretch reads more
-    // than ribbons' does.
-    var stretchY = 1 + (scrollBoost - 1) * 0.25;
+    // Night-sky/time-lapse pass (2026-09-14): ribbons/field cells used to
+    // additionally elongate/squish (ribbonStretch, stretchY) on top of
+    // scrollBoost's clock speedup — same anisotropic-warp mechanism as the
+    // WebGL shader's old `stretch`, same "reads as mechanical" problem,
+    // removed for the same reason (see FS_FIELD's comment on `pa`). Both
+    // layers already sample `clock` (via currentFlow()/stepField()) for
+    // their own position, so scrollBoost's isotropic speedup alone already
+    // carries them faster with no shape distortion — nothing else needed.
 
     var fieldBudget = lerpBudget(lo, hi, frac, 'field');
     var ribbonBudget = lerpBudget(lo, hi, frac, 'ribbon');
@@ -1605,7 +1712,7 @@ void main() {
       ctx.globalCompositeOperation = 'lighter';
       for (var fcI = 0; fcI < fieldCells.length; fcI++) {
         var cell = fieldCells[fcI];
-        drawFieldCell(cell, fieldBudget * breathe, cell.tint ? colors.accent : colors.fg, stretchY);
+        drawFieldCell(cell, fieldBudget * breathe, cell.tint ? colors.accent : colors.fg);
       }
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -1616,7 +1723,7 @@ void main() {
       for (var rb = 0; rb < ribbons.length; rb++) {
         var r = ribbons[rb];
         var rAlpha = ribbonBudget * (0.05 + r.depth * 0.05);
-        drawRibbon(r, rAlpha, r.tint ? colors.accent : colors.fg, ribbonStretch);
+        drawRibbon(r, rAlpha, r.tint ? colors.accent : colors.fg);
       }
     }
 
@@ -1658,7 +1765,14 @@ void main() {
       // eddying on top of the primary downstream drift, which stays the
       // loop-band mechanism above (unchanged, since that's what already
       // guarantees no visible wrap/repeat).
-      var f = currentFlow(baseX, y, clock + p.phase * 3);
+      // Stars (type 1) are a fixed night-sky backdrop, not debris carried
+      // by the current — Night-Sky pass (2026-09-14). They keep the same
+      // vertical parallax loop (baseY/speed/depth above, already computed
+      // into `y`) but skip currentFlow()'s wobble/eddy entirely (no `f`
+      // sample needed) so they read as pinpoints of light sitting behind
+      // the moving aurora/nebula, not particles swept along inside it.
+      var isStar = p.type === 1;
+      var f = isStar ? null : currentFlow(baseX, y, clock + p.phase * 3);
       // micro: a small, fast, distinct-frequency wobble layered on top —
       // the "microscopic shimmering diffusion" scale, a third tier below
       // the field cells' (very slow/huge) and the primary wobble's
@@ -1666,9 +1780,14 @@ void main() {
       // own two scales so the hierarchy reads as three distinct sizes of
       // motion, not one noisier one.
       var micro = Math.sin(clock * 3.1 + p.phase * 5 + baseX * 0.05) * 0.6 * p.depth;
-      var wob = f.vx * p.wobbleAmp * p.depth + micro;
-      var x = baseX + wob;
-      y += f.vy * p.depth * 6;
+      var x;
+      if (isStar) {
+        x = baseX + micro * 0.4; // a faint sit-in-place shimmer, no directional drift
+      } else {
+        var wob = f.vx * p.wobbleAmp * p.depth + micro;
+        x = baseX + wob;
+        y += f.vy * p.depth * 6;
+      }
       if (heroPulse > 0) {
         // Pull x toward a shared sine curve across the viewport width —
         // "waveform fragments align" — then release as heroPulse fades.
@@ -1685,13 +1804,22 @@ void main() {
       // own budget on top of the shared particulate one; dots/curves stay
       // on particulate alone.
       var layerBudget = p.type === 0 ? signalBudget : 1;
-      // Foam: local speed of the SAME field sample (|vx| + |vy|) modulates
-      // visibility — foam brightens where the invisible current is moving
-      // faster beneath it, dims where it's calm, per "particles merely
-      // reveal the invisible motion" rather than existing independently of
-      // it. Clamped so it nudges rather than fully hides/exposes.
-      var speedMag = Math.min(1.4, Math.abs(f.vx) + Math.abs(f.vy));
-      var alpha = budgetOpacity * layerBudget * (0.25 + speedMag * 0.4) * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3) * (1 + openingPulse * 0.6);
+      var alpha;
+      if (isStar) {
+        // Twinkle — a slow per-star brightness pulse, independent of local
+        // flow speed (unlike foam below): stars shouldn't visibly brighten
+        // just because the aurora happens to be moving fast beneath them.
+        var twinkle = 0.55 + 0.45 * Math.sin(clock * (0.6 + p.depth * 0.4) + p.phase * 7);
+        alpha = budgetOpacity * layerBudget * twinkle * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3) * (1 + openingPulse * 0.6);
+      } else {
+        // Foam: local speed of the SAME field sample (|vx| + |vy|) modulates
+        // visibility — foam brightens where the invisible current is moving
+        // faster beneath it, dims where it's calm, per "particles merely
+        // reveal the invisible motion" rather than existing independently of
+        // it. Clamped so it nudges rather than fully hides/exposes.
+        var speedMag = Math.min(1.4, Math.abs(f.vx) + Math.abs(f.vy));
+        alpha = budgetOpacity * layerBudget * (0.25 + speedMag * 0.4) * (0.4 + p.depth * 0.6) * (1 + heroPulse * 1.3) * (1 + openingPulse * 0.6);
+      }
       var color = (p.tint || heroPulse > 0.5) ? colors.accent : colors.fg;
       var size = p.size * (0.7 + p.depth * 0.5);
       if (p.type === 1) drawDot(x, y, size, alpha, color);
@@ -1732,6 +1860,15 @@ void main() {
       echoes = kept;
     }
 
+    // Shooting star — see currentShootingStar()/drawShootingStar() above.
+    // Envelope-scaled by particulateBudget so it doesn't fight a section
+    // deliberately keeping its atmosphere quiet, but never fully hidden
+    // (0.5 floor) — a rare enough event that it should still read even
+    // during a Cinematic-level scene.
+    if (!reducedMotion) {
+      drawShootingStar(currentShootingStar(clock), 0.5 + 0.5 * particulateBudget);
+    }
+
     // Orb breathing — background .bg-orb-1/2/3 (styles.css). Throttled to
     // ~10Hz internally (see updateOrbBreathing()); shared with the WebGL
     // render path below, unchanged in behavior from before.
@@ -1754,13 +1891,24 @@ void main() {
     var lvl = updateAtmosphericState(dt);
     var fieldBudget = lerpBudget(lvl.lo, lvl.hi, lvl.frac, 'field');
 
-    // uVelocity — derived from the EXISTING scrollBoost signal (the same
-    // single `scroll` listener already registered above; no new listener
-    // added). scrollBoost ranges ~1.0 (rest) to ~1.13 (freshly kicked by a
-    // scroll event), decaying back down — normalized into the 0..1 range
-    // the field shader's own stretch formula expects (validated in the
-    // prototype against a 0..1 signal of the same decaying-kick shape).
-    var uVelocity = Math.min(1, Math.max(0, (scrollBoost - 1.0) / 0.13));
+    // Shooting star — same schedule/evaluator the Canvas 2D path uses
+    // (currentShootingStar(), defined above stepField()), converted into
+    // the shader's centered/height-normalized uv space with the same
+    // sign convention as uPointer just below (DOM y-down -> shader y-up).
+    var shootStar = reducedMotion ? null : currentShootingStar(clock);
+    var shootHeadX = 0, shootHeadY = 0, shootDirX = 0, shootDirY = 0, shootTrail = 0.001, shootEnvelope = 0, shootTint = 0;
+    if (shootStar && shootStar.envelope > 0.001 && vh > 0) {
+      var shootDiag = Math.sqrt(vw * vw + vh * vh);
+      var shootHeadDist = shootStar.t * SHOOTING_STAR_TRAVEL_FRAC * shootDiag;
+      var shootHxPx = shootStar.xFrac * vw + shootStar.dx * shootHeadDist;
+      var shootHyPx = shootStar.yFrac * vh + shootStar.dy * shootHeadDist;
+      shootHeadX = (shootHxPx - vw * 0.5) / vh;
+      shootHeadY = -(shootHyPx - vh * 0.5) / vh;
+      shootDirX = shootStar.dx; shootDirY = -shootStar.dy;
+      shootTrail = (SHOOTING_STAR_TRAIL_FRAC * shootDiag) / vh;
+      shootEnvelope = shootStar.envelope;
+      shootTint = shootStar.tint ? 1 : 0;
+    }
 
     // uCoagulate — deliberately NOT a second narrative lever. Production
     // exposes exactly one atmospheric narrative pathway (setCoherence()),
@@ -1811,7 +1959,6 @@ void main() {
     g.gl.uniform1f(g.fieldU.uTime, clock);
     g.gl.uniform1f(g.fieldU.uCoherence, coherence);
     g.gl.uniform1f(g.fieldU.uCoagulate, uCoagulate);
-    g.gl.uniform1f(g.fieldU.uVelocity, uVelocity);
     g.gl.uniform1f(g.fieldU.uIntensity, fieldBudget);
     g.gl.uniform1f(g.fieldU.uBreatheSeed, BREATHE_SEED);
     g.gl.uniform3fv(g.fieldU.uBg, colors.bgVec3);
@@ -1823,6 +1970,11 @@ void main() {
     g.gl.uniform2f(g.fieldU.uPointer, pointerUVx, pointerUVy);
     g.gl.uniform1f(g.fieldU.uPointerIntensity, pointerIntensity);
     g.gl.uniform1f(g.fieldU.uWarmth, currentWarmth);
+    g.gl.uniform2f(g.fieldU.uShootHead, shootHeadX, shootHeadY);
+    g.gl.uniform2f(g.fieldU.uShootDir, shootDirX, shootDirY);
+    g.gl.uniform1f(g.fieldU.uShootTrail, shootTrail);
+    g.gl.uniform1f(g.fieldU.uShootEnvelope, shootEnvelope);
+    g.gl.uniform1f(g.fieldU.uShootTint, shootTint);
     g.gl.drawArrays(g.gl.TRIANGLES, 0, 3);
 
     // Pass 2 — composite (bilinear upscale + cheap blur/bloom) to the

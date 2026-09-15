@@ -122,7 +122,7 @@
     });
     dots.forEach(function (d, i) { d.classList.toggle('is-active', i === activeIdx); });
 
-    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.00, 1.00, 0.05, 0.05);
+    if (caption) caption.style.opacity = window.storyStageWeightGuarded('lifecycle-caption', progress, 0.00, 1.00, 0.05, 0.05);
   }
 
   window.initScrollScene(section, function (progress) { render(progress); });

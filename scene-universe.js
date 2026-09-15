@@ -166,7 +166,7 @@
       }
     });
 
-    if (caption) caption.style.opacity = window.storyStageWeight(progress, 0.90, 1.00, 0.06, 0.00);
+    if (caption) caption.style.opacity = window.storyStageWeightGuarded('universe-caption', progress, 0.90, 1.00, 0.06, 0.00);
 
     // Same persistent "keep going" cue as the original build — present
     // through nearly the whole scene, independent of which chapter is
