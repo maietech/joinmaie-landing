@@ -399,8 +399,10 @@ a { color: inherit; }
    luminous filament instead of a flat rule. Still the same fixed
    right-side spine (unchanged position — the thing that already worked),
    still CSS-transition-only, still desktop-only (unchanged 860px
-   threshold — mobile gets its own minimal bar, see .story-progress-bar
-   below, not this compressed down). Pointer-proximity glow (--rail-
+   threshold — below it there's no room for per-chapter dots/labels, not
+   this compressed down; see .story-progress-bar below for the universal
+   whole-page progress cue every viewport gets regardless). Pointer-
+   proximity glow (--rail-
    proximity) is written by cursor.js's existing coalesced pointermove
    handler — no new listener, see that file's comment. */
 #story-rail {
@@ -468,23 +470,37 @@ a { color: inherit; }
   .rail-dot, .rail-dot-label, .rail-fill { transition: none; }
 }
 
-/* ── Mobile progress — a distinct, minimal representation, not the
-   desktop rail compressed down (§22: "do not simply force the desktop
-   rail into mobile if another representation is more appropriate").
-   Overall scroll progress only, no per-chapter nodes/labels — Guide
-   (guide.js, no mobile-hide rule) remains the mobile orientation/
-   narrative surface; this is just a quiet "how far" cue under the nav. */
+/* ── Top progress bar — universal, all viewports (refactor, 2026-09-16).
+   Previously mobile-only (<=860px) and pinned to a hardcoded `top: 64px`
+   guess at the nav's bottom edge — the nav is a floating detached panel
+   (`.nav`'s own `top: 10px`/`max(10px + safe-area, 28px)` mobile offset,
+   plus `.nav--compact`'s shorter scrolled height), so its real bottom
+   edge moves around across breakpoints and scroll states and routinely
+   landed past that fixed 64px guess, burying part of the bar under the
+   nav (reported directly, phone-width screenshot). Anchoring to the true
+   viewport edge (`top: 0`) sidesteps that whole class of bug instead of
+   chasing the nav's current offset: the nav never sits flush at the very
+   top (10px desktop, 28px+/safe-area mobile), so a bar shorter than that
+   gap can never overlap it, in any state.
+   No longer mobile-only, and thicker (2px -> 4px) — both the "hidden
+   under the nav" and "barely-visible sliver" reports named the same
+   underlying issue (this bar reading as an afterthought rather than a
+   real part of the page), so the fix is the same in both directions:
+   give it a fixed, generous position and enough weight to read as
+   deliberate. #story-rail (desktop's separate per-chapter dot/label
+   navigator, unchanged below) stays exactly as it was — this bar is the
+   whole-page "how far" cue everywhere, the rail is chapter navigation
+   only where there's room for it. */
 .story-progress-bar {
-  display: none;
-  position: fixed; left: 0; right: 0; top: 64px; height: 2px; z-index: 89;
+  position: fixed; left: 0; right: 0; top: 0; height: 4px; z-index: 89;
   background: color-mix(in srgb, var(--border) 60%, transparent);
 }
 .story-progress-bar-fill {
   height: 100%; width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--brand-light));
+  box-shadow: 0 1px 8px color-mix(in srgb, var(--accent) 35%, transparent);
   transition: width 0.2s ease;
 }
-@media (max-width: 860px) { .story-progress-bar { display: block; } }
 @media (prefers-reduced-motion: reduce) { .story-progress-bar-fill { transition: none; } }
 
 /* ── Opening cinematic cue ──────────────────────────────────────────

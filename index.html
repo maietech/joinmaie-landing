@@ -106,9 +106,12 @@
 </div>
 
 <div id="story-rail"><div class="rail-fill" id="story-rail-fill"></div></div>
-<!-- Mobile's distinct minimal progress indicator — see styles.css's
-     .story-progress-bar comment. Desktop hides this (860px), mobile hides
-     #story-rail — never both at once. -->
+<!-- Universal whole-page progress cue, all viewports — see styles.css's
+     .story-progress-bar comment (refactor, 2026-09-16: was mobile-only
+     and hidden under the nav on small viewports; now viewport-agnostic
+     and anchored to the true top edge instead). #story-rail above is a
+     separate, desktop-only per-chapter navigator (hidden below 860px),
+     not a duplicate of this. -->
 <div class="story-progress-bar" aria-hidden="true"><div class="story-progress-bar-fill" id="story-progress-bar-fill"></div></div>
 
 <main id="top">
