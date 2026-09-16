@@ -584,15 +584,37 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 .reflect-list { display: flex; flex-direction: column; max-width: 640px; }
 .reflect-item { padding: 36px 0; border-top: 1px solid var(--border); }
 .reflect-item:first-child { border-top: none; padding-top: 0; }
-.reflect-title { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
-.reflect-desc { color: var(--text-2-small); font-size: 15.5px; line-height: 1.65; max-width: 56ch; }
-/* opacity:0.85 removed — it was blending the text color toward the
-   background, pulling even the AA-safe token back under 4.5:1 (found in
-   the pre-production audit's contrast sweep: 0.85 opacity dropped
-   --brand-light-text's 4.81:1 to an effective ~3.7:1). The smaller mono
-   font and muted-relative-to-the-heading color already read as
-   "supporting detail" without needing the extra transparency. */
-.reflect-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brand-light-text); margin-top: 14px; }
+/* Legibility halo — Trust/Foundation contrast fix (2026-09-16). The AA
+   numbers in --text-2-small/--brand-light-text's own :root comments are
+   measured against a flat --bg; #trust and #primitives (both
+   data-atmo-density="1") have no card/surface behind their text at
+   all — they sit directly on the World Layer canvas (atmo-canvas),
+   whose actual on-screen luminance drifts well past what those flat-bg
+   numbers assume, which is why this copy reads as "barely visible" in
+   practice even though it's AA-clean on paper. A --bg-colored text-shadow
+   (not a new color/opacity — reuses the same halo technique already used
+   for text-on-imagery elsewhere on this page, e.g. .lifecycle-frame-desc
+   below) restores that flat-bg contrast regardless of what the canvas is
+   doing behind it, in both themes. Applied here and to #primitives'
+   structurally identical siblings (.foundation-stat-support,
+   .cinematic-slider-line) rather than only here — same unshielded-text-
+   on-atmosphere shape, same fix. */
+.reflect-title {
+  font-size: 24px; font-weight: 700; margin: 0 0 10px;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 90%, transparent),
+               0 0 14px color-mix(in srgb, var(--bg) 65%, transparent);
+}
+.reflect-desc {
+  color: var(--text-1); font-size: 17px; line-height: 1.7; max-width: 56ch;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 90%, transparent),
+               0 0 14px color-mix(in srgb, var(--bg) 65%, transparent);
+}
+.reflect-code {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.02em; color: var(--brand-light-text); margin-top: 14px;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 90%, transparent),
+               0 0 14px color-mix(in srgb, var(--bg) 65%, transparent);
+}
 
 /* ── Checkpoint — Cinematic Content pass (2026-09-11). One shared
    component reused at the three normal-flow chapter boundaries (see
@@ -882,6 +904,13 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
   font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--brand-light-text);
   text-align: center; line-height: 1.6;
+  /* Same unshielded-text-on-atmosphere shape as .reflect-desc/-code
+     above — this engine's #primitives instance sits directly on
+     data-atmo-density="1" with no card behind it (the #paths instance
+     is density="3"/high-veil already, so this is a no-op insurance
+     there, not a fix). */
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 90%, transparent),
+               0 0 14px color-mix(in srgb, var(--bg) 65%, transparent);
 }
 .cinematic-slider-line.is-active {
   opacity: 1; transform: translateX(-50%) translateY(0); filter: blur(0);
@@ -917,8 +946,17 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
 .foundation-stat-label {
   font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--accent-text); margin-top: 4px;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 90%, transparent),
+               0 0 14px color-mix(in srgb, var(--bg) 65%, transparent);
 }
-.foundation-stat-support { color: var(--text-2-small); font-size: 16px; max-width: 42ch; margin: 10px auto 0; }
+/* Same unshielded-text-on-atmosphere shape as .reflect-desc above —
+   #primitives is also data-atmo-density="1" with no card behind this
+   text — so it gets the same halo treatment. */
+.foundation-stat-support {
+  color: var(--text-2-small); font-size: 16px; max-width: 42ch; margin: 10px auto 0;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 90%, transparent),
+               0 0 14px color-mix(in srgb, var(--bg) 65%, transparent);
+}
 
 /* Larger, more legible statement text for this instance only — the
    brief's own complaint was specifically that this text (13px, shared
