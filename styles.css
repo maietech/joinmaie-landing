@@ -1327,6 +1327,15 @@ html[data-theme="light"] .mma-mark--light { display: block; }
 .path-note { margin: 28px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.04em; color: var(--text-2-small); }
 
 footer { text-align: center; padding: 40px 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-2-small); }
+/* Site-wide footer links (About/Contact/Privacy/Terms) — added to close
+   the "no navigation beyond the story, no legal/contact pages" gap
+   surfaced by Google Ads policy review (thin-content/publisher-network
+   rejection), 2026-09-19. Plain text links in the existing footer, not a
+   new nav system — Chrome-level per CLAUDE.md's UI Hierarchy (§10). */
+footer .footer-links { margin-top: 10px; }
+footer .footer-links a { color: var(--text-2-small); text-decoration: none; border-bottom: 1px solid transparent; }
+footer .footer-links a:hover { color: var(--brand-light-text); border-bottom-color: currentColor; }
+footer .footer-links .footer-sep { margin: 0 8px; opacity: 0.5; }
 
 /* ── Background field — adapted from the splash page's orb + grain
    technique. Same effect (blurred, theme-tinted orbs drifting at

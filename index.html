@@ -75,6 +75,8 @@
            .nav-link treatment as Trust/Pitch Deck — inherits the
            existing <640px disclosure behavior (nav-menu.js) for free. -->
       <a class="nav-link signal-link" href="#paths">Skip Story</a>
+      <a class="nav-link signal-link" href="/about.html">About</a>
+      <a class="nav-link signal-link" href="/contact.html">Contact</a>
     </div>
     <button id="nav-more-toggle" class="nav-more-toggle" aria-label="More links" aria-expanded="false" aria-controls="nav-secondary">⋯</button>
     <button id="theme-toggle" aria-label="Switch to light mode">🌓<span class="nav-theme-label"> Theme</span></button>
@@ -837,7 +839,11 @@
 
 </main>
 
-<footer>MAIE — in partnership with Midwest Media Alliance</footer>
+<footer>MAIE — in partnership with Midwest Media Alliance
+  <div class="footer-links">
+    <a href="/about.html">About</a><span class="footer-sep" aria-hidden="true">·</span><a href="/contact.html">Contact</a><span class="footer-sep" aria-hidden="true">·</span><a href="https://app.joinmaie.com/privacy-policy">Privacy Policy</a><span class="footer-sep" aria-hidden="true">·</span><a href="https://app.joinmaie.com/terms-of-service">Terms of Service</a>
+  </div>
+</footer>
 
 <!-- `defer` on every one of these (Category A / Technical Excellence,
      NARRATIVE_LOCK.md §7): with plain synchronous `<script src>` tags, the
