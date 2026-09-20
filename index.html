@@ -80,7 +80,28 @@
     </div>
     <button id="nav-more-toggle" class="nav-more-toggle" aria-label="More links" aria-expanded="false" aria-controls="nav-secondary">⋯</button>
     <button id="theme-toggle" aria-label="Switch to light mode">🌓<span class="nav-theme-label"> Theme</span></button>
-    <a class="nav-cta signal-link" href="https://app.joinmaie.com/signup">Join the Exchange</a>
+    <!-- "Sign Up" is the default label (industry-standard wording so a
+         first-time visitor immediately recognizes where to create an
+         account — no discovery cost), "Join the Exchange" reveals on
+         hover/focus as the on-brand flourish. Filled-button treatment,
+         not the plain text-link style this repo's own narrative audit
+         (maie-narrative-audit.md, Recommendation D3) previously
+         recommended — that decision is deliberately reversed here, not
+         an oversight; see the .nav-cta rule in styles.css for the
+         reversal note. aria-label keeps the accessible name stable
+         ("Sign Up") regardless of hover state; the hover span is
+         aria-hidden since it's a decorative flourish, not new
+         information. -->
+    <!-- signal-link deliberately dropped from this element: that class's
+         gradient text-fill effect (-webkit-text-fill-color: transparent,
+         an inherited property) would apply to the nested spans below and
+         render their text invisible now that this is a filled button
+         with its own solid background, not gradient-swept plain text
+         like the other .signal-link nav items. -->
+    <a class="nav-cta" href="https://app.joinmaie.com/signup" aria-label="Sign Up">
+      <span class="nav-cta-default">Sign Up</span>
+      <span class="nav-cta-hover" aria-hidden="true">Join the Exchange</span>
+    </a>
   </div>
 </nav>
 

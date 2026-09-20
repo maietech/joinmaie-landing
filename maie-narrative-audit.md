@@ -218,6 +218,16 @@ DOM order, as implemented today.
    *Change:* Lower its visual weight, or make it earn prominence only once the visitor approaches the close.
    *Why it matters:* The rest of the page is unusually disciplined about not asking too early; the nav is the one place that discipline doesn't apply, and it's visible 100% of the time.
    *Supports:* §5, §9, §10.
+   ***Reversed (2026-09-20), by explicit founder direction, not silently
+   overridden:*** the nav CTA is a filled button again, default label
+   "Sign Up" (industry-standard wording) with "Join the Exchange" as a
+   hover/focus reveal. This D3 recommendation was correctly reasoned at
+   the time — the "no early ask" narrative-discipline argument above is
+   still real — but recognizable, standard signup discoverability was
+   judged the higher priority for this one control. See the `.nav-cta`
+   rule in `styles.css` for the implementation and the fuller rationale
+   comment. This entry is left in place, not deleted, as the record of
+   what was originally recommended and why.
 
 4. **Add AI-tool/agent/model clutter to Section 5's chaos field.**
    *Wrong now:* The chaos chip set is all generic files/cloud/chat — the brief explicitly lists "AI tools. Agents. Models... Approvals" among the fragmenting forces, and none of that appears.

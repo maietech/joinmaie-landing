@@ -298,18 +298,72 @@ a { color: inherit; }
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 30%, transparent);
 }
-/* De-escalated from a filled button (see maie-narrative-audit.md §9/§11 D3) —
+/* REVERSAL (2026-09-20) of the de-escalation below — kept, not deleted,
+   per this repo's own append-only-correction convention (CLAUDE.md §3's
+   pattern), since the original reasoning was real and considered, not
+   wrong on its face. Explicit founder direction: prioritize recognizable,
+   industry-standard signup discoverability and conversion practice over
+   the "no early ask" narrative-purity argument for this one control —
+   documentation of a prior decision isn't a permanent override of new,
+   deliberate product direction. maie-narrative-audit.md's D3 recommendation
+   is annotated with a pointer to this comment, not deleted either.
+   Filled button again, default label now "Sign Up" (industry-standard
+   wording, zero discovery cost for a first-time visitor) with "Join the
+   Exchange" as an on-brand hover/focus reveal — see the .nav-cta-default/
+   .nav-cta-hover rules below and the markup comment in index.html.
+
+   ORIGINAL COMMENT (2026-08, superseded above, left for context):
+   De-escalated from a filled button (see maie-narrative-audit.md §9/§11 D3) —
    a persistent, filled-button ask visible from the first pixel on every
    scroll position undid the same "no early ask" decision already made for
    the hero (DESIGN-DEV-GUIDE.md §6 item 1). Now a plain brand-colored text
    link, same weight class as the other nav links, distinguished by color
    and an underline-on-hover rather than a button shape. */
 .nav-cta {
-  color: var(--brand-light); font-size: 14px; font-weight: 600; text-decoration: none;
-  padding: 4px 0; border-bottom: 1px solid transparent;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 9px 18px;
+  border-radius: 8px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 10px var(--brand-glow);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
-.nav-cta:hover { border-bottom-color: var(--brand-light); }
+.nav-cta:hover, .nav-cta:focus-visible {
+  background: var(--brand-light);
+  box-shadow: 0 4px 16px var(--brand-glow);
+}
+/* Both labels share the same grid cell (place-items: center above) so
+   the button's own size is fixed — set by whichever label is wider
+   ("Join the Exchange") — and never resizes on hover; only opacity/
+   position cross-fade, matching this repo's "physical, no jarring pop"
+   animation rules (CLAUDE.md §7). */
+.nav-cta-default, .nav-cta-hover {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.nav-cta-hover {
+  opacity: 0;
+  transform: translateY(4px);
+}
+.nav-cta:hover .nav-cta-default,
+.nav-cta:focus-visible .nav-cta-default {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.nav-cta:hover .nav-cta-hover,
+.nav-cta:focus-visible .nav-cta-hover {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-cta-default, .nav-cta-hover { transition: none; }
+}
 
 /* Phase II, Area 4: previously no :hover state at all — the one nav
    control with zero hover feedback of any kind. Same border+glow

@@ -65,7 +65,14 @@
     </div>
     <button id="nav-more-toggle" class="nav-more-toggle" aria-label="More links" aria-expanded="false" aria-controls="nav-secondary">⋯</button>
     <button id="theme-toggle" aria-label="Switch to light mode">🌓<span class="nav-theme-label"> Theme</span></button>
-    <a class="nav-cta signal-link" href="https://app.joinmaie.com/signup">Join the Exchange</a>
+    <!-- See index.html's identical nav-cta for the full rationale
+         comment — kept short here to avoid tripling the same comment
+         across three pages. -->
+    <!-- signal-link dropped — see index.html's identical comment for why. -->
+    <a class="nav-cta" href="https://app.joinmaie.com/signup" aria-label="Sign Up">
+      <span class="nav-cta-default">Sign Up</span>
+      <span class="nav-cta-hover" aria-hidden="true">Join the Exchange</span>
+    </a>
   </div>
 </nav>
 
