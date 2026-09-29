@@ -532,6 +532,16 @@
         <div class="reflect-code">14 security &amp; data-isolation issues, found and resolved pre-launch</div>
       </div>
     </div>
+    <!-- Customer-voices slot (Category A while empty — renders nothing, adds
+         no request, no layout). Data below is PUBLIC (served in page source):
+         only display fields, never contact details or consent evidence — that
+         lives in the private consent log. Each entry needs a consentId, "web"
+         in uses, and an unexpired reviewBy or the renderer skips it. Making a
+         quote visible here is a Category C narrative change (NARRATIVE_LOCK.md
+         §8) — get the Narrative Review first. See the inline script near the
+         bottom of body for the schema. -->
+    <div class="trust-voices" id="trust-voices" hidden></div>
+    <script type="application/json" id="voices-data">[]</script>
     <!-- Trust anchor — replaces the removed Trust Pixie (Cinematic Content
          pass, 2026-09-11). See styles.css's .trust-anchor comment for the
          full rationale; reveals via the section's own existing
@@ -904,5 +914,50 @@
 <script src="scene-companion-intro.js" defer></script>
 <script src="checkpoints.js" defer></script>
 <script src="cursor.js" defer></script>
+<!-- Customer-voices renderer for #trust-voices. Inline (not a .js file) so an
+     empty slot costs zero extra requests. Entry schema (#voices-data):
+       { "consentId": "<id from the private consent log>",
+         "quote": "<verbatim, <=400 chars>",
+         "attribution": "<exactly as approved, <=120 chars>",
+         "uses": ["web", ...], "reviewBy": "YYYY-MM-DD" }
+     Skipped (never partially shown): missing/blank consentId, "web" not in
+     uses, no or past reviewBy, revoked === true, wrong types/lengths.
+     Text is inserted via textContent only. Caps at 3 entries and never shows
+     a count — a number would be a claim; only literally-shown quotes are. -->
+<script>
+(function () {
+  var slot = document.getElementById('trust-voices');
+  var dataEl = document.getElementById('voices-data');
+  if (!slot || !dataEl) return;
+  var entries;
+  try { entries = JSON.parse(dataEl.textContent); } catch (e) { return; }
+  if (!Array.isArray(entries) || entries.length === 0) return;
+  var today = new Date().toISOString().slice(0, 10);
+  function ok(e) {
+    return e && typeof e === 'object' && e.revoked !== true &&
+      typeof e.consentId === 'string' && e.consentId.trim() !== '' &&
+      typeof e.quote === 'string' && e.quote.trim() !== '' && e.quote.length <= 400 &&
+      typeof e.attribution === 'string' && e.attribution.trim() !== '' && e.attribution.length <= 120 &&
+      Array.isArray(e.uses) && e.uses.indexOf('web') !== -1 &&
+      typeof e.reviewBy === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.reviewBy) && e.reviewBy >= today;
+  }
+  var shown = entries.filter(ok).slice(0, 3);
+  if (!shown.length) return;
+  shown.forEach(function (e) {
+    var fig = document.createElement('figure');
+    fig.className = 'voice';
+    var bq = document.createElement('blockquote');
+    var p = document.createElement('p');
+    p.textContent = '“' + e.quote.trim() + '”';
+    bq.appendChild(p);
+    var cap = document.createElement('figcaption');
+    cap.textContent = '— ' + e.attribution.trim();
+    fig.appendChild(bq);
+    fig.appendChild(cap);
+    slot.appendChild(fig);
+  });
+  slot.hidden = false;
+})();
+</script>
 </body>
 </html>

@@ -686,6 +686,24 @@ section { padding: 120px clamp(20px, 6vw, 48px); max-width: 1080px; margin: 0 au
                0 0 14px color-mix(in srgb, var(--bg) 65%, transparent);
 }
 
+/* Customer-voices slot (#trust-voices, index.html). Hidden and unstyled-in-
+   effect while empty — nothing here paints until a consented entry exists.
+   Same legibility halo as .reflect-desc since it sits on the same atmosphere. */
+.trust-voices[hidden] { display: none; }
+.trust-voices { max-width: 640px; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 36px; }
+.trust-voices .voice { margin: 0 0 28px; }
+.trust-voices .voice:last-child { margin-bottom: 0; }
+.trust-voices blockquote { margin: 0; }
+.trust-voices blockquote p {
+  color: var(--text-1); font-size: 19px; line-height: 1.6; max-width: 56ch; margin: 0;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 90%, transparent),
+               0 0 14px color-mix(in srgb, var(--bg) 65%, transparent);
+}
+.trust-voices figcaption {
+  font-size: 14px; margin-top: 10px; color: var(--brand-light-text);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 90%, transparent);
+}
+
 /* ── Checkpoint — Cinematic Content pass (2026-09-11). One shared
    component reused at the three normal-flow chapter boundaries (see
    index.html's three [data-checkpoint] instances and checkpoints.js) —
