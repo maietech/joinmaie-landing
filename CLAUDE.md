@@ -447,3 +447,52 @@ Visitors should remember the story, the clarity, and the feeling of
 momentum — not the animations, shaders, or engineering. Every technical
 decision should support the narrative without drawing attention to
 itself.
+
+## Local development (added 2026-10-07, Mac M5 migration)
+
+Ecosystem-wide rules (secrets, production boundary, documentation
+authority) live in the sibling `MAIE_Framework_2.0/CLAUDE.md` §0; this
+section only covers what is specific to running this repo locally.
+
+- **No build step.** Serve the repo root as static files, e.g.
+  `python3 -m http.server 8080` → `http://localhost:8080`. The scroll-scene
+  JS modules need a real HTTP origin (not `file://`).
+- **`node_modules/` is committed** (218 files: Playwright + axe-core, pure
+  JS, used for ad hoc audits — there is no test suite or `npm test`). Do
+  **not** run `npm install`/`npm ci` here: it rewrites tracked files and
+  dirties the tree. Untracking it is a logged, unactioned hygiene item —
+  a git change that needs explicit approval, not a drive-by fix.
+- Playwright browser binaries are per machine: `npx playwright install
+  chromium` (writes to `~/Library/Caches`, not the repo).
+- Production deploys happen only through Cloudflare Pages on merge to
+  `main` (§16) — there is no manual deploy command to run.
+
+## Protected factual constraints (founder-approved 2026-10-07)
+
+**Don't let the website outrun the product.** These apply to every public
+surface: page copy, metadata and structured data, social cards, alt text,
+and README text the site serves.
+
+- **Never state or imply universal fingerprinting or guaranteed duplicate
+  prevention.** That rules out "every file is fingerprinted", "SHA-256
+  protects every upload", "duplicates can never slip through", or any
+  equally strong rewording. A reworded claim is the same violation, so
+  don't restore removed claims in new words.
+  - **The facts** (verified against `MAIE_Framework_2.0` source,
+    2026-10-07): a SHA-256 checksum is recorded only for **marketplace
+    assets uploaded as files**. User-uploaded media gets no content hash.
+    Duplicate detection is **heuristic**: client-side, images only,
+    flagging *likely* duplicates.
+  - **Evidence:**
+    `MAIE_Framework_2.0/findings-and-fixes/MAIE_PRODUCT_CLAIMS_VS_IMPLEMENTATION_FINDINGS_10-07-2026.md`.
+- **Product reality gate.** Write a capability in the present tense only
+  if it can be demonstrated in the current product. If only part of it
+  works, describe that part and qualify the rest. If none of it works,
+  either omit it or label it clearly as direction or roadmap. Never bridge
+  the gap silently.
+- **Pricing** appears only if it matches a plan that is actually
+  purchasable right now, verified against live billing. Roadmap or
+  non-purchasable tiers are never shown as current.
+- **No relationship claims** (partner, customer, endorsement, adoption)
+  without verified evidence. Organizations mentioned in market research
+  are research or outreach targets, not partners.
