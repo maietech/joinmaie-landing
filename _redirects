@@ -1,0 +1,11 @@
+# Repo files that Cloudflare Pages would otherwise serve from the site root
+# (the Pages project publishes the repository root with no build step).
+# Internal docs point to their GitHub copies; tooling files go home.
+/CLAUDE.md                            https://github.com/maietech/joinmaie-landing/blob/main/CLAUDE.md 301
+/DESIGN-DEV-GUIDE.md                  https://github.com/maietech/joinmaie-landing/blob/main/DESIGN-DEV-GUIDE.md 301
+/NARRATIVE_LOCK.md                    https://github.com/maietech/joinmaie-landing/blob/main/NARRATIVE_LOCK.md 301
+/maie-narrative-audit.md              https://github.com/maietech/joinmaie-landing/blob/main/maie-narrative-audit.md 301
+/chaos-to-signal-merge-direction.md   https://github.com/maietech/joinmaie-landing/blob/main/chaos-to-signal-merge-direction.md 301
+/package.json                         / 301
+/package-lock.json                    / 301
+/.gitignore                           / 301

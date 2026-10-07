@@ -153,7 +153,7 @@
     // reaches #paths, since setResolved() above hides the whole panel
     // there — no need to conditionally hide this link itself.
     '<div class="guide-region guide-skip">' +
-      '<span>Prefer the direct path?</span> <a class="guide-skip-link signal-link" href="#paths">Explore MAIE directly</a>' +
+      '<span>Prefer the direct path?</span> <a class="guide-skip-link signal-link" href="/explore">Explore MAIE directly</a>' +
     '</div>';
   panel.appendChild(body);
 
