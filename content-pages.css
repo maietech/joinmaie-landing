@@ -1,0 +1,67 @@
+/* content-pages.css — shared styles for the plain-reading pages that sit
+   outside the scroll story (/explore, /for/*). They use the same tokens,
+   fonts, nav, footer and background field as about.html/contact.html; this
+   file only adds what those pages kept inline, plus status labels, a
+   persona list and a numbered-steps list. No animation lives here: these
+   pages are the direct, readable path ("the story is an invitation, not a
+   gate"), and they must read fully without JavaScript. */
+
+.content-page { max-width: 760px; margin: 0 auto; padding: 140px 20px 80px; --content-text: var(--text-2); }
+/* Light theme: the site-wide --text-2 (#787472) measures 4.36:1 on the light
+   background, just under WCAG AA's 4.5:1 for body text. These are long-read
+   pages, so they use a slightly deeper warm grey (5.2:1). --text-2 itself is
+   left alone here, since changing it would also change the story pages. */
+[data-theme="light"] .content-page { --content-text: #6b6866; }
+.content-kicker { font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand-light-text); margin-bottom: 18px; }
+.content-page h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(38px, 7.5vw, 68px); letter-spacing: 0.02em; line-height: 1.02; margin: 0 0 24px; color: var(--text-1); }
+.content-page h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(24px, 3.8vw, 32px); letter-spacing: 0.01em; margin: 56px 0 14px; color: var(--text-1); scroll-margin-top: 96px; }
+.content-page h3 { font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 600; margin: 28px 0 8px; color: var(--text-1); }
+.content-page p { color: var(--content-text); line-height: 1.7; margin: 0 0 16px; }
+.content-page ul, .content-page ol { color: var(--content-text); line-height: 1.7; margin: 0 0 16px; padding-left: 20px; }
+.content-page li { margin-bottom: 6px; }
+.content-page strong { color: var(--text-1); font-weight: 600; }
+.content-page a { color: var(--brand-light-text); text-decoration: none; border-bottom: 1px solid currentColor; }
+.content-page a:hover, .content-page a:focus-visible { color: var(--text-1); }
+.content-lede { font-size: clamp(18px, 2.4vw, 21px); line-height: 1.6; color: var(--text-1) !important; }
+.content-links { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 10px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+/* A short definition block meant to be quotable on its own — by a reader,
+   a search snippet, or an answer engine. */
+.content-definition { border-left: 2px solid var(--accent); padding: 4px 0 4px 18px; margin: 28px 0 8px; }
+.content-definition p { margin: 0; color: var(--text-1); }
+
+/* Status labels: every capability on these pages carries one, so nothing
+   reads as shipped when it isn't. */
+.status { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; border: 1px solid currentColor; vertical-align: 2px; margin-right: 6px; white-space: nowrap; }
+.status-now { color: var(--accent-text); }
+[data-theme="light"] .status-now { color: #735305; } /* --accent-text measures 4.27:1 over the light theme's warm glow; this keeps AA everywhere */
+.status-limited { color: var(--brand-light-text); }
+.status-exploring { color: var(--text-2-small); border-style: dashed; }
+
+.status-list { list-style: none; padding: 0 !important; }
+.status-list li { padding: 12px 0; border-bottom: 1px solid var(--border); margin: 0; }
+.status-list li:last-child { border-bottom: none; }
+
+/* "I am…" persona entry points. Plain links in a list — fully keyboard and
+   screen-reader navigable, no cards-for-cards'-sake. */
+.persona-list { list-style: none; padding: 0 !important; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 20px 0 8px; }
+.persona-list li { margin: 0; }
+.persona-list a { display: block; height: 100%; padding: 16px 18px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-1); border-bottom: 1px solid var(--border); transition: border-color 0.2s ease, background-color 0.2s ease; }
+.persona-list a:hover, .persona-list a:focus-visible { border-color: var(--brand-light); background: var(--surface-2); color: var(--text-1); }
+.persona-list .persona-who { display: block; font-weight: 600; margin-bottom: 4px; }
+.persona-list .persona-want { display: block; font-size: 14px; color: var(--content-text); line-height: 1.5; }
+.persona-list .persona-soon { cursor: default; opacity: 0.75; }
+
+.step-list { list-style: none; padding: 0 !important; counter-reset: step; }
+.step-list li { counter-increment: step; position: relative; padding: 0 0 18px 44px; margin: 0; }
+.step-list li::before { content: counter(step, decimal-leading-zero); position: absolute; left: 0; top: 1px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent-text); }
+
+.content-cta { margin-top: 48px; padding: 28px 24px; border: 1px solid var(--border); border-radius: 6px; } /* no fill: links keep the page background's contrast */
+.content-cta h2 { margin-top: 0; }
+.content-cta .content-links { margin-top: 18px; }
+.content-note { font-size: 14px; color: var(--text-2-small) !important; }
+
+@media (max-width: 480px) {
+  .content-page { padding: 112px 16px 64px; }
+  .content-cta { padding: 22px 18px; }
+}
