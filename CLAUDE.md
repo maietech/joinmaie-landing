@@ -447,3 +447,22 @@ Visitors should remember the story, the clarity, and the feeling of
 momentum — not the animations, shaders, or engineering. Every technical
 decision should support the narrative without drawing attention to
 itself.
+
+## Local development (added 2026-10-07, Mac M5 migration)
+
+Ecosystem-wide rules (secrets, production boundary, documentation
+authority) live in the sibling `MAIE_Framework_2.0/CLAUDE.md` §0; this
+section only covers what is specific to running this repo locally.
+
+- **No build step.** Serve the repo root as static files, e.g.
+  `python3 -m http.server 8080` → `http://localhost:8080`. The scroll-scene
+  JS modules need a real HTTP origin (not `file://`).
+- **`node_modules/` is committed** (218 files: Playwright + axe-core, pure
+  JS, used for ad hoc audits — there is no test suite or `npm test`). Do
+  **not** run `npm install`/`npm ci` here: it rewrites tracked files and
+  dirties the tree. Untracking it is a logged, unactioned hygiene item —
+  a git change that needs explicit approval, not a drive-by fix.
+- Playwright browser binaries are per machine: `npx playwright install
+  chromium` (writes to `~/Library/Caches`, not the repo).
+- Production deploys happen only through Cloudflare Pages on merge to
+  `main` (§16) — there is no manual deploy command to run.
