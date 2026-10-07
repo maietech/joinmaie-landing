@@ -11,6 +11,9 @@
    background, just under WCAG AA's 4.5:1 for body text. These are long-read
    pages, so they use a slightly deeper warm grey (5.2:1). --text-2 itself is
    left alone here, since changing it would also change the story pages. */
+/* Dark theme: --text-2 (60% white) dips to 3.9:1 where body text crosses the
+   warm background glow on narrow screens; #b3b0ab keeps 5.6:1 there. */
+[data-theme="dark"] .content-page { --content-text: #b3b0ab; }
 [data-theme="light"] .content-page { --content-text: #6b6866; }
 .content-kicker { font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand-light-text); margin-bottom: 18px; }
 .content-page h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(38px, 7.5vw, 68px); letter-spacing: 0.02em; line-height: 1.02; margin: 0 0 24px; color: var(--text-1); }
@@ -37,6 +40,10 @@
 [data-theme="light"] .status-now { color: #735305; } /* --accent-text measures 4.27:1 over the light theme's warm glow; this keeps AA everywhere */
 .status-limited { color: var(--brand-light-text); }
 .status-exploring { color: var(--text-2-small); border-style: dashed; }
+.status-planned { color: var(--text-1); border-style: dashed; }
+
+/* Temporary service notice (see the SERVICE NOTICE comment in each page). */
+.service-notice { font-size: 14px; line-height: 1.6; color: var(--text-1) !important; border: 1px solid var(--border); border-left: 3px solid var(--brand-light); border-radius: 4px; padding: 12px 16px; margin: 0 0 32px; }
 
 .status-list { list-style: none; padding: 0 !important; }
 .status-list li { padding: 12px 0; border-bottom: 1px solid var(--border); margin: 0; }
