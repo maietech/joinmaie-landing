@@ -55,7 +55,7 @@ html[data-theme="light"] {
   --surface-2: #F1EDEA;
   --border: rgba(20,15,13,0.10);
   --text-1: rgba(26,20,18,0.92);
-  --text-2: rgba(26,20,18,0.58);
+  --text-2: rgba(26,20,18,0.64); /* was 0.58 (4.37:1 on --bg, under WCAG AA's 4.5:1); now 5.34:1, matching --text-2-small */
   --brand: #772E25;
   --brand-light: #A52A2A;
   --brand-glow: rgba(119,46,37,0.16);
