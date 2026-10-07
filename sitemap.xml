@@ -6,12 +6,12 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://joinmaie.com/about.html</loc>
+    <loc>https://joinmaie.com/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://joinmaie.com/contact.html</loc>
+    <loc>https://joinmaie.com/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
